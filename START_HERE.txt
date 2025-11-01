@@ -1,0 +1,189 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║                 🎉  PORTFOLIO CHARLES LANTIGUA JORGE  🎉                  ║
+║                                                                            ║
+║                    Portfolio Professionnel - Cybersécurité                ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+
+👋 BIENVENUE !
+
+Votre portfolio professionnel est prêt ! Ce dossier contient tout ce dont vous 
+avez besoin pour lancer, personnaliser et déployer votre site.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📚 COMMENCEZ PAR LIRE CES 3 FICHIERS (dans cet ordre)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. 📖 INDEX.md
+   → Vue d'ensemble de toute la documentation
+   → Par où commencer ?
+
+2. 🚀 QUICKSTART.md  
+   → Démarrer en 5 minutes
+   → Les 3 commandes essentielles
+
+3. 📸 IMAGE_GUIDE.md
+   → Comment ajouter vos images
+   → Instructions pas à pas
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚡ DÉMARRAGE ULTRA-RAPIDE (3 commandes)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Dans votre terminal :
+
+1. cd portfolio
+2. npm install
+3. npm run dev
+
+→ Ouvrez http://localhost:3000
+
+✅ C'est tout ! Votre portfolio est en ligne localement !
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📂 STRUCTURE DU DOSSIER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+portfolio/
+├── 📚 DOCUMENTATION/
+│   ├── INDEX.md              ← Commencez ici !
+│   ├── QUICKSTART.md         ← Guide de démarrage rapide
+│   ├── README.md             ← Documentation complète
+│   ├── PROJECT_SUMMARY.md    ← Récapitulatif du projet
+│   ├── IMAGE_GUIDE.md        ← Comment ajouter les images
+│   ├── COMMANDS.md           ← Toutes les commandes utiles
+│   └── STRUCTURE.txt         ← Arborescence du projet
+│
+├── 💻 CODE/
+│   ├── app/                  ← Pages Next.js
+│   ├── components/           ← Composants React
+│   ├── messages/             ← Traductions FR/EN
+│   └── public/               ← Images (à remplir)
+│
+└── ⚙️ CONFIGURATION/
+    ├── package.json          ← Dépendances
+    ├── tailwind.config.ts    ← Couleurs & styles
+    └── tsconfig.json         ← Configuration TypeScript
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✨ CE QUI A ÉTÉ CRÉÉ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Portfolio professionnel complet
+✅ Thème cybersécurité moderne (vert terminal + cyber bleu)
+✅ 6 sections : Hero, About, Experience, Projects, Skills, Contact
+✅ Background animé "Liquid Ether" avec particules
+✅ Support FR/EN avec toggle de langue
+✅ 100% responsive (mobile, tablet, desktop)
+✅ Animations fluides (Framer Motion)
+✅ 5 projets configurés avec emplacements pour images
+✅ Timeline d'expérience interactive
+✅ Navigation moderne avec menu hamburger
+✅ Prêt à déployer sur Vercel
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📸 PROCHAINE ÉTAPE : AJOUTER VOS IMAGES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Votre portfolio a des emplacements pour :
+
+1. Photo professionnelle (400x400px)
+   → public/images/hero/profile.jpg
+
+2. 5 images de projets (600-800x400px)
+   → public/images/projects/*.png
+
+📖 Guide détaillé : IMAGE_GUIDE.md
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 PERSONNALISATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Changez les couleurs     → tailwind.config.ts
+Modifiez le contenu      → messages/fr.json & messages/en.json
+Ajoutez un projet        → messages/fr.json (section projects)
+Changez les liens        → components/sections/*.tsx
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚀 DÉPLOIEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Sur Vercel (recommandé) :
+
+1. npm i -g vercel
+2. vercel
+3. Suivre les instructions
+
+→ Votre site sera en ligne en 2 minutes !
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🆘 BESOIN D'AIDE ?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❌ Port déjà utilisé
+   → npm run dev -- -p 3001
+
+❌ Module non trouvé
+   → rm -rf node_modules && npm install
+
+❌ Image ne s'affiche pas
+   → Vérifier le chemin dans /public/images/
+
+❌ Erreur de build
+   → rm -rf .next && npm run build
+
+📖 Plus d'aide : COMMANDS.md
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📞 INFORMATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Portfolio : Charles Lantigua Jorge
+Email     : charleslantiguajorge@gmail.com
+GitHub    : @mpgamer75
+LinkedIn  : Charles Lantigua Jorge
+
+Tech Stack:
+- Next.js 14 + TypeScript
+- Tailwind CSS
+- Framer Motion
+- next-intl (i18n)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ CHECKLIST DE LANCEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+□ Lire INDEX.md
+□ Lire QUICKSTART.md
+□ Installer les dépendances (npm install)
+□ Lancer le serveur (npm run dev)
+□ Ajouter les images (voir IMAGE_GUIDE.md)
+□ Personnaliser le contenu (messages/*.json)
+□ Tester en local
+□ Déployer sur Vercel
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎉 PRÊT À COMMENCER ?
+
+1. Ouvrez INDEX.md pour comprendre la structure
+2. Suivez QUICKSTART.md pour lancer le projet
+3. Ajoutez vos images avec IMAGE_GUIDE.md
+4. Déployez et profitez de votre portfolio !
+
+🚀 Bon développement !
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

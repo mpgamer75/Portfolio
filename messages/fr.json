@@ -1,0 +1,144 @@
+{
+  "nav": {
+    "home": "Accueil",
+    "about": "À propos",
+    "experience": "Expérience",
+    "projects": "Projets",
+    "skills": "Compétences",
+    "contact": "Contact"
+  },
+  "hero": {
+    "greeting": "Bonjour, je suis",
+    "title": "Ingénieur Cybersécurité & Développeur",
+    "subtitle": "Passionné par la sécurité offensive, le développement d'outils et l'innovation technologique",
+    "cta": "Voir mes projets",
+    "ctaContact": "Me contacter"
+  },
+  "about": {
+    "title": "À Propos",
+    "description": "Étudiant ingénieur en Informatique et Cybersécurité à l'ECE Paris, je me spécialise dans la sécurité offensive, le développement d'outils et l'analyse de menaces. Avec une expérience pratique en SOC, pentesting et développement d'applications sécurisées, je cherche constamment à approfondir mes compétences techniques.",
+    "location": "Paris, France",
+    "status": "Étudiant en M2 - ECE Paris",
+    "availability": "Disponible pour stages/alternance"
+  },
+  "experience": {
+    "title": "Expérience Professionnelle",
+    "present": "Présent",
+    "jobs": [
+      {
+        "title": "Stagiaire Ingénieur Cybersécurité",
+        "company": "AlticeDo",
+        "location": "Saint-Domingue, Rép. Dominicaine",
+        "period": "Avril 2025 - Août 2025",
+        "description": [
+          "Gestion de la réponse aux incidents de sécurité (SOC) via l'analyse forensique et la coordination de réponses avancées",
+          "Déploiement et configuration de solutions Fortinet (FortiGate, FortiMail Cloud, FortiAnalyzer)",
+          "Administration de solutions EDR Trellix et automatisation des rapports d'audit Active Directory",
+          "Analyse de menaces via des outils OSINT"
+        ]
+      },
+      {
+        "title": "Stage de Découverte de l'Entreprise",
+        "company": "Consulat Général de la République Dominicaine",
+        "location": "Paris, France",
+        "period": "Juin 2024 - Juillet 2024",
+        "description": [
+          "Optimisation des flux de travail administratifs par l'implémentation de solutions techniques",
+          "Automatisation de la gestion documentaire",
+          "Analyse des opérations financières et organisationnelles"
+        ]
+      },
+      {
+        "title": "Prestataire Indépendant",
+        "company": "Plateforme Student Pop",
+        "location": "Paris, France",
+        "period": "Février 2024 - Septembre 2025",
+        "description": [
+          "Réalisation de missions événementielles et techniques pour des clients variés (Coca-Cola, Wild Code School)",
+          "Coordination logistique et développement de contenus pédagogiques en Python"
+        ]
+      }
+    ]
+  },
+  "projects": {
+    "title": "Projets",
+    "viewCode": "Voir le code",
+    "viewDemo": "Voir la démo",
+    "items": [
+      {
+        "title": "Security Scanner",
+        "description": "Outil d'évaluation de sécurité en Bash pour Red Teams, intégrant des modules OSINT, réseau, web et exploitation. Interface interactive et modes adaptatifs pour optimiser les audits de pentesting.",
+        "tech": ["Bash", "Nmap", "Nuclei", "Subfinder", "OSINT", "Gobuster", "Metasploit"],
+        "github": "https://github.com/mpgamer75/security-scanner",
+        "featured": true
+      },
+      {
+        "title": "Encryptor",
+        "description": "Utilitaire de chiffrement de fichiers multi-plateforme en Bash et OpenSSL. Implémentation de 8 algorithmes modernes (AES-256-GCM, ChaCha20) et gestion sécurisée des clés via la cryptographie à courbes elliptiques (ECC).",
+        "tech": ["Bash", "OpenSSL", "Debian Packaging", "GitHub Actions"],
+        "github": "https://github.com/mpgamer75/encryptor",
+        "featured": true
+      },
+      {
+        "title": "SABER",
+        "description": "Plateforme web sécurisée avec Next.js pour le chiffrement et le déchiffrement de documents. Développement du backend et de l'interface pour garantir la confidentialité des échanges de données sensibles.",
+        "tech": ["Next.js", "JavaScript", "Cryptographie web", "Vercel"],
+        "github": "https://github.com/mpgamer75/fall2024-webtech-210",
+        "demo": "https://fall2024-webtech-210-saber11-charles-projects-0eed9e6d.vercel.app/",
+        "featured": true
+      },
+      {
+        "title": "IoC App Altice",
+        "description": "Application de gestion et d'analyse d'Indicateurs de Compromission (IoC) pour améliorer la détection de menaces et la réponse aux incidents.",
+        "tech": ["Python", "Web Development", "Cybersecurity"],
+        "github": "https://github.com/mpgamer75/IoC-app-altice",
+        "featured": false
+      },
+      {
+        "title": "Warhammer 40k Terminal Display",
+        "description": "Projet créatif combinant passion pour Warhammer 40k et compétences en développement. Interface terminal stylisée et interactive.",
+        "tech": ["Terminal", "CLI", "Creative Coding"],
+        "github": "https://github.com/mpgamer75/Warhammer-40k-terminal-display",
+        "featured": false
+      }
+    ]
+  },
+  "skills": {
+    "title": "Compétences",
+    "categories": {
+      "programming": {
+        "title": "Programmation",
+        "items": ["C", "C#", "Java", "JavaScript", "TypeScript", "PowerShell", "Python", "SQL", "Bash"]
+      },
+      "security": {
+        "title": "Sécurité & Systèmes",
+        "items": ["Kali Linux", "Linux", "Nmap", "Wireshark", "Metasploit", "Fortinet", "Trellix EDR", "OSINT"]
+      },
+      "web": {
+        "title": "Développement Web",
+        "items": ["Next.js", "React", "Node.js", "Vercel", "REST API"]
+      },
+      "tools": {
+        "title": "Outils & Plateformes",
+        "items": ["Git", "GitHub", "Docker", "TryHackMe", "Active Directory"]
+      },
+      "certifications": {
+        "title": "Certifications",
+        "items": ["Cisco Introduction to Cybersecurity"]
+      }
+    }
+  },
+  "contact": {
+    "title": "Me Contacter",
+    "subtitle": "Intéressé par une collaboration ? N'hésitez pas à me contacter !",
+    "email": "Email",
+    "linkedin": "LinkedIn",
+    "github": "GitHub",
+    "phone": "Téléphone",
+    "send": "Envoyer un message"
+  },
+  "footer": {
+    "rights": "Tous droits réservés",
+    "built": "Créé avec Next.js et Tailwind CSS"
+  }
+}

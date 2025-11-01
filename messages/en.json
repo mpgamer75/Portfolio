@@ -1,0 +1,144 @@
+{
+  "nav": {
+    "home": "Home",
+    "about": "About",
+    "experience": "Experience",
+    "projects": "Projects",
+    "skills": "Skills",
+    "contact": "Contact"
+  },
+  "hero": {
+    "greeting": "Hi, I'm",
+    "title": "Cybersecurity Engineer & Developer",
+    "subtitle": "Passionate about offensive security, tool development and technological innovation",
+    "cta": "View my projects",
+    "ctaContact": "Contact me"
+  },
+  "about": {
+    "title": "About Me",
+    "description": "Computer Science and Cybersecurity Engineering student at ECE Paris, I specialize in offensive security, tool development and threat analysis. With hands-on experience in SOC, pentesting and secure application development, I constantly seek to deepen my technical skills.",
+    "location": "Paris, France",
+    "status": "Master's Student - ECE Paris",
+    "availability": "Available for internships"
+  },
+  "experience": {
+    "title": "Professional Experience",
+    "present": "Present",
+    "jobs": [
+      {
+        "title": "Cybersecurity Engineer Intern",
+        "company": "AlticeDo",
+        "location": "Santo Domingo, Dominican Republic",
+        "period": "April 2025 - August 2025",
+        "description": [
+          "Security incident response management (SOC) through forensic analysis and advanced response coordination",
+          "Deployment and configuration of Fortinet solutions (FortiGate, FortiMail Cloud, FortiAnalyzer)",
+          "Trellix EDR solutions administration and Active Directory audit report automation",
+          "Threat analysis using OSINT tools"
+        ]
+      },
+      {
+        "title": "Business Discovery Intern",
+        "company": "General Consulate of the Dominican Republic",
+        "location": "Paris, France",
+        "period": "June 2024 - July 2024",
+        "description": [
+          "Optimization of administrative workflows through technical solutions implementation",
+          "Document management automation",
+          "Financial and organizational operations analysis"
+        ]
+      },
+      {
+        "title": "Independent Contractor",
+        "company": "Student Pop Platform",
+        "location": "Paris, France",
+        "period": "February 2024 - September 2025",
+        "description": [
+          "Event and technical missions for various clients (Coca-Cola, Wild Code School)",
+          "Logistics coordination and Python educational content development"
+        ]
+      }
+    ]
+  },
+  "projects": {
+    "title": "Projects",
+    "viewCode": "View code",
+    "viewDemo": "View demo",
+    "items": [
+      {
+        "title": "Security Scanner",
+        "description": "Security assessment tool in Bash for Red Teams, integrating OSINT, network, web and exploitation modules. Interactive interface and adaptive modes to optimize pentesting audits.",
+        "tech": ["Bash", "Nmap", "Nuclei", "Subfinder", "OSINT", "Gobuster", "Metasploit"],
+        "github": "https://github.com/mpgamer75/security-scanner",
+        "featured": true
+      },
+      {
+        "title": "Encryptor",
+        "description": "Multi-platform file encryption utility in Bash and OpenSSL. Implementation of 8 modern algorithms (AES-256-GCM, ChaCha20) and secure key management via Elliptic Curve Cryptography (ECC).",
+        "tech": ["Bash", "OpenSSL", "Debian Packaging", "GitHub Actions"],
+        "github": "https://github.com/mpgamer75/encryptor",
+        "featured": true
+      },
+      {
+        "title": "SABER",
+        "description": "Secure web platform with Next.js for document encryption and decryption. Backend and interface development to ensure confidentiality of sensitive data exchanges.",
+        "tech": ["Next.js", "JavaScript", "Web Cryptography", "Vercel"],
+        "github": "https://github.com/mpgamer75/fall2024-webtech-210",
+        "demo": "https://fall2024-webtech-210-saber11-charles-projects-0eed9e6d.vercel.app/",
+        "featured": true
+      },
+      {
+        "title": "IoC App Altice",
+        "description": "Application for managing and analyzing Indicators of Compromise (IoC) to improve threat detection and incident response.",
+        "tech": ["Python", "Web Development", "Cybersecurity"],
+        "github": "https://github.com/mpgamer75/IoC-app-altice",
+        "featured": false
+      },
+      {
+        "title": "Warhammer 40k Terminal Display",
+        "description": "Creative project combining passion for Warhammer 40k and development skills. Stylized and interactive terminal interface.",
+        "tech": ["Terminal", "CLI", "Creative Coding"],
+        "github": "https://github.com/mpgamer75/Warhammer-40k-terminal-display",
+        "featured": false
+      }
+    ]
+  },
+  "skills": {
+    "title": "Skills",
+    "categories": {
+      "programming": {
+        "title": "Programming",
+        "items": ["C", "C#", "Java", "JavaScript", "TypeScript", "PowerShell", "Python", "SQL", "Bash"]
+      },
+      "security": {
+        "title": "Security & Systems",
+        "items": ["Kali Linux", "Linux", "Nmap", "Wireshark", "Metasploit", "Fortinet", "Trellix EDR", "OSINT"]
+      },
+      "web": {
+        "title": "Web Development",
+        "items": ["Next.js", "React", "Node.js", "Vercel", "REST API"]
+      },
+      "tools": {
+        "title": "Tools & Platforms",
+        "items": ["Git", "GitHub", "Docker", "TryHackMe", "Active Directory"]
+      },
+      "certifications": {
+        "title": "Certifications",
+        "items": ["Cisco Introduction to Cybersecurity"]
+      }
+    }
+  },
+  "contact": {
+    "title": "Contact Me",
+    "subtitle": "Interested in working together? Feel free to reach out!",
+    "email": "Email",
+    "linkedin": "LinkedIn",
+    "github": "GitHub",
+    "phone": "Phone",
+    "send": "Send message"
+  },
+  "footer": {
+    "rights": "All rights reserved",
+    "built": "Built with Next.js and Tailwind CSS"
+  }
+}
