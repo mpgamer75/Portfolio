@@ -45,7 +45,7 @@ export default function ContactSection() {
           transition={{ duration: 0.6 }}
         >
           <h2 className="text-4xl sm:text-5xl font-bold text-center mb-4">
-            <span className="text-cyber-primary glow-text">Contact Me</span>
+            <span className="text-cyber-primary">Contact Me</span>
           </h2>
           <div className="w-24 h-1 bg-cyber-primary mx-auto mb-8" />
           

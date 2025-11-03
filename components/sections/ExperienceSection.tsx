@@ -50,7 +50,7 @@ export default function ExperienceSection() {
           transition={{ duration: 0.6 }}
         >
           <h2 className="text-4xl sm:text-5xl font-bold text-center mb-4">
-            <span className="text-cyber-primary glow-text">Professional Experience</span>
+            <span className="text-cyber-primary">Professional Experience</span>
           </h2>
           <div className="w-24 h-1 bg-cyber-primary mx-auto mb-16" />
 
@@ -71,7 +71,7 @@ export default function ExperienceSection() {
                 }`}
               >
                 {/* Timeline dot */}
-                <div className="hidden md:block absolute top-0 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-cyber-primary rounded-full border-4 border-cyber-darker shadow-[0_0_10px_rgba(0,255,65,0.5)]" />
+                <div className="hidden md:block absolute top-0 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-cyber-primary rounded-full border-4 border-cyber-darker shadow-[0_0_10px_rgba(255,255,255,0.5)]" />
 
                 {/* Card */}
                 <div className="cyber-card rounded-lg p-6">

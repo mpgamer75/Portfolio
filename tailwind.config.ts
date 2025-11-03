@@ -10,11 +10,11 @@ const config: Config = {
     extend: {
       colors: {
         cyber: {
-          primary: "#00ff41",
-          secondary: "#0affef",
+          primary: "#FFFFFF",    // CHANGÉ: Blanc
+          secondary: "#E5E7EB",  // CHANGÉ: Gris (Tailwind gray-200)
           dark: "#0a0e27",
           darker: "#050814",
-          accent: "#ff006e",
+          accent: "#9CA3AF",     // CHANGÉ: Gris (Tailwind gray-400)
         },
       },
       backgroundImage: {
@@ -36,8 +36,9 @@ const config: Config = {
           "100%": { transform: "translateY(0)", opacity: "1" },
         },
         glow: {
-          "0%": { boxShadow: "0 0 5px #00ff41, 0 0 10px #00ff41" },
-          "100%": { boxShadow: "0 0 10px #00ff41, 0 0 20px #00ff41, 0 0 30px #00ff41" },
+          // CHANGÉ pour la nouvelle couleur primaire (blanc)
+          "0%": { boxShadow: "0 0 5px #FFFFFF, 0 0 10px #FFFFFF" },
+          "100%": { boxShadow: "0 0 10px #FFFFFF, 0 0 20px #FFFFFF, 0 0 30px #FFFFFF" },
         },
       },
     },

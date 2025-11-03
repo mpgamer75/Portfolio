@@ -58,7 +58,7 @@ export default function ProjectsSection() {
           transition={{ duration: 0.6 }}
         >
           <h2 className="text-4xl sm:text-5xl font-bold text-center mb-4">
-            <span className="text-cyber-primary glow-text">Projects</span>
+            <span className="text-cyber-primary">Projects</span>
           </h2>
           <div className="w-24 h-1 bg-cyber-primary mx-auto mb-16" />
 

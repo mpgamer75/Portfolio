@@ -14,7 +14,7 @@ export default function AboutSection() {
           transition={{ duration: 0.6 }}
         >
           <h2 className="text-4xl sm:text-5xl font-bold text-center mb-4">
-            <span className="text-cyber-primary glow-text">About Me</span>
+            <span className="text-cyber-primary">About Me</span>
           </h2>
           <div className="w-24 h-1 bg-cyber-primary mx-auto mb-16" />
 
@@ -76,7 +76,7 @@ export default function AboutSection() {
                 
                 <div className="flex items-center space-x-3 text-gray-300">
                   <GraduationCap className="text-cyber-primary flex-shrink-0" size={24} />
-                  <span>Master's Student - ECE Paris</span>
+                  <span>Master&apos;s Student - ECE Paris</span>
                 </div>
                 
                 <div className="flex items-center space-x-3 text-gray-300">

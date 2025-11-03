@@ -38,7 +38,7 @@ export default function Navigation() {
           {/* Logo */}
           <motion.a
             href="#home"
-            className="text-2xl font-bold text-cyber-primary glow-text"
+            className="text-2xl font-bold text-cyber-primary"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >

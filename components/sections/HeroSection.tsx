@@ -38,25 +38,25 @@ export default function HeroSection() {
         {/* Greeting */}
         <motion.p
           variants={itemVariants}
-          className="text-cyber-secondary text-lg sm:text-xl mb-4 font-mono"
+          className="text-cyber-accent text-lg sm:text-xl mb-4 font-mono text-shadow"
         >
-          Hi, I'm
+          Hi, I&apos;m
         </motion.p>
 
         {/* Name with terminal effect */}
         <motion.h1
           variants={itemVariants}
-          className="text-5xl sm:text-7xl md:text-8xl font-bold mb-6"
+          className="text-5xl sm:text-7xl md:text-8xl font-bold mb-6 text-cyber-primary text-shadow"
         >
-          <span className="text-white">Charles</span>
+          Charles
           <br />
-          <span className="text-cyber-primary glow-text">Lantigua Jorge</span>
+          Lantigua Jorge
         </motion.h1>
 
         {/* Title */}
         <motion.h2
           variants={itemVariants}
-          className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-300 mb-6"
+          className="text-2xl sm:text-3xl md:text-4xl font-semibold text-cyber-secondary mb-6 text-shadow"
         >
           Cybersecurity Engineer & Developer
         </motion.h2>
@@ -64,7 +64,7 @@ export default function HeroSection() {
         {/* Subtitle */}
         <motion.p
           variants={itemVariants}
-          className="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto mb-12"
+          className="text-lg sm:text-xl text-cyber-accent max-w-2xl mx-auto mb-12 text-shadow"
         >
           Passionate about offensive security, tool development and technological innovation
         </motion.p>
@@ -91,13 +91,13 @@ export default function HeroSection() {
         {/* Social Links */}
         <motion.div
           variants={itemVariants}
-          className="flex gap-6 justify-center items-center"
+          className="flex gap-6 justify-center items-center icon-shadow" 
         >
           <a
             href="https://github.com/mpgamer75"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-gray-400 hover:text-cyber-primary transition-colors duration-300"
+            className="text-cyber-secondary hover:text-cyber-primary transition-colors duration-300"
             aria-label="GitHub"
           >
             <Github size={28} />
@@ -106,14 +106,14 @@ export default function HeroSection() {
             href="https://www.linkedin.com/in/charles-lantigua-jorge"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-gray-400 hover:text-cyber-primary transition-colors duration-300"
+            className="text-cyber-secondary hover:text-cyber-primary transition-colors duration-300"
             aria-label="LinkedIn"
           >
             <Linkedin size={28} />
           </a>
           <a
             href="mailto:charleslantiguajorge@gmail.com"
-            className="text-gray-400 hover:text-cyber-primary transition-colors duration-300"
+            className="text-cyber-secondary hover:text-cyber-primary transition-colors duration-300"
             aria-label="Email"
           >
             <Mail size={28} />
@@ -129,9 +129,9 @@ export default function HeroSection() {
             repeat: Infinity,
             repeatType: 'reverse',
           }}
-          className="absolute bottom-10 left-1/2 transform -translate-x-1/2"
+          className="absolute bottom-10 left-1/2 transform -translate-x-1/2 icon-shadow" 
         >
-          <ArrowDown className="text-cyber-primary" size={32} />
+          <ArrowDown className="text-cyber-accent" size={32} />
         </motion.div>
       </motion.div>
     </section>
