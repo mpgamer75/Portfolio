@@ -40,7 +40,7 @@ export default function AboutSection() {
                   {/* Image with zoom effect */}
                   <div className="relative w-full h-full overflow-hidden">
                     <Image 
-                      src="/images/{projects,hero}/photo_hero.jpg" 
+                      src="/images/hero/photo_hero.jpg" 
                       alt="Charles Lantigua Jorge" 
                       fill 
                       className="object-cover transition-transform duration-500 group-hover:scale-110"
