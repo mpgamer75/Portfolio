@@ -6,7 +6,6 @@ import Folder from '@/components/ui/Folder';
 import ProjectDetailModal from '@/components/ui/ProjectDetailModal';
 import Image from 'next/image';
 
-// Définition du type Project
 type Project = {
   title: string;
   description: string;
@@ -20,7 +19,6 @@ type Project = {
 export default function ProjectsSection() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
-  // La liste des projets reste la même
   const projects: Project[] = [
     {
       title: 'Security Scanner',
@@ -79,59 +77,70 @@ export default function ProjectsSection() {
       tech: ['Terminal', 'CLI', 'Creative Coding'],
       github: 'https://github.com/mpgamer75/Warhammer-40k-terminal-display',
       featured: false,
-      imagePaths: [], // Tableau vide, affichera le placeholder
+      imagePaths: [],
     },
   ];
 
-  // Crée les "papiers" (les 5 fiches projet) pour le composant Folder
   const folderItems = projects.map((project, index) => (
     <div
       key={index}
-      className="w-full h-full rounded-md overflow-hidden relative cursor-pointer group"
+      className="w-full h-full rounded-lg overflow-hidden relative cursor-pointer group"
       onClick={(e) => {
-        e.stopPropagation(); // Empêche le dossier de s'ouvrir/fermer
-        setSelectedProject(project); // Ouvre la modale pour CE projet
+        e.stopPropagation();
+        setSelectedProject(project);
       }}
     >
-      <div className="w-full h-full bg-white/95 rounded-lg flex flex-col items-center justify-start p-2 transition-all duration-300 group-hover:scale-105 border border-gray-400/30">
-        <div className="w-full flex-grow relative mb-1">
-          
-          {/* CORRECTION: Remplace l'appel réseau par un placeholder local */}
+      <div className="w-full h-full bg-gradient-to-br from-white via-gray-50 to-gray-100 rounded-lg flex flex-col items-center justify-between p-3 transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-2xl border-2 border-gray-300 group-hover:border-cyber-primary">
+        <div className="w-full h-[110px] relative rounded-md overflow-hidden bg-cyber-darker/5 flex items-center justify-center mb-2">
           {(project.imagePaths && project.imagePaths.length > 0) ? (
-            <Image
-              src={project.imagePaths[0]}
-              alt={project.title}
-              fill
-              className="object-contain" // Image entièrement visible
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            />
+            <div className="relative w-full h-full">
+              <Image
+                src={project.imagePaths[0]}
+                alt={project.title}
+                fill
+                className="object-contain p-1"
+                sizes="200px"
+                unoptimized
+              />
+            </div>
           ) : (
-            // Placeholder local pour le projet sans image (Warhammer)
-            // Ceci ne fait pas d'appel réseau et n'est pas un SVG externe
-            <div className="w-full h-full flex flex-col items-center justify-center text-cyber-darker/50 p-2 opacity-75">
+            <div className="flex flex-col items-center justify-center text-gray-400 p-2">
               <svg 
-                className="w-1/2 h-1/2" 
+                className="w-10 h-10 mb-1" 
                 fill="none" 
                 stroke="currentColor" 
-                viewBox="0 0 24 24" 
-                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l-1.586-1.586a2 2 0 00-2.828 0L6 14m6-6l.01.01" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <p className="text-xs font-mono mt-1 text-center">No Preview</p>
+              <p className="text-[9px] font-mono text-center">No Preview</p>
             </div>
           )}
         </div>
-        <div className="w-full flex-shrink-0">
-          <h4 className="text-cyber-darker text-xs font-bold text-center px-1 truncate">
+        <div className="w-full bg-white/90 backdrop-blur-sm rounded-md px-2 py-1.5">
+          <h4 className="text-cyber-darker text-[10px] font-bold text-center truncate mb-1">
             {project.title}
           </h4>
+          <div className="flex justify-center gap-1 flex-wrap">
+            {project.tech.slice(0, 2).map((tech, i) => (
+              <span
+                key={i}
+                className="text-[7px] font-mono text-gray-600 bg-gray-200 px-1 py-0.5 rounded"
+              >
+                {tech}
+              </span>
+            ))}
+            {project.tech.length > 2 && (
+              <span className="text-[7px] font-mono text-gray-600 bg-gray-200 px-1 py-0.5 rounded">
+                +{project.tech.length - 2}
+              </span>
+            )}
+          </div>
         </div>
       </div>
-      <div className="absolute inset-0 bg-cyber-primary/0 group-hover:bg-cyber-primary/20 transition-colors duration-300 rounded-lg" />
+      <div className="absolute inset-0 bg-cyber-primary/0 group-hover:bg-cyber-primary/10 transition-colors duration-300 rounded-lg pointer-events-none" />
     </div>
   ));
-
 
   return (
     <>
@@ -162,8 +171,8 @@ export default function ProjectsSection() {
             />
           </motion.div>
           
-          <p className="text-center text-cyber-primary text-shadow font-mono mt-32 text-lg animate-pulse">
-            Click the Folder to explore
+          <p className="text-center text-white text-shadow font-mono mt-32 text-xl font-bold animate-pulse">
+            Click the Folder to see projects
           </p>
 
           <motion.div
@@ -185,7 +194,6 @@ export default function ProjectsSection() {
         </motion.div>
       </section>
 
-      {/* Modale de Détail */}
       <AnimatePresence>
         {selectedProject && (
           <ProjectDetailModal 

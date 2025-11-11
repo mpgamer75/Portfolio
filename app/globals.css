@@ -164,18 +164,18 @@ a {
   @apply bg-cyber-dark/30 border-2 border-dashed border-cyber-primary/30 flex items-center justify-center;
 }
 
-/* STYLES LIGHTBOX AJOUTÉS */
-.lightbox-backdrop {
-  @apply fixed inset-0 bg-cyber-darker/90 backdrop-blur-sm z-[100] flex items-center justify-center p-4;
+/* PROJECT MODAL STYLES */
+.project-modal-backdrop {
+  @apply fixed inset-0 bg-cyber-darker/95 backdrop-blur-md z-[100] flex items-center justify-center p-4;
   cursor: zoom-out;
 }
 
-.lightbox-content {
-  @apply relative w-full h-full max-w-6xl max-h-[90vh] bg-cyber-dark p-4 rounded-lg shadow-2xl border border-cyber-primary/30;
+.project-modal-content {
+  @apply relative w-full max-w-5xl max-h-[90vh] bg-cyber-dark/95 rounded-lg shadow-2xl border-2 border-cyber-primary/50;
   cursor: default;
 }
 
-.lightbox-close-button {
-  @apply absolute top-3 right-3 text-cyber-primary/70 hover:text-cyber-primary hover:scale-110 transition-all z-10;
+.project-modal-close-button {
+  @apply absolute top-4 right-4 text-cyber-primary/70 hover:text-cyber-primary hover:scale-110 hover:rotate-90 transition-all duration-300 z-20;
   cursor: pointer;
 }
