@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { MapPin, GraduationCap, Calendar } from 'lucide-react';
+import Image from 'next/image'; // <-- AJOUTÉ
 
 export default function AboutSection() {
   return (
@@ -19,7 +20,7 @@ export default function AboutSection() {
           <div className="w-24 h-1 bg-cyber-primary mx-auto mb-16" />
 
           <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Image placeholder */}
+            {/* Image container */}
             <motion.div
               initial={{ opacity: 0, x: -50 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -31,32 +32,21 @@ export default function AboutSection() {
                 {/* Decorative border */}
                 <div className="absolute inset-0 border-2 border-cyber-primary rounded-lg transform translate-x-4 translate-y-4" />
                 
-                {/* Image container */}
-                <div className="relative image-placeholder rounded-lg h-full w-full overflow-hidden bg-cyber-dark/50 border-2 border-cyber-primary/50">
-                  {/* Placeholder text */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-cyber-primary/50">
-                    <svg
-                      className="w-24 h-24 mb-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                      />
-                    </svg>
-                    <p className="text-sm font-mono">Professional Photo</p>
-                    <p className="text-xs font-mono mt-2">400x400px</p>
-                  </div>
-                  {/* Replace with: <Image src="/images/hero/profile.jpg" alt="Charles Lantigua Jorge" fill className="object-cover" /> */}
+                {/* Image container MODIFIÉ */}
+                <div className="relative rounded-lg h-full w-full overflow-hidden border-2 border-cyber-primary/50">
+                  {/* Image ajoutée */}
+                  <Image 
+                    src="/images/{projects,hero}/photo_hero.jpg" 
+                    alt="Charles Lantigua Jorge" 
+                    fill 
+                    className="object-cover"
+                    priority
+                  />
                 </div>
               </div>
             </motion.div>
 
-            {/* Content */}
+            {/* Content  */}
             <motion.div
               initial={{ opacity: 0, x: 50 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -85,7 +75,7 @@ export default function AboutSection() {
                 </div>
               </div>
 
-              {/* Stats */}
+              {/* Stats (inchangés) */}
               <div className="grid grid-cols-3 gap-4 pt-8">
                 <div className="cyber-card rounded-lg p-4 text-center">
                   <div className="text-3xl font-bold text-cyber-primary mb-1">5+</div>

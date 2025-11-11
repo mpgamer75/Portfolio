@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import ProjectCard from '@/components/ui/ProjectCard';
 
 export default function ProjectsSection() {
+  // MODIFIÉ : Remplacement de 'imagePath' par 'imagePaths' avec les tableaux d'images
   const projects = [
     {
       title: 'Security Scanner',
@@ -11,7 +12,11 @@ export default function ProjectsSection() {
       tech: ['Bash', 'Nmap', 'Nuclei', 'Subfinder', 'OSINT', 'Gobuster', 'Metasploit'],
       github: 'https://github.com/mpgamer75/security-scanner',
       featured: true,
-      // imagePath: '/images/projects/security-scanner.png', // Uncomment when image is added
+      imagePaths: [
+        '/images/projects/security-scanner1.png', 
+        '/images/projects/security-scanner2.png', 
+        '/images/projects/security-scanner3.png'
+      ],
     },
     {
       title: 'Encryptor',
@@ -19,7 +24,13 @@ export default function ProjectsSection() {
       tech: ['Bash', 'OpenSSL', 'Debian Packaging', 'GitHub Actions'],
       github: 'https://github.com/mpgamer75/encryptor',
       featured: true,
-      // imagePath: '/images/projects/encryptor.png', // Uncomment when image is added
+      imagePaths: [
+        '/images/projects/encryptor1.png',
+        '/images/projects/encryptor2.png',
+        '/images/projects/encryptor3.png',
+        '/images/projects/encryptor4.png',
+        '/images/projects/encryptor5.png'
+      ],
     },
     {
       title: 'SABER',
@@ -28,7 +39,7 @@ export default function ProjectsSection() {
       github: 'https://github.com/mpgamer75/fall2024-webtech-210',
       demo: 'https://fall2024-webtech-210-saber11-charles-projects-0eed9e6d.vercel.app/',
       featured: true,
-      // imagePath: '/images/projects/saber.png', // Uncomment when image is added
+      imagePaths: ['/images/projects/Saber.png'], // Image unique dans un tableau
     },
     {
       title: 'IoC App Altice',
@@ -36,7 +47,15 @@ export default function ProjectsSection() {
       tech: ['Python', 'Web Development', 'Cybersecurity'],
       github: 'https://github.com/mpgamer75/IoC-app-altice',
       featured: false,
-      // imagePath: '/images/projects/ioc-app.png', // Uncomment when image is added
+      imagePaths: [
+        '/images/projects/IoC1.png',
+        '/images/projects/IoC2.png',
+        '/images/projects/IoC3.png',
+        '/images/projects/IoC4.png',
+        '/images/projects/IoC5.png',
+        '/images/projects/IoC6.png',
+        '/images/projects/IoC7.png'
+      ],
     },
     {
       title: 'Warhammer 40k Terminal Display',
@@ -44,7 +63,7 @@ export default function ProjectsSection() {
       tech: ['Terminal', 'CLI', 'Creative Coding'],
       github: 'https://github.com/mpgamer75/Warhammer-40k-terminal-display',
       featured: false,
-      // imagePath: '/images/projects/warhammer.png', // Uncomment when image is added
+      // Pas d'image fournie pour celui-ci, le placeholder s'affichera.
     },
   ];
 
@@ -62,7 +81,7 @@ export default function ProjectsSection() {
           </h2>
           <div className="w-24 h-1 bg-cyber-primary mx-auto mb-16" />
 
-          {/* Projects Grid */}
+          {/* Projects Grid (inchangé, utilise la nouvelle ProjectCard) */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {projects.map((project, index) => (
               <ProjectCard
@@ -73,7 +92,7 @@ export default function ProjectsSection() {
             ))}
           </div>
 
-          {/* View more on GitHub */}
+          {/* View more on GitHub (inchangé) */}
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
