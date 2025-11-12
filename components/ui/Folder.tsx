@@ -63,7 +63,7 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
   };
 
   const handlePaperMouseMove = (e: React.MouseEvent, index: number) => {
-    if (!open || isMobile) return; // Désactiver sur mobile
+    if (!open || isMobile) return;
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
@@ -98,7 +98,6 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
   const scaleStyle = { transform: `scale(${size})` };
 
   const getOpenTransform = (index: number) => {
-    // Transformations simplifiées sur mobile
     if (isMobile) {
       switch (index) {
         case 0: return 'translate(-120%, -80%) rotate(-15deg)';
@@ -129,12 +128,19 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
         style={{
           ...folderStyle,
           transform: open ? 'translateY(-8px)' : undefined,
+          filter: isMobile 
+            ? 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6)) drop-shadow(0 8px 24px rgba(0, 0, 0, 0.4))'
+            : 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3))',
         }}
         onClick={handleClick}
       >
         <div
-          className="relative w-[100px] h-[80px] rounded-tl-0 rounded-tr-[10px] rounded-br-[10px] rounded-bl-[10px]"
-          style={{ backgroundColor: 'var(--folder-back-color)' }}
+          className={`relative w-[100px] h-[80px] rounded-tl-0 rounded-tr-[10px] rounded-br-[10px] rounded-bl-[10px] ${
+            isMobile ? 'ring-2 ring-white/20' : ''
+          }`}
+          style={{ 
+            backgroundColor: 'var(--folder-back-color)',
+          }}
         >
           <span
             className="absolute z-0 bottom-[98%] left-0 w-[30px] h-[10px] rounded-tl-[5px] rounded-tr-[5px] rounded-bl-0 rounded-br-0"
@@ -150,7 +156,7 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
 
             const transformStyle = open
               ? isMobile 
-                ? getOpenTransform(i) // Pas d'offset parallax sur mobile
+                ? getOpenTransform(i)
                 : `${getOpenTransform(i)} translate(${paperOffsets[i].x}px, ${paperOffsets[i].y}px)`
               : undefined;
 
@@ -172,12 +178,15 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
                 onMouseLeave={() => handlePaperMouseLeave(i)}
                 className={`absolute z-20 bottom-[10%] left-1/2 transition-all ${isMobile ? 'duration-150' : 'duration-300'} ease-in-out ${
                   !open ? 'transform -translate-x-1/2 translate-y-[10%] group-hover:translate-y-0' : isMobile ? '' : 'hover:scale-110'
-                } ${sizeClasses}`}
+                } ${sizeClasses} ${isMobile && open ? 'ring-1 ring-white/30' : ''}`}
                 style={{
                   ...(!open ? {} : { transform: transformStyle }),
                   backgroundColor: getPaperColor(i),
                   borderRadius: '10px',
                   willChange: open && !isMobile ? 'transform' : 'auto',
+                  boxShadow: isMobile && open 
+                    ? '0 2px 8px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3)' 
+                    : 'none',
                 }}
               >
                 {item}

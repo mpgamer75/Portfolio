@@ -66,7 +66,7 @@ export default function HeroSection() {
           variants={itemVariants}
           className="text-base sm:text-lg md:text-xl text-cyber-accent max-w-2xl mx-auto mb-8 sm:mb-12 text-shadow px-4"
         >
-          Passionate about offensive security, tool development and technological innovation
+          Passionate about cybersecurity, tool development and technological innovation
         </motion.p>
 
         {/* CTA Buttons */}
