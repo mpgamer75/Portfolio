@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 // Fonction utilitaire pour assombrir la couleur
 const darkenColor = (hex: string, percent: number) => {
@@ -28,7 +28,18 @@ interface FolderProps {
 }
 
 const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: FolderProps) => {
-  const maxItems = 5; // MODIFIÉ: Augmenté à 5
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const maxItems = 5;
   const papers = items.slice(0, maxItems);
   while (papers.length < maxItems) {
     papers.push(null);
@@ -38,23 +49,21 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
   const [paperOffsets, setPaperOffsets] = useState(Array.from({ length: maxItems }, () => ({ x: 0, y: 0 })));
 
   const folderBackColor = darkenColor(color, 0.08);
-  // Couleurs des papiers
   const paper1 = darkenColor('#ffffff', 0.1);
   const paper2 = darkenColor('#ffffff', 0.05);
   const paper3 = '#ffffff';
-  const paper4 = darkenColor('#ffffff', 0.08); // AJOUTÉ
-  const paper5 = darkenColor('#ffffff', 0.03); // AJOUTÉ
+  const paper4 = darkenColor('#ffffff', 0.08);
+  const paper5 = darkenColor('#ffffff', 0.03);
 
   const handleClick = () => {
     setOpen(prev => !prev);
     if (open) {
-      // Réinitialise les offsets à la fermeture
       setPaperOffsets(Array.from({ length: maxItems }, () => ({ x: 0, y: 0 })));
     }
   };
 
   const handlePaperMouseMove = (e: React.MouseEvent, index: number) => {
-    if (!open) return;
+    if (!open || isMobile) return; // Désactiver sur mobile
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
@@ -68,6 +77,7 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
   };
 
   const handlePaperMouseLeave = (index: number) => {
+    if (isMobile) return;
     setPaperOffsets(prev => {
       const newOffsets = [...prev];
       newOffsets[index] = { x: 0, y: 0 };
@@ -81,20 +91,31 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
     '--paper-1': paper1,
     '--paper-2': paper2,
     '--paper-3': paper3,
-    '--paper-4': paper4, // AJOUTÉ
-    '--paper-5': paper5, // AJOUTÉ
+    '--paper-4': paper4,
+    '--paper-5': paper5,
   };
 
   const scaleStyle = { transform: `scale(${size})` };
 
-  // MODIFIÉ: Positions ajustées pour 5 "papiers"
   const getOpenTransform = (index: number) => {
+    // Transformations simplifiées sur mobile
+    if (isMobile) {
+      switch (index) {
+        case 0: return 'translate(-120%, -80%) rotate(-15deg)';
+        case 1: return 'translate(-40%, -90%) rotate(-5deg)';
+        case 2: return 'translate(40%, -90%) rotate(5deg)';
+        case 3: return 'translate(120%, -80%) rotate(15deg)';
+        case 4: return 'translate(0%, -70%) rotate(0deg)';
+        default: return '';
+      }
+    }
+    
     switch (index) {
       case 0: return 'translate(-150%, -100%) rotate(-20deg)';
       case 1: return 'translate(-50%, -120%) rotate(-5deg)';
       case 2: return 'translate(50%, -120%) rotate(5deg)';
       case 3: return 'translate(150%, -100%) rotate(20deg)';
-      case 4: return 'translate(0%, -80%) rotate(0deg)'; // Un peu en avant
+      case 4: return 'translate(0%, -80%) rotate(0deg)';
       default: return '';
     }
   };
@@ -102,7 +123,7 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
   return (
     <div style={scaleStyle} className={className}>
       <div
-        className={`group relative transition-all duration-200 ease-in cursor-pointer ${
+        className={`group relative transition-all ${isMobile ? 'duration-150' : 'duration-200'} ease-in cursor-pointer ${
           !open ? 'hover:-translate-y-2' : ''
         }`}
         style={{
@@ -121,19 +142,18 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
           ></span>
           {papers.map((item, i) => {
             let sizeClasses = '';
-            // MODIFIÉ: Tailles ajustées pour 5 papiers
             if (i === 0) sizeClasses = open ? 'w-[70%] h-[80%]' : 'w-[70%] h-[80%]';
             if (i === 1) sizeClasses = open ? 'w-[80%] h-[80%]' : 'w-[80%] h-[70%]';
             if (i === 2) sizeClasses = open ? 'w-[90%] h-[80%]' : 'w-[90%] h-[60%]';
             if (i === 3) sizeClasses = open ? 'w-[80%] h-[80%]' : 'w-[80%] h-[50%]';
             if (i === 4) sizeClasses = open ? 'w-[70%] h-[80%]' : 'w-[70%] h-[40%]';
 
-
             const transformStyle = open
-              ? `${getOpenTransform(i)} translate(${paperOffsets[i].x}px, ${paperOffsets[i].y}px)`
+              ? isMobile 
+                ? getOpenTransform(i) // Pas d'offset parallax sur mobile
+                : `${getOpenTransform(i)} translate(${paperOffsets[i].x}px, ${paperOffsets[i].y}px)`
               : undefined;
 
-            // MODIFIÉ: Logique de couleur pour 5 papiers
             const getPaperColor = (index: number) => {
               switch (index) {
                 case 0: return 'var(--paper-1)';
@@ -150,22 +170,22 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
                 key={i}
                 onMouseMove={e => handlePaperMouseMove(e, i)}
                 onMouseLeave={() => handlePaperMouseLeave(i)}
-                className={`absolute z-20 bottom-[10%] left-1/2 transition-all duration-300 ease-in-out ${
-                  !open ? 'transform -translate-x-1/2 translate-y-[10%] group-hover:translate-y-0' : 'hover:scale-110'
+                className={`absolute z-20 bottom-[10%] left-1/2 transition-all ${isMobile ? 'duration-150' : 'duration-300'} ease-in-out ${
+                  !open ? 'transform -translate-x-1/2 translate-y-[10%] group-hover:translate-y-0' : isMobile ? '' : 'hover:scale-110'
                 } ${sizeClasses}`}
                 style={{
                   ...(!open ? {} : { transform: transformStyle }),
                   backgroundColor: getPaperColor(i),
                   borderRadius: '10px',
+                  willChange: open && !isMobile ? 'transform' : 'auto',
                 }}
               >
-                {/* Contenu du papier (l'image cliquable) */}
                 {item}
               </div>
             );
           })}
           <div
-            className={`absolute z-30 w-full h-full origin-bottom transition-all duration-300 ease-in-out ${
+            className={`absolute z-30 w-full h-full origin-bottom transition-all ${isMobile ? 'duration-150' : 'duration-300'} ease-in-out ${
               !open ? 'group-hover:[transform:skew(15deg)_scaleY(0.6)]' : ''
             }`}
             style={{
@@ -175,7 +195,7 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
             }}
           ></div>
           <div
-            className={`absolute z-30 w-full h-full origin-bottom transition-all duration-300 ease-in-out ${
+            className={`absolute z-30 w-full h-full origin-bottom transition-all ${isMobile ? 'duration-150' : 'duration-300'} ease-in-out ${
               !open ? 'group-hover:[transform:skew(-15deg)_scaleY(0.6)]' : ''
             }`}
             style={{

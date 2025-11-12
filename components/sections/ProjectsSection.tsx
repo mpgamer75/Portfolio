@@ -110,7 +110,8 @@ export default function ProjectsSection() {
                 fill
                 className="object-contain p-1"
                 sizes="(max-width: 640px) 150px, 200px"
-                unoptimized
+                loading="lazy"
+                quality={isMobile ? 50 : 75}
               />
             </div>
           ) : (
@@ -192,7 +193,6 @@ export default function ProjectsSection() {
             transition={{ duration: 0.6, delay: 0.5 }}
             className="text-center mt-8 sm:mt-10 md:mt-12"
           >
-            
             <a
               href="https://github.com/mpgamer75"
               target="_blank"

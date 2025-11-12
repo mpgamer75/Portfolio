@@ -69,7 +69,7 @@ body {
   }
 }
 
-/* Cyber grid background */
+/* Cyber grid background - DISABLED ON MOBILE */
 .cyber-grid {
   background-image: 
     linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
@@ -80,8 +80,10 @@ body {
 
 @media (max-width: 768px) {
   .cyber-grid {
-    background-size: 30px 30px;
-    opacity: 0.5;
+    /* DISABLED: No grid on mobile */
+    background-image: none;
+    animation: none;
+    opacity: 0;
   }
 }
 
@@ -106,6 +108,10 @@ body {
 }
 
 @media (max-width: 768px) {
+  .cyber-card {
+    transition: all 0.2s ease;
+  }
+  
   .cyber-card:hover {
     transform: translateY(-2px);
     @apply shadow-[0_0_10px_rgba(255,255,255,0.2)];
@@ -122,6 +128,7 @@ body {
 @media (max-width: 768px) {
   .cyber-button {
     @apply px-4 py-2 text-sm;
+    transition: all 0.2s ease;
   }
 }
 
@@ -134,12 +141,24 @@ body {
   z-index: -1;
 }
 
+@media (max-width: 768px) {
+  .cyber-button::before {
+    transition: transform 0.2s ease;
+  }
+}
+
 .cyber-button:hover::before {
   transform: scaleX(1);
 }
 
 .cyber-button:hover {
   @apply text-cyber-darker shadow-[0_0_20px_rgba(255,255,255,0.5)];
+}
+
+@media (max-width: 768px) {
+  .cyber-button:hover {
+    @apply shadow-[0_0_10px_rgba(255,255,255,0.3)];
+  }
 }
 
 /* Loading animation */
@@ -206,6 +225,12 @@ a {
   @apply transition-colors duration-300;
 }
 
+@media (max-width: 768px) {
+  a {
+    @apply transition-colors duration-200;
+  }
+}
+
 /* Image placeholder */
 .image-placeholder {
   @apply bg-cyber-dark/30 border-2 border-dashed border-cyber-primary/30 flex items-center justify-center;
@@ -243,6 +268,7 @@ a {
 @media (max-width: 768px) {
   .project-modal-close-button {
     @apply top-2 right-2 w-8 h-8 flex items-center justify-center bg-cyber-darker/80 rounded-full;
+    transition: all 0.2s;
   }
 }
 
@@ -262,6 +288,32 @@ body, html {
 /* Optimize animations on mobile */
 @media (max-width: 768px) {
   * {
-    animation-duration: 0.3s !important;
+    animation-duration: 0.2s !important;
+  }
+  
+  /* Force GPU acceleration on mobile for smooth animations */
+  .cyber-card,
+  .cyber-button,
+  [class*="motion-"] {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+}
+
+/* Performance optimizations for mobile */
+@media (max-width: 768px) {
+  /* Reduce motion for better performance */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+  
+  /* Optimize repaints */
+  img, video {
+    will-change: auto;
   }
 }
