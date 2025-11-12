@@ -41,7 +41,7 @@ export default function ExperienceSection() {
   ];
 
   return (
-    <section id="experience" className="relative py-20 bg-cyber-dark/20">
+    <section id="experience" className="relative py-12 sm:py-16 md:py-20 bg-cyber-dark/20">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -49,14 +49,14 @@ export default function ExperienceSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-4xl sm:text-5xl font-bold text-center mb-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4">
             <span className="text-cyber-primary">Professional Experience</span>
           </h2>
-          <div className="w-24 h-1 bg-cyber-primary mx-auto mb-16" />
+          <div className="w-20 sm:w-24 h-1 bg-cyber-primary mx-auto mb-8 sm:mb-12 md:mb-16" />
 
           {/* Timeline */}
           <div className="relative">
-            {/* Vertical line */}
+            {/* Vertical line - hidden on mobile */}
             <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2 h-full w-0.5 bg-cyber-primary/30" />
 
             {jobs.map((job, index) => (
@@ -66,42 +66,42 @@ export default function ExperienceSection() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: index * 0.2 }}
-                className={`relative mb-12 md:mb-16 ${
+                className={`relative mb-8 sm:mb-10 md:mb-12 lg:mb-16 ${
                   index % 2 === 0 ? 'md:pr-[50%] md:mr-8' : 'md:pl-[50%] md:ml-8'
                 }`}
               >
-                {/* Timeline dot */}
-                <div className="hidden md:block absolute top-0 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-cyber-primary rounded-full border-4 border-cyber-darker shadow-[0_0_10px_rgba(255,255,255,0.5)]" />
+                {/* Timeline dot - hidden on mobile */}
+                <div className="hidden md:block absolute top-0 left-1/2 transform -translate-x-1/2 w-3 h-3 sm:w-4 sm:h-4 bg-cyber-primary rounded-full border-2 sm:border-4 border-cyber-darker shadow-[0_0_10px_rgba(255,255,255,0.5)]" />
 
                 {/* Card */}
-                <div className="cyber-card rounded-lg p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-cyber-primary/10 rounded-lg">
-                        <Briefcase className="text-cyber-primary" size={24} />
+                <div className="cyber-card rounded-lg p-4 sm:p-5 md:p-6">
+                  <div className="flex items-start justify-between mb-3 sm:mb-4">
+                    <div className="flex items-center space-x-2 sm:space-x-3 flex-1">
+                      <div className="p-1.5 sm:p-2 bg-cyber-primary/10 rounded-lg flex-shrink-0">
+                        <Briefcase className="text-cyber-primary" size={20} />
                       </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-white">{job.title}</h3>
-                        <p className="text-cyber-secondary font-semibold">{job.company}</p>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-lg sm:text-xl font-bold text-white break-words">{job.title}</h3>
+                        <p className="text-cyber-secondary font-semibold text-sm sm:text-base">{job.company}</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center space-x-2 text-gray-400 text-sm">
-                      <MapPin size={16} className="text-cyber-primary" />
-                      <span>{job.location}</span>
+                  <div className="space-y-1.5 sm:space-y-2 mb-3 sm:mb-4">
+                    <div className="flex items-center space-x-2 text-gray-400 text-xs sm:text-sm">
+                      <MapPin size={14} className="text-cyber-primary flex-shrink-0" />
+                      <span className="break-words">{job.location}</span>
                     </div>
-                    <div className="flex items-center space-x-2 text-gray-400 text-sm">
-                      <Calendar size={16} className="text-cyber-primary" />
+                    <div className="flex items-center space-x-2 text-gray-400 text-xs sm:text-sm">
+                      <Calendar size={14} className="text-cyber-primary flex-shrink-0" />
                       <span>{job.period}</span>
                     </div>
                   </div>
 
-                  <ul className="space-y-2">
+                  <ul className="space-y-1.5 sm:space-y-2">
                     {job.description.map((item, i) => (
-                      <li key={i} className="text-gray-300 text-sm flex items-start">
-                        <span className="text-cyber-primary mr-2 mt-1">▹</span>
+                      <li key={i} className="text-gray-300 text-xs sm:text-sm flex items-start">
+                        <span className="text-cyber-primary mr-2 mt-0.5 flex-shrink-0">▹</span>
                         <span>{item}</span>
                       </li>
                     ))}

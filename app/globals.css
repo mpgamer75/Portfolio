@@ -18,6 +18,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
@@ -27,11 +28,18 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
+}
+
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
 }
 
 ::-webkit-scrollbar-track {
@@ -54,6 +62,13 @@ body {
                0 0 30px var(--cyber-primary);
 }
 
+@media (max-width: 768px) {
+  .glow-text {
+    text-shadow: 0 0 5px var(--cyber-primary),
+                 0 0 10px var(--cyber-primary);
+  }
+}
+
 /* Cyber grid background */
 .cyber-grid {
   background-image: 
@@ -61,6 +76,13 @@ body {
     linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
   background-size: 50px 50px;
   animation: gridMove 20s linear infinite;
+}
+
+@media (max-width: 768px) {
+  .cyber-grid {
+    background-size: 30px 30px;
+    opacity: 0.5;
+  }
 }
 
 @keyframes gridMove {
@@ -83,11 +105,24 @@ body {
   transform: translateY(-5px);
 }
 
+@media (max-width: 768px) {
+  .cyber-card:hover {
+    transform: translateY(-2px);
+    @apply shadow-[0_0_10px_rgba(255,255,255,0.2)];
+  }
+}
+
 /* Button styles */
 .cyber-button {
   @apply relative px-6 py-3 font-semibold text-cyber-primary border-2 border-cyber-primary overflow-hidden;
   @apply bg-cyber-darker/30;
   transition: all 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .cyber-button {
+    @apply px-4 py-2 text-sm;
+  }
 }
 
 .cyber-button::before {
@@ -144,6 +179,12 @@ body {
   text-shadow: 0px 1px 3px rgba(0, 0, 0, 0.5), 0px 2px 5px rgba(0, 0, 0, 0.3);
 }
 
+@media (max-width: 768px) {
+  .text-shadow {
+    text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.6), 0px 1px 3px rgba(0, 0, 0, 0.4);
+  }
+}
+
 /* Icon shadow for readability on bright backgrounds */
 .icon-shadow {
   filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.7)) drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.5));
@@ -152,6 +193,12 @@ body {
 /* Section styles */
 section {
   @apply min-h-screen flex items-center justify-center py-20;
+}
+
+@media (max-width: 768px) {
+  section {
+    @apply py-12 px-4;
+  }
 }
 
 /* Link hover effect */
@@ -170,12 +217,51 @@ a {
   cursor: zoom-out;
 }
 
+@media (max-width: 768px) {
+  .project-modal-backdrop {
+    @apply p-2;
+  }
+}
+
 .project-modal-content {
   @apply relative w-full max-w-5xl max-h-[90vh] bg-cyber-dark/95 rounded-lg shadow-2xl border-2 border-cyber-primary/50;
   cursor: default;
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .project-modal-content {
+    @apply max-h-[95vh] rounded-md;
+  }
 }
 
 .project-modal-close-button {
   @apply absolute top-4 right-4 text-cyber-primary/70 hover:text-cyber-primary hover:scale-110 hover:rotate-90 transition-all duration-300 z-20;
   cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .project-modal-close-button {
+    @apply top-2 right-2 w-8 h-8 flex items-center justify-center bg-cyber-darker/80 rounded-full;
+  }
+}
+
+/* Responsive utilities */
+@media (max-width: 640px) {
+  .container {
+    @apply px-4;
+  }
+}
+
+/* Prevent horizontal scroll */
+body, html {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* Optimize animations on mobile */
+@media (max-width: 768px) {
+  * {
+    animation-duration: 0.3s !important;
+  }
 }

@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Renderer, Triangle, Program, Mesh } from 'ogl';
 
-// Interface TypeScript pour les props
 interface PrismProps {
   height?: number;
   baseWidth?: number;
@@ -40,23 +39,38 @@ const Prism = ({
   timeScale = 0.5,
 }: PrismProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
+    // Adjust parameters for mobile
+    const mobileScale = isMobile ? scale * 0.6 : scale;
+    const mobileGlow = isMobile ? glow * 0.7 : glow;
+    const mobileBloom = isMobile ? bloom * 0.8 : bloom;
+
     const H = Math.max(0.001, height);
     const BW = Math.max(0.001, baseWidth);
     const BASE_HALF = BW * 0.5;
-    const GLOW = Math.max(0.0, glow);
+    const GLOW = Math.max(0.0, mobileGlow);
     const NOISE = Math.max(0.0, noise);
     const offX = offset?.x ?? 0;
     const offY = offset?.y ?? 0;
     const SAT = transparent ? 1.5 : 1;
-    const SCALE = Math.max(0.001, scale);
+    const SCALE = Math.max(0.001, mobileScale);
     const HUE = hueShift || 0;
     const CFREQ = Math.max(0.0, colorFrequency || 1);
-    const BLOOM = Math.max(0.0, bloom || 1);
+    const BLOOM = Math.max(0.0, mobileBloom);
     const RSX = 1;
     const RSY = 1;
     const RSZ = 1;
@@ -64,11 +78,11 @@ const Prism = ({
     const HOVSTR = Math.max(0, hoverStrength || 1);
     const INERT = Math.max(0, Math.min(1, inertia || 0.12));
 
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = isMobile ? 1 : Math.min(2, window.devicePixelRatio || 1);
     const renderer = new Renderer({
       dpr,
       alpha: transparent,
-      antialias: false,
+      antialias: !isMobile,
     });
     const gl = renderer.gl;
     gl.disable(gl.DEPTH_TEST);
@@ -341,7 +355,7 @@ const Prism = ({
     };
 
     let onPointerMove: ((e: PointerEvent) => void) | null = null;
-    if (animationType === 'hover') {
+    if (animationType === 'hover' && !isMobile) {
       onPointerMove = (e) => {
         onMove(e);
         startRAF();
@@ -362,7 +376,7 @@ const Prism = ({
 
       let continueRAF = true;
 
-      if (animationType === 'hover') {
+      if (animationType === 'hover' && !isMobile) {
         const maxPitch = 0.6 * HOVSTR;
         const maxYaw = 0.6 * HOVSTR;
         targetYaw = (pointer.inside ? -pointer.x : 0) * maxYaw;
@@ -427,9 +441,8 @@ const Prism = ({
     return () => {
       stopRAF();
       ro.disconnect();
-      if (animationType === 'hover') {
-        if (onPointerMove)
-          window.removeEventListener('pointermove', onPointerMove);
+      if (animationType === 'hover' && onPointerMove) {
+        window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('mouseleave', onLeave);
         window.removeEventListener('blur', onBlur);
       }
@@ -458,6 +471,7 @@ const Prism = ({
     inertia,
     bloom,
     suspendWhenOffscreen,
+    isMobile,
   ]);
 
   return <div className="w-full h-full relative" ref={containerRef} />;
