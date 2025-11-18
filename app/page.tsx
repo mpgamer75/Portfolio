@@ -26,15 +26,23 @@ export default function HomePage() {
 
   return (
     <div className="relative min-h-screen">
-      {/* Animated background */}
-      <div className="fixed top-0 left-0 w-full h-full -z-10 pointer-events-none bg-cyber-darker">
+      {/* Animated background - Optimized for performance */}
+      <div
+        className="fixed top-0 left-0 w-full h-full -z-10 pointer-events-none bg-cyber-darker"
+        style={{
+          willChange: 'auto',
+          transform: 'translateZ(0)',
+          backfaceVisibility: 'hidden',
+          perspective: '1000px',
+        }}
+      >
         {!isMobile ? (
           <Prism
             height={3.5}
             baseWidth={5.5}
             animationType="rotate"
             glow={1}
-            noise={0} 
+            noise={0}
             scale={3.6}
             hueShift={0}
             colorFrequency={1}
@@ -50,8 +58,13 @@ export default function HomePage() {
       {/* Navigation */}
       <Navigation />
 
-      {/* Main content */}
-      <main>
+      {/* Main content - Isolated layer for better performance */}
+      <main
+        style={{
+          willChange: 'auto',
+          transform: 'translateZ(0)',
+        }}
+      >
         <HeroSection />
         <AboutSection />
         <ExperienceSection />

@@ -90,36 +90,54 @@ export default function HeroSection() {
           </a>
         </motion.div>
 
-        {/* Social Links */}
+        {/* Social Links - Enhanced visibility */}
         <motion.div
           variants={itemVariants}
-          className="flex gap-4 sm:gap-6 justify-center items-center icon-shadow"
+          className="flex gap-5 sm:gap-7 justify-center items-center"
         >
-          <a
+          <motion.a
             href="https://github.com/mpgamer75"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-cyber-secondary hover:text-cyber-primary scale-on-hover p-2 -m-2 rounded-lg"
+            className="relative p-3 rounded-xl bg-cyber-primary/5 border-2 border-cyber-primary/30 hover:border-cyber-primary hover:bg-cyber-primary/10 smooth-transition group"
             aria-label="GitHub"
+            whileHover={{ scale: 1.15, y: -3 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <Github size={24} className="sm:w-7 sm:h-7" />
-          </a>
-          <a
+            <Github
+              size={28}
+              className="sm:w-8 sm:h-8 text-cyber-primary drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] group-hover:drop-shadow-[0_0_12px_rgba(255,255,255,1)]"
+            />
+            <div className="absolute inset-0 rounded-xl bg-cyber-primary/0 group-hover:bg-cyber-primary/5 smooth-transition" />
+          </motion.a>
+          <motion.a
             href="https://www.linkedin.com/in/charles-lantigua-jorge"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-cyber-secondary hover:text-cyber-primary scale-on-hover p-2 -m-2 rounded-lg"
+            className="relative p-3 rounded-xl bg-cyber-primary/5 border-2 border-cyber-primary/30 hover:border-cyber-primary hover:bg-cyber-primary/10 smooth-transition group"
             aria-label="LinkedIn"
+            whileHover={{ scale: 1.15, y: -3 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <Linkedin size={24} className="sm:w-7 sm:h-7" />
-          </a>
-          <a
+            <Linkedin
+              size={28}
+              className="sm:w-8 sm:h-8 text-cyber-primary drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] group-hover:drop-shadow-[0_0_12px_rgba(255,255,255,1)]"
+            />
+            <div className="absolute inset-0 rounded-xl bg-cyber-primary/0 group-hover:bg-cyber-primary/5 smooth-transition" />
+          </motion.a>
+          <motion.a
             href="mailto:charleslantiguajorge@gmail.com"
-            className="text-cyber-secondary hover:text-cyber-primary scale-on-hover p-2 -m-2 rounded-lg"
+            className="relative p-3 rounded-xl bg-cyber-primary/5 border-2 border-cyber-primary/30 hover:border-cyber-primary hover:bg-cyber-primary/10 smooth-transition group"
             aria-label="Email"
+            whileHover={{ scale: 1.15, y: -3 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <Mail size={24} className="sm:w-7 sm:h-7" />
-          </a>
+            <Mail
+              size={28}
+              className="sm:w-8 sm:h-8 text-cyber-primary drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] group-hover:drop-shadow-[0_0_12px_rgba(255,255,255,1)]"
+            />
+            <div className="absolute inset-0 rounded-xl bg-cyber-primary/0 group-hover:bg-cyber-primary/5 smooth-transition" />
+          </motion.a>
         </motion.div>
 
         {/* Scroll indicator */}
