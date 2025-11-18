@@ -74,16 +74,17 @@ export default function HeroSection() {
           variants={itemVariants}
           className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-8 sm:mb-12 px-4"
         >
-          
           <a
             href="#projects"
             className="cyber-button rounded-lg w-full sm:w-auto text-center min-w-[200px]"
+            aria-label="View my projects"
           >
             View my projects
           </a>
           <a
             href="#contact"
             className="cyber-button rounded-lg w-full sm:w-auto text-center bg-cyber-primary/10 min-w-[200px]"
+            aria-label="Contact me"
           >
             Contact me
           </a>
@@ -92,13 +93,13 @@ export default function HeroSection() {
         {/* Social Links */}
         <motion.div
           variants={itemVariants}
-          className="flex gap-4 sm:gap-6 justify-center items-center icon-shadow" 
+          className="flex gap-4 sm:gap-6 justify-center items-center icon-shadow"
         >
           <a
             href="https://github.com/mpgamer75"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-cyber-secondary hover:text-cyber-primary transition-colors duration-300"
+            className="text-cyber-secondary hover:text-cyber-primary scale-on-hover p-2 -m-2 rounded-lg"
             aria-label="GitHub"
           >
             <Github size={24} className="sm:w-7 sm:h-7" />
@@ -107,14 +108,14 @@ export default function HeroSection() {
             href="https://www.linkedin.com/in/charles-lantigua-jorge"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-cyber-secondary hover:text-cyber-primary transition-colors duration-300"
+            className="text-cyber-secondary hover:text-cyber-primary scale-on-hover p-2 -m-2 rounded-lg"
             aria-label="LinkedIn"
           >
             <Linkedin size={24} className="sm:w-7 sm:h-7" />
           </a>
           <a
             href="mailto:charleslantiguajorge@gmail.com"
-            className="text-cyber-secondary hover:text-cyber-primary transition-colors duration-300"
+            className="text-cyber-secondary hover:text-cyber-primary scale-on-hover p-2 -m-2 rounded-lg"
             aria-label="Email"
           >
             <Mail size={24} className="sm:w-7 sm:h-7" />

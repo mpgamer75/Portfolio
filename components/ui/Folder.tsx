@@ -123,22 +123,32 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
     <div style={scaleStyle} className={className}>
       <div
         className={`group relative transition-all ${isMobile ? 'duration-150' : 'duration-200'} ease-in cursor-pointer ${
-          !open ? 'hover:-translate-y-2' : ''
+          !open ? 'hover:-translate-y-2 hover:scale-105' : ''
         }`}
         style={{
           ...folderStyle,
           transform: open ? 'translateY(-8px)' : undefined,
-          filter: isMobile 
+          filter: isMobile
             ? 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6)) drop-shadow(0 8px 24px rgba(0, 0, 0, 0.4))'
             : 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3))',
         }}
         onClick={handleClick}
+        role="button"
+        aria-label={open ? 'Close folder' : 'Open folder to view projects'}
+        aria-expanded={open}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
       >
         <div
           className={`relative w-[100px] h-[80px] rounded-tl-0 rounded-tr-[10px] rounded-br-[10px] rounded-bl-[10px] ${
             isMobile ? 'ring-2 ring-white/20' : ''
-          }`}
-          style={{ 
+          } ${!open ? 'group-hover:ring-2 group-hover:ring-white/30' : ''}`}
+          style={{
             backgroundColor: 'var(--folder-back-color)',
           }}
         >

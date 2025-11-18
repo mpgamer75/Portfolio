@@ -8,6 +8,14 @@
   --cyber-accent: #9CA3AF;
   --cyber-dark: #0a0e27;
   --cyber-darker: #050814;
+  --transition-fast: 150ms;
+  --transition-normal: 250ms;
+  --transition-slow: 350ms;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --glow-primary: 0 0 20px rgba(255, 255, 255, 0.3);
+  --glow-strong: 0 0 30px rgba(255, 255, 255, 0.5);
 }
 
 * {
@@ -99,22 +107,33 @@ body {
 /* Card hover effect */
 .cyber-card {
   @apply border border-cyber-primary/30 bg-cyber-dark/50 backdrop-blur-sm;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal) ease;
+  will-change: transform, box-shadow, border-color;
 }
 
 .cyber-card:hover {
   @apply border-cyber-primary shadow-[0_0_20px_rgba(255,255,255,0.3)];
-  transform: translateY(-5px);
+  transform: translateY(-5px) scale(1.01);
+}
+
+.cyber-card:focus-within {
+  @apply border-cyber-primary shadow-[0_0_25px_rgba(255,255,255,0.4)];
+  outline: 2px solid var(--cyber-primary);
+  outline-offset: 2px;
 }
 
 @media (max-width: 768px) {
   .cyber-card {
-    transition: all 0.2s ease;
+    transition: all var(--transition-fast) ease;
   }
-  
+
   .cyber-card:hover {
     transform: translateY(-2px);
     @apply shadow-[0_0_10px_rgba(255,255,255,0.2)];
+  }
+
+  .cyber-card:active {
+    transform: scale(0.98);
   }
 }
 
@@ -122,13 +141,14 @@ body {
 .cyber-button {
   @apply relative px-6 py-3 font-semibold text-cyber-primary border-2 border-cyber-primary overflow-hidden;
   @apply bg-cyber-darker/30;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal) ease;
+  will-change: transform, box-shadow;
 }
 
 @media (max-width: 768px) {
   .cyber-button {
     @apply px-4 py-2 text-sm;
-    transition: all 0.2s ease;
+    transition: all var(--transition-fast) ease;
   }
 }
 
@@ -137,13 +157,13 @@ body {
   @apply absolute inset-0 bg-cyber-primary;
   transform: scaleX(0);
   transform-origin: left;
-  transition: transform 0.3s ease;
+  transition: transform var(--transition-normal) ease;
   z-index: -1;
 }
 
 @media (max-width: 768px) {
   .cyber-button::before {
-    transition: transform 0.2s ease;
+    transition: transform var(--transition-fast) ease;
   }
 }
 
@@ -153,11 +173,22 @@ body {
 
 .cyber-button:hover {
   @apply text-cyber-darker shadow-[0_0_20px_rgba(255,255,255,0.5)];
+  transform: translateY(-2px);
+}
+
+.cyber-button:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.cyber-button:focus-visible {
+  outline: 3px solid var(--cyber-primary);
+  outline-offset: 3px;
 }
 
 @media (max-width: 768px) {
   .cyber-button:hover {
     @apply shadow-[0_0_10px_rgba(255,255,255,0.3)];
+    transform: translateY(-1px);
   }
 }
 
@@ -222,12 +253,19 @@ section {
 
 /* Link hover effect */
 a {
-  @apply transition-colors duration-300;
+  @apply transition-colors;
+  transition-duration: var(--transition-normal);
+}
+
+a:focus-visible {
+  outline: 2px solid var(--cyber-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 @media (max-width: 768px) {
   a {
-    @apply transition-colors duration-200;
+    transition-duration: var(--transition-fast);
   }
 }
 
@@ -311,9 +349,100 @@ body, html {
       transition-duration: 0.01ms !important;
     }
   }
-  
+
   /* Optimize repaints */
   img, video {
     will-change: auto;
   }
+}
+
+/* Enhanced utility classes */
+.smooth-transition {
+  transition: all var(--transition-normal) ease;
+}
+
+.smooth-transition-fast {
+  transition: all var(--transition-fast) ease;
+}
+
+.smooth-transition-slow {
+  transition: all var(--transition-slow) ease;
+}
+
+/* Interactive elements */
+button, .interactive {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+button:focus-visible, .interactive:focus-visible {
+  outline: 2px solid var(--cyber-primary);
+  outline-offset: 2px;
+}
+
+/* Enhanced glass morphism */
+.glass-effect {
+  background: rgba(10, 14, 39, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Improved shadow utilities */
+.shadow-glow {
+  box-shadow: var(--glow-primary);
+}
+
+.shadow-glow-strong {
+  box-shadow: var(--glow-strong);
+}
+
+/* Better focus states for accessibility */
+*:focus-visible {
+  outline: 2px solid var(--cyber-primary);
+  outline-offset: 2px;
+}
+
+/* Smooth hover transitions */
+.hover-lift {
+  transition: transform var(--transition-normal) ease, box-shadow var(--transition-normal) ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--glow-primary);
+}
+
+@media (max-width: 768px) {
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+}
+
+/* Improved text readability */
+.text-readable {
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.7),
+    0 2px 4px rgba(0, 0, 0, 0.5),
+    0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Better icon visibility */
+.icon-enhanced {
+  filter:
+    drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8))
+    drop-shadow(0 0 8px rgba(0, 0, 0, 0.6));
+}
+
+/* Smooth scale animation */
+.scale-on-hover {
+  transition: transform var(--transition-normal) ease;
+}
+
+.scale-on-hover:hover {
+  transform: scale(1.05);
+}
+
+.scale-on-hover:active {
+  transform: scale(0.95);
 }
