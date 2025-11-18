@@ -356,6 +356,25 @@ body, html {
   }
 }
 
+/* Global performance optimizations */
+button,
+a,
+.interactive,
+[role="button"] {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Optimize Framer Motion components */
+[class*="motion-"] {
+  will-change: auto;
+}
+
+/* Optimize scrolling performance */
+section {
+  contain: layout style;
+}
+
 /* Enhanced utility classes */
 .smooth-transition {
   transition: all var(--transition-normal) ease;

@@ -41,13 +41,13 @@ export default function HomePage() {
             height={3.5}
             baseWidth={5.5}
             animationType="rotate"
-            glow={1}
+            glow={0.9}
             noise={0}
             scale={3.6}
             hueShift={0}
             colorFrequency={1}
-            timeScale={0.5}
-            bloom={1}
+            timeScale={0.4}
+            bloom={0.9}
             suspendWhenOffscreen={true}
           />
         ) : (

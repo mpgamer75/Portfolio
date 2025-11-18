@@ -9,8 +9,8 @@ export default function HeroSection() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.2,
-        delayChildren: 0.3,
+        staggerChildren: 0.15,
+        delayChildren: 0.1,
       },
     },
   };
@@ -20,7 +20,17 @@ export default function HeroSection() {
     visible: {
       y: 0,
       opacity: 1,
-      transition: { duration: 0.5 },
+      transition: { duration: 0.4 },
+    },
+  };
+
+  // Icônes sociales apparaissent immédiatement
+  const socialVariants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      transition: { duration: 0.3, delay: 0 },
     },
   };
 
@@ -90,53 +100,55 @@ export default function HeroSection() {
           </a>
         </motion.div>
 
-        {/* Social Links - Enhanced visibility */}
+        {/* Social Links - Always visible with glow */}
         <motion.div
-          variants={itemVariants}
+          initial="visible"
+          animate="visible"
+          variants={socialVariants}
           className="flex gap-5 sm:gap-7 justify-center items-center"
         >
           <motion.a
             href="https://github.com/mpgamer75"
             target="_blank"
             rel="noopener noreferrer"
-            className="relative p-3 rounded-xl bg-cyber-primary/5 border-2 border-cyber-primary/30 hover:border-cyber-primary hover:bg-cyber-primary/10 smooth-transition group"
+            className="relative p-3 rounded-xl bg-cyber-primary/10 border-2 border-cyber-primary/50 hover:border-cyber-primary hover:bg-cyber-primary/15 smooth-transition group shadow-[0_0_15px_rgba(255,255,255,0.3)]"
             aria-label="GitHub"
             whileHover={{ scale: 1.15, y: -3 }}
             whileTap={{ scale: 0.95 }}
           >
             <Github
               size={28}
-              className="sm:w-8 sm:h-8 text-cyber-primary drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] group-hover:drop-shadow-[0_0_12px_rgba(255,255,255,1)]"
+              className="sm:w-8 sm:h-8 text-cyber-primary drop-shadow-[0_0_10px_rgba(255,255,255,1)] group-hover:drop-shadow-[0_0_15px_rgba(255,255,255,1)]"
             />
-            <div className="absolute inset-0 rounded-xl bg-cyber-primary/0 group-hover:bg-cyber-primary/5 smooth-transition" />
+            <div className="absolute inset-0 rounded-xl bg-cyber-primary/0 group-hover:bg-cyber-primary/10 smooth-transition" />
           </motion.a>
           <motion.a
             href="https://www.linkedin.com/in/charles-lantigua-jorge"
             target="_blank"
             rel="noopener noreferrer"
-            className="relative p-3 rounded-xl bg-cyber-primary/5 border-2 border-cyber-primary/30 hover:border-cyber-primary hover:bg-cyber-primary/10 smooth-transition group"
+            className="relative p-3 rounded-xl bg-cyber-primary/10 border-2 border-cyber-primary/50 hover:border-cyber-primary hover:bg-cyber-primary/15 smooth-transition group shadow-[0_0_15px_rgba(255,255,255,0.3)]"
             aria-label="LinkedIn"
             whileHover={{ scale: 1.15, y: -3 }}
             whileTap={{ scale: 0.95 }}
           >
             <Linkedin
               size={28}
-              className="sm:w-8 sm:h-8 text-cyber-primary drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] group-hover:drop-shadow-[0_0_12px_rgba(255,255,255,1)]"
+              className="sm:w-8 sm:h-8 text-cyber-primary drop-shadow-[0_0_10px_rgba(255,255,255,1)] group-hover:drop-shadow-[0_0_15px_rgba(255,255,255,1)]"
             />
-            <div className="absolute inset-0 rounded-xl bg-cyber-primary/0 group-hover:bg-cyber-primary/5 smooth-transition" />
+            <div className="absolute inset-0 rounded-xl bg-cyber-primary/0 group-hover:bg-cyber-primary/10 smooth-transition" />
           </motion.a>
           <motion.a
             href="mailto:charleslantiguajorge@gmail.com"
-            className="relative p-3 rounded-xl bg-cyber-primary/5 border-2 border-cyber-primary/30 hover:border-cyber-primary hover:bg-cyber-primary/10 smooth-transition group"
+            className="relative p-3 rounded-xl bg-cyber-primary/10 border-2 border-cyber-primary/50 hover:border-cyber-primary hover:bg-cyber-primary/15 smooth-transition group shadow-[0_0_15px_rgba(255,255,255,0.3)]"
             aria-label="Email"
             whileHover={{ scale: 1.15, y: -3 }}
             whileTap={{ scale: 0.95 }}
           >
             <Mail
               size={28}
-              className="sm:w-8 sm:h-8 text-cyber-primary drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] group-hover:drop-shadow-[0_0_12px_rgba(255,255,255,1)]"
+              className="sm:w-8 sm:h-8 text-cyber-primary drop-shadow-[0_0_10px_rgba(255,255,255,1)] group-hover:drop-shadow-[0_0_15px_rgba(255,255,255,1)]"
             />
-            <div className="absolute inset-0 rounded-xl bg-cyber-primary/0 group-hover:bg-cyber-primary/5 smooth-transition" />
+            <div className="absolute inset-0 rounded-xl bg-cyber-primary/0 group-hover:bg-cyber-primary/10 smooth-transition" />
           </motion.a>
         </motion.div>
 

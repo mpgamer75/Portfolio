@@ -49,11 +49,12 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
   const [paperOffsets, setPaperOffsets] = useState(Array.from({ length: maxItems }, () => ({ x: 0, y: 0 })));
 
   const folderBackColor = darkenColor(color, 0.08);
-  const paper1 = darkenColor('#ffffff', 0.1);
-  const paper2 = darkenColor('#ffffff', 0.05);
-  const paper3 = '#ffffff';
-  const paper4 = darkenColor('#ffffff', 0.08);
-  const paper5 = darkenColor('#ffffff', 0.03);
+  // Nouvelles couleurs cyber plus vibrantes
+  const paper1 = '#E8F4FD'; // Bleu très pâle
+  const paper2 = '#F0F9FF'; // Bleu glacé
+  const paper3 = '#FFFFFF'; // Blanc pur
+  const paper4 = '#F5F5FF'; // Violet très pâle
+  const paper5 = '#FFF8F0'; // Beige très pâle
 
   const handleClick = () => {
     setOpen(prev => !prev);
@@ -100,20 +101,21 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
   const getOpenTransform = (index: number) => {
     if (isMobile) {
       switch (index) {
-        case 0: return 'translate(-130%, -95%) rotate(-18deg) scale(1.05)';
-        case 1: return 'translate(-50%, -110%) rotate(-8deg) scale(1.08)';
-        case 2: return 'translate(50%, -110%) rotate(8deg) scale(1.08)';
-        case 3: return 'translate(130%, -95%) rotate(18deg) scale(1.05)';
+        case 0: return 'translate(-115%, -95%) rotate(-16deg) scale(1.05)';
+        case 1: return 'translate(-45%, -110%) rotate(-7deg) scale(1.08)';
+        case 2: return 'translate(45%, -110%) rotate(7deg) scale(1.08)';
+        case 3: return 'translate(115%, -95%) rotate(16deg) scale(1.05)';
         case 4: return 'translate(0%, -85%) rotate(0deg) scale(1.1)';
         default: return '';
       }
     }
 
+    // Desktop - Mieux centré
     switch (index) {
-      case 0: return 'translate(-170%, -120%) rotate(-25deg) scale(1.08)';
-      case 1: return 'translate(-65%, -140%) rotate(-10deg) scale(1.12)';
-      case 2: return 'translate(65%, -140%) rotate(10deg) scale(1.12)';
-      case 3: return 'translate(170%, -120%) rotate(25deg) scale(1.08)';
+      case 0: return 'translate(-155%, -120%) rotate(-22deg) scale(1.08)';
+      case 1: return 'translate(-58%, -140%) rotate(-9deg) scale(1.12)';
+      case 2: return 'translate(58%, -140%) rotate(9deg) scale(1.12)';
+      case 3: return 'translate(155%, -120%) rotate(22deg) scale(1.08)';
       case 4: return 'translate(0%, -100%) rotate(0deg) scale(1.15)';
       default: return '';
     }
