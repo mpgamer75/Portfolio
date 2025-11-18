@@ -51,10 +51,10 @@ export default function Navigation() {
               <a
                 key={item.href}
                 href={item.href}
-                className="text-gray-300 hover:text-cyber-primary transition-colors duration-300 relative group"
+                className="text-gray-300 hover:text-cyber-primary smooth-transition relative group py-2"
               >
                 {item.label}
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-cyber-primary transition-all duration-300 group-hover:w-full" />
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-cyber-primary smooth-transition group-hover:w-full" />
               </a>
             ))}
           </div>
@@ -63,8 +63,9 @@ export default function Navigation() {
           <div className="md:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="text-cyber-primary hover:text-cyber-secondary transition-colors"
-              aria-label="Toggle menu"
+              className="text-cyber-primary hover:text-cyber-secondary smooth-transition-fast p-2 -m-2 rounded-lg scale-on-hover"
+              aria-label={isOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={isOpen}
             >
               {isOpen ? <X size={28} /> : <Menu size={28} />}
             </button>
@@ -79,20 +80,20 @@ export default function Navigation() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-cyber-dark/95 backdrop-blur-md border-t border-cyber-primary/30"
+            className="md:hidden glass-effect border-t border-cyber-primary/30"
           >
-            <div className="px-4 py-6 space-y-4">
+            <nav className="px-4 py-6 space-y-4" aria-label="Mobile navigation">
               {navItems.map((item) => (
                 <a
                   key={item.href}
                   href={item.href}
                   onClick={() => setIsOpen(false)}
-                  className="block text-gray-300 hover:text-cyber-primary transition-colors duration-300 py-2"
+                  className="block text-gray-300 hover:text-cyber-primary smooth-transition-fast py-2 px-3 -mx-3 rounded-lg hover:bg-cyber-primary/10"
                 >
                   {item.label}
                 </a>
               ))}
-            </div>
+            </nav>
           </motion.div>
         )}
       </AnimatePresence>

@@ -79,8 +79,8 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
       >
         <button
           onClick={onClose}
-          className="project-modal-close-button" 
-          aria-label="Close"
+          className="project-modal-close-button"
+          aria-label="Close project details"
         >
           <X size={24} className="sm:w-8 sm:h-8" />
         </button>
@@ -115,15 +115,15 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
                   <>
                     <button
                       onClick={prevImage}
-                      className="absolute top-1/2 left-2 sm:left-4 -translate-y-1/2 bg-cyber-primary/20 backdrop-blur-sm text-cyber-primary p-2 sm:p-3 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-300 z-10 hover:bg-cyber-primary hover:text-cyber-darker hover:scale-110 border border-cyber-primary/50"
-                      aria-label="Previous"
+                      className="absolute top-1/2 left-2 sm:left-4 -translate-y-1/2 bg-cyber-primary/20 backdrop-blur-sm text-cyber-primary p-2 sm:p-3 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 smooth-transition z-10 hover:bg-cyber-primary hover:text-cyber-darker hover:scale-110 border border-cyber-primary/50 scale-on-hover"
+                      aria-label="Previous image"
                     >
                       <ChevronLeft size={20} className="sm:w-7 sm:h-7" />
                     </button>
                     <button
                       onClick={nextImage}
-                      className="absolute top-1/2 right-2 sm:right-4 -translate-y-1/2 bg-cyber-primary/20 backdrop-blur-sm text-cyber-primary p-2 sm:p-3 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-300 z-10 hover:bg-cyber-primary hover:text-cyber-darker hover:scale-110 border border-cyber-primary/50"
-                      aria-label="Next"
+                      className="absolute top-1/2 right-2 sm:right-4 -translate-y-1/2 bg-cyber-primary/20 backdrop-blur-sm text-cyber-primary p-2 sm:p-3 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 smooth-transition z-10 hover:bg-cyber-primary hover:text-cyber-darker hover:scale-110 border border-cyber-primary/50 scale-on-hover"
+                      aria-label="Next image"
                     >
                       <ChevronRight size={20} className="sm:w-7 sm:h-7" />
                     </button>

@@ -182,9 +182,15 @@ export default function ProjectsSection() {
             />
           </motion.div>
           
-          <p className="text-center text-white text-shadow font-mono mt-16 sm:mt-24 md:mt-32 text-base sm:text-lg md:text-xl font-bold animate-pulse">
-            Click the Folder to see projects
-          </p>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="text-center text-cyber-primary text-readable font-mono mt-16 sm:mt-24 md:mt-32 text-base sm:text-lg md:text-xl font-bold animate-pulse"
+          >
+            👆 Click the Folder to explore projects
+          </motion.p>
 
           <motion.div
             initial={{ opacity: 0 }}
@@ -198,6 +204,7 @@ export default function ProjectsSection() {
               target="_blank"
               rel="noopener noreferrer"
               className="cyber-button rounded-lg inline-block"
+              aria-label="View more projects on GitHub"
             >
               View more on GitHub
             </a>
