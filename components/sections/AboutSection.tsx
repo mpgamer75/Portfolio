@@ -29,29 +29,59 @@ export default function AboutSection() {
               className="relative order-2 md:order-1"
             >
               <div className="relative w-full aspect-square max-w-sm sm:max-w-md mx-auto group">
-                {/* Decorative border with hover effect */}
-                <div className="absolute inset-0 border-2 border-cyber-primary rounded-lg transform translate-x-3 translate-y-3 sm:translate-x-4 sm:translate-y-4 transition-all duration-300 group-hover:translate-x-4 group-hover:translate-y-4 sm:group-hover:translate-x-6 sm:group-hover:translate-y-6 group-hover:border-cyber-secondary" />
-                
-                {/* Image container with hover effects */}
-                <div className="relative rounded-lg h-full w-full overflow-hidden border-2 border-cyber-primary/50 group-hover:border-cyber-primary transition-all duration-300 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] sm:group-hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]">
+                {/* Decorative border with hover effect - Optimized */}
+                <div
+                  className="decorative-border absolute inset-0 border-2 border-cyber-primary rounded-lg smooth-transition group-hover:border-cyber-secondary"
+                  style={{
+                    transform: 'translate(12px, 12px)',
+                    willChange: 'transform',
+                  }}
+                />
+
+                {/* Image container with hover effects - Performance optimized */}
+                <div
+                  className="relative rounded-lg h-full w-full overflow-hidden border-2 border-cyber-primary/50 group-hover:border-cyber-primary smooth-transition group-hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] sm:group-hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]"
+                  style={{
+                    transform: 'translateZ(0)',
+                    backfaceVisibility: 'hidden',
+                  }}
+                >
                   {/* Overlay gradient on hover */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-cyber-primary/0 to-cyber-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" />
-                  
-                  {/* Image with zoom effect */}
-                  <div className="relative w-full h-full overflow-hidden">
-                    <Image 
-                      src="/images/hero/photo_hero.jpg" 
-                      alt="Charles Lantigua Jorge" 
-                      fill 
-                      className="object-cover transition-transform duration-500 group-hover:scale-105 sm:group-hover:scale-110"
+                  <div className="absolute inset-0 bg-gradient-to-br from-cyber-primary/0 to-cyber-primary/10 opacity-0 group-hover:opacity-100 smooth-transition z-10" />
+
+                  {/* Image with optimized zoom effect */}
+                  <div
+                    className="relative w-full h-full overflow-hidden"
+                    style={{
+                      transform: 'translateZ(0)',
+                      willChange: 'transform',
+                    }}
+                  >
+                    <Image
+                      src="/images/hero/photo_hero.jpg"
+                      alt="Charles Lantigua Jorge"
+                      fill
+                      className="object-cover smooth-transition-slow group-hover:scale-105 sm:group-hover:scale-110"
                       priority
-                      unoptimized
+                      quality={90}
+                      sizes="(max-width: 768px) 90vw, 45vw"
+                      style={{
+                        transform: 'translateZ(0)',
+                        backfaceVisibility: 'hidden',
+                      }}
                     />
                   </div>
-                  
-                  {/* Shine effect on hover */}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+
+                  {/* Shine effect on hover - GPU accelerated */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 smooth-transition-slow pointer-events-none">
+                    <div
+                      className="shine-effect absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                      style={{
+                        transform: 'translateX(-100%)',
+                        transition: 'transform 1s ease-in-out',
+                        willChange: 'transform',
+                      }}
+                    />
                   </div>
                 </div>
               </div>

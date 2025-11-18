@@ -100,21 +100,21 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
   const getOpenTransform = (index: number) => {
     if (isMobile) {
       switch (index) {
-        case 0: return 'translate(-120%, -80%) rotate(-15deg)';
-        case 1: return 'translate(-40%, -90%) rotate(-5deg)';
-        case 2: return 'translate(40%, -90%) rotate(5deg)';
-        case 3: return 'translate(120%, -80%) rotate(15deg)';
-        case 4: return 'translate(0%, -70%) rotate(0deg)';
+        case 0: return 'translate(-130%, -95%) rotate(-18deg) scale(1.05)';
+        case 1: return 'translate(-50%, -110%) rotate(-8deg) scale(1.08)';
+        case 2: return 'translate(50%, -110%) rotate(8deg) scale(1.08)';
+        case 3: return 'translate(130%, -95%) rotate(18deg) scale(1.05)';
+        case 4: return 'translate(0%, -85%) rotate(0deg) scale(1.1)';
         default: return '';
       }
     }
-    
+
     switch (index) {
-      case 0: return 'translate(-150%, -100%) rotate(-20deg)';
-      case 1: return 'translate(-50%, -120%) rotate(-5deg)';
-      case 2: return 'translate(50%, -120%) rotate(5deg)';
-      case 3: return 'translate(150%, -100%) rotate(20deg)';
-      case 4: return 'translate(0%, -80%) rotate(0deg)';
+      case 0: return 'translate(-170%, -120%) rotate(-25deg) scale(1.08)';
+      case 1: return 'translate(-65%, -140%) rotate(-10deg) scale(1.12)';
+      case 2: return 'translate(65%, -140%) rotate(10deg) scale(1.12)';
+      case 3: return 'translate(170%, -120%) rotate(25deg) scale(1.08)';
+      case 4: return 'translate(0%, -100%) rotate(0deg) scale(1.15)';
       default: return '';
     }
   };
@@ -186,17 +186,24 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
                 key={i}
                 onMouseMove={e => handlePaperMouseMove(e, i)}
                 onMouseLeave={() => handlePaperMouseLeave(i)}
-                className={`absolute z-20 bottom-[10%] left-1/2 transition-all ${isMobile ? 'duration-150' : 'duration-300'} ease-in-out ${
-                  !open ? 'transform -translate-x-1/2 translate-y-[10%] group-hover:translate-y-0' : isMobile ? '' : 'hover:scale-110'
-                } ${sizeClasses} ${isMobile && open ? 'ring-1 ring-white/30' : ''}`}
+                className={`absolute bottom-[10%] left-1/2 ${
+                  !open ? 'transform -translate-x-1/2 translate-y-[10%] group-hover:translate-y-0' : isMobile ? '' : 'hover:scale-115 hover:z-30'
+                } ${sizeClasses} ${open ? 'ring-2 ring-white/40' : ''}`}
                 style={{
-                  ...(!open ? {} : { transform: transformStyle }),
+                  zIndex: open ? 20 + i : 20,
                   backgroundColor: getPaperColor(i),
                   borderRadius: '10px',
                   willChange: open && !isMobile ? 'transform' : 'auto',
-                  boxShadow: isMobile && open 
-                    ? '0 2px 8px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3)' 
+                  transition: open
+                    ? `all ${isMobile ? '0.35s' : '0.5s'} cubic-bezier(0.34, 1.56, 0.64, 1)`
+                    : `all ${isMobile ? '0.2s' : '0.3s'} ease-in-out`,
+                  transitionDelay: open ? `${i * 0.06}s` : '0s',
+                  boxShadow: open
+                    ? isMobile
+                      ? '0 4px 16px rgba(0, 0, 0, 0.5), 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.15)'
+                      : '0 8px 24px rgba(0, 0, 0, 0.6), 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.2)'
                     : 'none',
+                  transform: !open ? 'translateX(-50%) translateY(10%)' : transformStyle,
                 }}
               >
                 {item}

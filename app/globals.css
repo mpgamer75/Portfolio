@@ -446,3 +446,19 @@ button:focus-visible, .interactive:focus-visible {
 .scale-on-hover:active {
   transform: scale(0.95);
 }
+
+/* Image shine effect on hover */
+.group:hover .shine-effect {
+  transform: translateX(100%) !important;
+}
+
+/* Decorative border animation */
+.group:hover .decorative-border {
+  transform: translate(16px, 16px) !important;
+}
+
+@media (min-width: 640px) {
+  .group:hover .decorative-border {
+    transform: translate(24px, 24px) !important;
+  }
+}
