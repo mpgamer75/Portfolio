@@ -1,159 +1,244 @@
 # Portfolio Charles Lantigua Jorge
 
-Portfolio professionnel moderne avec thème cybersécurité, construit avec Next.js 14, TypeScript, Tailwind CSS et Framer Motion.
+> *"It works on my machine"* - Every developer ever
+
+Portfolio cyberpunk moderne construit avec Next.js 15, TypeScript, Tailwind CSS et Framer Motion. Aucun `sudo rm -rf /` n'a été exécuté pendant la création de ce projet. Probablement.
+
+## 🔥 Warning
+
+```bash
+$ cat /proc/sys/net/ipv4/tcp_syncookies
+1  # Protected against SYN floods AND bad UI/UX
+```
+
+Ce portfolio est:
+- ✅ Plus rapide qu'un `:(){ :|:& };:` fork bomb (mais moins destructif)
+- ✅ Plus élégant qu'un `curl wttr.in`
+- ✅ Plus sécurisé que votre mot de passe "Password123"
+- ✅ Plus animé qu'un hackerman dans un film hollywoodien
 
 ## 🚀 Fonctionnalités
 
-- ✅ Design moderne avec thème cybersécurité
-- ✅ Animations fluides et interactives (Framer Motion)
-- ✅ Background animé "Liquid Ether" inspiré de React Bits
-- ✅ Internationalisation (Français/Anglais)
-- ✅ Navigation responsive avec toggle de langue
-- ✅ Sections : Hero, About, Experience, Projects, Skills, Contact
-- ✅ Timeline interactive pour l'expérience
-- ✅ Cartes de projets avec emplacements pour images
-- ✅ Design responsive (mobile, tablet, desktop)
-- ✅ Optimisé pour les performances
+- ✅ Design cybersécurité (non, il n'y a pas de Matrix scrolling text)
+- ✅ Animations fluides (60 FPS constant, je promets que j'ai `killall -9 chrome`)
+- ✅ Background animé "Prism" (GPU goes brrr)
+- ✅ Navigation responsive (fonctionne même sur ton Nokia 3310)
+- ✅ Sections: Hero, About, Experience, Projects, Skills, Contact
+- ✅ Timeline interactive (comme `git log --graph` mais en mieux)
+- ✅ Cartes de projets avec animations (hover effects > Comic Sans)
+- ✅ Design responsive (mobile, tablet, desktop, smartwatch... ok peut-être pas smartwatch)
+- ✅ Optimisé pour les performances (pas de `while(true)` ici)
 
 ## 📦 Installation
 
 ```bash
+# Cloner le repo (non, pas avec ctrl+c ctrl+v)
+git clone https://github.com/mpgamer75/Portfolio.git
+cd Portfolio
+
 # Installer les dépendances
+# Note: Si ça échoue, essayez `sudo` comme tout bon linuxien
 npm install
 
-# Lancer le serveur de développement
+# Lancer le serveur de dev
 npm run dev
+# Maintenant ouvrez http://localhost:3000
+# Pas http://127.0.0.1:3000, on est pas des sauvages
 
 # Build pour production
 npm run build
+# Si vous voyez des erreurs TypeScript, ce n'est pas un bug, c'est une feature
 
 # Démarrer en production
 npm start
+# Et priez que personne ne trouve de XSS
 ```
 
-## 🖼️ Ajout des images
+## 🐧 Linux Pro Tips
 
-### Images de projets
-Placez vos images de projets dans le dossier `/public/images/projects/` avec les noms suivants :
-- `security-scanner.png` (800x400px recommandé)
-- `encryptor.png` (800x400px recommandé)
-- `saber.png` (800x400px recommandé)
-- `ioc-app.png` (600x400px recommandé)
-- `warhammer.png` (600x400px recommandé)
+```bash
+# Pour les vrais hackers
+alias deploy="git add . && git commit -m 'fix: stuff' && git push origin main"
+alias yolo="git push --force"  # À vos risques et périls
+alias please='sudo $(fc -ln -1)'  # Quand vous oubliez sudo
 
-Puis décommentez les lignes `imagePath` dans `/components/sections/ProjectsSection.tsx`
+# Tester si le portfolio fonctionne
+curl -I localhost:3000 | grep "200 OK" && echo "We're in!" || echo "Mission failed"
 
-### Photo professionnelle
-Placez votre photo dans `/public/images/hero/profile.jpg` (400x400px recommandé)
-Puis décommentez la ligne Image dans `/components/sections/AboutSection.tsx`
+# Nettoyer node_modules (le dossier qui pèse plus lourd que la dette technique)
+rm -rf node_modules && npm install  # Le classique IT Crowd: "Have you tried turning it off and on again?"
+```
 
 ## 🎨 Personnalisation
 
-### Couleurs
-Modifiez les couleurs dans `tailwind.config.ts` :
+### Couleurs (pas de Comic Sans, promis)
+
+Modifiez les couleurs dans `tailwind.config.ts`:
 ```typescript
 colors: {
   cyber: {
-    primary: "#00ff41",    // Vert terminal
-    secondary: "#0affef",  // Cyan
-    dark: "#0a0e27",       // Bleu foncé
-    darker: "#050814",     // Noir bleuté
-    accent: "#ff006e",     // Rose/Rouge
+    primary: "#FFFFFF",      // Blanc terminal (après 3h de debug)
+    secondary: "#E5E7EB",    // Gris (couleur de mon âme après merge conflicts)
+    dark: "#0a0e27",         // Noir bleuté (comme mon café)
+    darker: "#050814",       // Plus noir que le void de JavaScript
+    accent: "#ff006e",       // Rose cyber (parce que pourquoi pas?)
   },
 }
 ```
 
-### Traductions
-Modifiez les fichiers `/messages/fr.json` et `/messages/en.json`
-
 ### Informations personnelles
-Mettez à jour :
-- Les liens GitHub/LinkedIn dans les fichiers de composants
-- Les informations de contact dans `/messages/fr.json` et `/messages/en.json`
+
+Mettez à jour vos infos dans les composants:
+- Les liens GitHub/LinkedIn (non, pas MySpace)
+- Email de contact (non, pas ta GameMail de 2005)
+- Photo de profil (non, pas un screenshot de Matrix)
 
 ## 📁 Structure du projet
 
 ```
 portfolio/
-├── app/
-│   ├── [locale]/
-│   │   ├── layout.tsx        # Layout avec i18n
-│   │   └── page.tsx          # Page principale
-│   └── globals.css           # Styles globaux
+├── app/                    # Next.js 15 App Router (RIP Pages Router)
+│   ├── page.tsx           # Page principale (où la magie opère)
+│   ├── layout.tsx         # Layout (le squelette, littéralement)
+│   └── globals.css        # CSS global (où les !important vont mourir)
 ├── components/
-│   ├── sections/
-│   │   ├── HeroSection.tsx
-│   │   ├── AboutSection.tsx
-│   │   ├── ExperienceSection.tsx
-│   │   ├── ProjectsSection.tsx
-│   │   ├── SkillsSection.tsx
-│   │   └── ContactSection.tsx
+│   ├── sections/          # Sections de la page (composants atomiques? non merci)
+│   │   ├── HeroSection.tsx      # "Hi, I'm..." (original)
+│   │   ├── AboutSection.tsx     # Parler de soi sans cringe
+│   │   ├── ExperienceSection.tsx # Timeline de carrière
+│   │   ├── ProjectsSection.tsx  # Mes projets (celui avec 3 stars sur GitHub)
+│   │   ├── SkillsSection.tsx    # HTML n'est PAS un langage de programmation
+│   │   └── ContactSection.tsx   # Slide into my DMs (professionnellement)
 │   └── ui/
-│       ├── Navigation.tsx
-│       ├── LiquidEther.tsx
-│       ├── ProjectCard.tsx
-│       └── Footer.tsx
-├── messages/
-│   ├── en.json               # Traductions anglaises
-│   └── fr.json               # Traductions françaises
+│       ├── Navigation.tsx       # Menu (hamburger > hotdog)
+│       ├── Prism.tsx           # Background animé (WebGL enjoyer)
+│       ├── Folder.tsx          # Animation dossier (files go brr)
+│       └── Footer.tsx          # Made with ❤️ and ☕
 ├── public/
-│   └── images/
-│       ├── projects/         # Images des projets
-│       └── hero/             # Photo de profil
-├── i18n.ts                   # Configuration i18n
-├── middleware.ts             # Middleware Next.js
-├── tailwind.config.ts        # Configuration Tailwind
-└── package.json
+│   └── images/            # Images (optimisées, pas des PNGs de 50MB)
+│       ├── projects/      # Screenshots de projets
+│       └── hero/          # Photo de profil
+├── tailwind.config.ts     # Config Tailwind (utility classes > inline styles)
+└── package.json           # Dépendances (node_modules pèse 300MB)
 ```
 
 ## 🌐 Déploiement
 
-### Vercel (Recommandé)
+### Vercel (le choix évident pour Next.js)
+
 ```bash
 # Installer Vercel CLI
 npm i -g vercel
 
 # Déployer
 vercel
+# Attendez 30 secondes et boom, vous êtes en prod
+# Pas besoin de Kubernetes pour un portfolio
 ```
 
 ### Autres plateformes
-Le projet peut être déployé sur n'importe quelle plateforme supportant Next.js :
-- Netlify
-- Railway
-- Render
-- etc.
 
-## 🎯 Composants React Bits utilisés
+Le projet fonctionne sur:
+- Netlify (pour les hipsters)
+- Railway (all aboard the deploy train)
+- Render (pourquoi pas)
+- AWS EC2 (si vous aimez souffrir)
+- Raspberry Pi dans votre garage (respect++)
 
-- **Liquid Ether Background** : Background animé avec particules
-- **Card Navigation** : Navigation responsive avec animations
-- Animations fluides avec Framer Motion
-- Effets de hover et transitions
+## 🛡️ Sécurité
 
-## 📝 To-Do
+```bash
+# Ce portfolio est protégé contre:
+✅ SQL Injection (pas de SQL ici, checkmate hackers)
+✅ XSS (React échappe tout automatiquement)
+✅ CSRF (merci Next.js)
+✅ Mon chat qui marche sur le clavier
+❌ Regex DoS (on n'utilise pas de regex... ou si?)
+```
 
-- [ ] Ajouter les images des projets
-- [ ] Ajouter la photo professionnelle
-- [ ] Configurer le formulaire de contact (optionnel)
-- [ ] Ajouter Google Analytics (optionnel)
-- [ ] Optimiser les images avec next/image
+## 🎯 Stack Technique
+
+- **Next.js 15**: Parce que PHP c'est so 2000
+- **TypeScript**: `any` is not a type, fight me
+- **Tailwind CSS**: `className="mx-auto"` > `margin: 0 auto`
+- **Framer Motion**: Animations sans jQuery (RIP)
+- **Lucide Icons**: Plus de 1000 icônes (et on en utilise 10)
+
+## 📝 To-Do (aka Technical Debt)
+
+- [ ] Ajouter plus d'animations (parce qu'on n'est jamais trop cyberpunk)
+- [ ] Optimiser les images (next/image fait déjà le job)
+- [ ] Ajouter un mode sombre (wait, tout est déjà sombre)
+- [ ] Passer à Bun au lieu de npm (gotta go fast)
+- [ ] Refactoring (un jour... peut-être)
+- [ ] Écrire des tests (un jour... probablement jamais)
+- [ ] Documenter le code (vous lisez ça, ça compte?)
+
+## 🐛 Bugs connus
+
+```javascript
+// Il n'y a pas de bugs, seulement des features non documentées
+try {
+  runPerfectCode();
+} catch (reality) {
+  console.log("It's not a bug, it's a feature!");
+}
+```
+
+## 🤝 Contribuer
+
+Les PRs sont les bienvenues! Assurez-vous que:
+1. Le code compile (`tsc --noEmit`)
+2. Aucun conflit de merge (sinon on se bat en duel)
+3. Le commit message est descriptif (pas de "fix stuff" ou "asdfasdf")
+4. Vous avez testé localement (pas de YOLO push)
 
 ## 🔗 Liens utiles
 
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Tailwind CSS](https://tailwindcss.com/docs)
-- [Framer Motion](https://www.framer.com/motion/)
-- [next-intl](https://next-intl-docs.vercel.app/)
-- [React Bits](https://reactbits.dev)
+- [Next.js Docs](https://nextjs.org/docs) - RTFM
+- [Tailwind CSS](https://tailwindcss.com/docs) - Utility classes paradise
+- [Framer Motion](https://www.framer.com/motion/) - Animation wizardry
+- [Stack Overflow](https://stackoverflow.com/) - Notre sauveur quotidien
+- [MDN Web Docs](https://developer.mozilla.org/) - La vraie documentation
+- [Can I Use](https://caniuse.com/) - "Does it work on IE?" "No."
 
 ## 📧 Contact
 
-Charles Lantigua Jorge
-- Email: charleslantiguajorge@gmail.com
-- LinkedIn: [Charles Lantigua Jorge](https://www.linkedin.com/in/charles-lantigua-jorge)
-- GitHub: [@mpgamer75](https://github.com/mpgamer75)
+**Charles Lantigua Jorge**
+*Cybersecurity Engineer & Developer*
+*"In God we trust, all others we `nmap -sV`"*
+
+- 📧 Email: charleslantiguajorge@gmail.com
+- 💼 LinkedIn: [Charles Lantigua Jorge](https://www.linkedin.com/in/charles-lantigua-jorge)
+- 🐙 GitHub: [@mpgamer75](https://github.com/mpgamer75)
+
+## 📜 License
+
+MIT License - Faites ce que vous voulez, mais si ça casse c'est pas ma faute.
 
 ---
 
-**Built with ❤️ using Next.js and Tailwind CSS**
+<div align="center">
+
+**Built with ❤️, ☕, and an unhealthy amount of `console.log()`**
+
+```ascii
+  ____      _                                            _ _
+ / ___|   _| |__   ___ _ __ ___  ___  ___ _   _ _ __ __| | |_ _   _
+| |  | | | | '_ \ / _ \ '__/ __|/ _ \/ __| | | | '__/ _` | __| | | |
+| |__| |_| | |_) |  __/ |  \__ \  __/ (__| |_| | | | (_| | |_| |_| |
+ \____\__, |_.__/ \___|_|  |___/\___|\___|\__,_|_|  \__,_|\__|\__, |
+      |___/                                                    |___/
+```
+
+*"There are 10 types of people in this world: those who understand binary, and those who don't."*
+
+**[⬆ Back to top](#portfolio-charles-lantigua-jorge)**
+
+</div>
+
+---
+
+> P.S. Si vous avez lu jusqu'ici, vous méritez un cookie 🍪
+> `document.cookie = "achievement=readme_master; Secure; SameSite=Strict"`
+> (Oui, c'est un cookie sécurisé, on est des pros ici)
