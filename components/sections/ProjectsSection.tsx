@@ -163,10 +163,10 @@ export default function ProjectsSection() {
           transition={{ duration: 0.6 }}
           className="w-full"
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 cyber-scan">
             <span className="text-cyber-primary">Projects</span>
           </h2>
-          <div className="w-20 sm:w-24 h-1 bg-cyber-primary mx-auto mb-8 sm:mb-12 md:mb-16" />
+          <div className="w-20 sm:w-24 h-1 bg-cyber-primary mx-auto mb-8 sm:mb-12 md:mb-16 cyber-neon" />
 
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
