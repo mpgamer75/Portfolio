@@ -105,7 +105,7 @@ export default function HeroSection() {
           initial="visible"
           animate="visible"
           variants={socialVariants}
-          className="flex gap-5 sm:gap-7 justify-center items-center"
+          className="flex gap-5 sm:gap-7 justify-center items-center mb-16 sm:mb-20"
         >
           <motion.a
             href="https://github.com/mpgamer75"
@@ -152,7 +152,7 @@ export default function HeroSection() {
           </motion.a>
         </motion.div>
 
-        {/* Scroll indicator */}
+        {/* Scroll indicator - Better positioned */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -161,9 +161,12 @@ export default function HeroSection() {
             repeat: Infinity,
             repeatType: 'reverse',
           }}
-          className="absolute bottom-6 sm:bottom-10 left-1/2 transform -translate-x-1/2 icon-shadow" 
+          className="absolute bottom-8 sm:bottom-12 left-1/2 transform -translate-x-1/2"
         >
-          <ArrowDown className="text-cyber-accent w-6 h-6 sm:w-8 sm:h-8" />
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-cyber-accent text-xs sm:text-sm font-mono">Scroll</span>
+            <ArrowDown className="text-cyber-primary w-6 h-6 sm:w-7 sm:h-7 drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]" />
+          </div>
         </motion.div>
       </motion.div>
     </section>

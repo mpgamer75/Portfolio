@@ -44,10 +44,10 @@ export default function ContactSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 cyber-scan">
             <span className="text-cyber-primary">Contact Me</span>
           </h2>
-          <div className="w-20 sm:w-24 h-1 bg-cyber-primary mx-auto mb-6 sm:mb-8" />
+          <div className="w-20 sm:w-24 h-1 bg-cyber-primary mx-auto mb-6 sm:mb-8 cyber-neon" />
           
           <p className="text-lg sm:text-xl text-gray-300 text-center max-w-2xl mx-auto mb-8 sm:mb-12 md:mb-16">
             Interested in working together? Feel free to reach out!
