@@ -129,7 +129,7 @@ export default function SkillsSection() {
 
             <div className="cyber-card rounded-lg p-4 sm:p-5 md:p-6 text-center sm:col-span-2 md:col-span-1">
               <div className="text-3xl sm:text-4xl font-bold text-cyber-primary mb-2">ECE Paris</div>
-              <p className="text-gray-400 text-sm sm:text-base">Cybersecurity training</p>
+              <p className="text-gray-400 text-sm sm:text-base">Cybersecurity and Computer Science degree</p>
               <p className="text-cyber-secondary mt-3 sm:mt-4 text-xs sm:text-sm">2023 - 2026</p>
             </div>
           </motion.div>

@@ -14,6 +14,9 @@ export const metadata: Metadata = {
     'portfolio',
   ],
   authors: [{ name: 'Charles Lantigua Jorge' }],
+  icons: {
+    icon: '/favicon.ico',
+  },
   openGraph: {
     type: 'website',
     locale: 'en',
@@ -33,4 +36,3 @@ export default function RootLayout({
     </html>
   );
 }
-
