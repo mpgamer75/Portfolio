@@ -582,3 +582,236 @@ button:focus-visible, .interactive:focus-visible {
 .cyber-flicker {
   animation: flicker 5s linear infinite;
 }
+
+/* ===== Glitch Text Effect ===== */
+.glitch-text {
+  position: relative;
+}
+
+.glitch-layer {
+  position: relative;
+  display: inline-block;
+}
+
+.glitch-layer::before,
+.glitch-layer::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+
+.glitch-layer::before {
+  color: #ff00ff;
+  z-index: -1;
+}
+
+.glitch-layer::after {
+  color: #00ffff;
+  z-index: -2;
+}
+
+.glitch-text:hover .glitch-layer::before {
+  animation: glitch-1 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
+  opacity: 0.8;
+}
+
+.glitch-text:hover .glitch-layer::after {
+  animation: glitch-2 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) reverse both infinite;
+  opacity: 0.8;
+}
+
+@keyframes glitch-1 {
+  0% {
+    transform: translate(0);
+  }
+  20% {
+    transform: translate(-3px, 3px);
+  }
+  40% {
+    transform: translate(-3px, -3px);
+  }
+  60% {
+    transform: translate(3px, 3px);
+  }
+  80% {
+    transform: translate(3px, -3px);
+  }
+  100% {
+    transform: translate(0);
+  }
+}
+
+@keyframes glitch-2 {
+  0% {
+    transform: translate(0);
+  }
+  20% {
+    transform: translate(3px, -3px);
+  }
+  40% {
+    transform: translate(3px, 3px);
+  }
+  60% {
+    transform: translate(-3px, -3px);
+  }
+  80% {
+    transform: translate(-3px, 3px);
+  }
+  100% {
+    transform: translate(0);
+  }
+}
+
+/* Subtle glitch on load - one time */
+@keyframes glitch-load {
+  0%, 100% {
+    transform: translate(0);
+    filter: none;
+  }
+  10% {
+    transform: translate(-2px, 1px);
+    filter: hue-rotate(90deg);
+  }
+  20% {
+    transform: translate(2px, -1px);
+    filter: hue-rotate(-90deg);
+  }
+  30% {
+    transform: translate(-1px, 2px);
+  }
+  40% {
+    transform: translate(1px, -2px);
+  }
+}
+
+.glitch-load {
+  animation: glitch-load 0.5s ease-out;
+}
+
+/* ===== Enhanced Spotlight Effect ===== */
+.spotlight-gradient {
+  background: radial-gradient(
+    600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(255, 255, 255, 0.1),
+    transparent 40%
+  );
+}
+
+/* ===== Tilt 3D Effect ===== */
+.tilt-3d {
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+.tilt-3d:hover {
+  transform: rotateX(var(--rotate-x, 0deg)) rotateY(var(--rotate-y, 0deg));
+}
+
+/* ===== Text Gradient Animation ===== */
+@keyframes text-gradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.text-gradient-animate {
+  background: linear-gradient(
+    90deg,
+    var(--cyber-primary),
+    var(--cyber-secondary),
+    var(--cyber-primary)
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: text-gradient 3s ease infinite;
+}
+
+/* ===== Floating Animation ===== */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* ===== Ripple Effect ===== */
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+.ripple-effect::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--cyber-primary);
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ripple-effect:active::after {
+  animation: ripple 0.6s ease-out;
+}
+
+/* ===== Magnetic Button Styles ===== */
+.magnetic-glow {
+  box-shadow: 
+    0 0 20px rgba(255, 255, 255, 0.2),
+    0 0 40px rgba(255, 255, 255, 0.1),
+    inset 0 0 20px rgba(255, 255, 255, 0.05);
+}
+
+.magnetic-glow:hover {
+  box-shadow: 
+    0 0 30px rgba(255, 255, 255, 0.3),
+    0 0 60px rgba(255, 255, 255, 0.15),
+    inset 0 0 30px rgba(255, 255, 255, 0.1);
+}
+
+/* ===== Border Beam Effect ===== */
+@keyframes border-beam {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.border-beam {
+  position: relative;
+  overflow: hidden;
+}
+
+.border-beam::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyber-primary), transparent);
+  animation: border-beam 2s linear infinite;
+}

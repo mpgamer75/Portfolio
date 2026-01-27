@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Github, Linkedin, Mail } from 'lucide-react';
+import AnimatedText from '@/components/ui/AnimatedText';
 
 export default function HeroSection() {
   const containerVariants = {
@@ -24,7 +25,6 @@ export default function HeroSection() {
     },
   };
 
-  // Icônes sociales apparaissent immédiatement
   const socialVariants = {
     hidden: { opacity: 0, scale: 0.8 },
     visible: {
@@ -33,6 +33,12 @@ export default function HeroSection() {
       transition: { duration: 0.3, delay: 0 },
     },
   };
+
+  const subtitlePhrases = [
+    'Cybersecurity Engineer',
+    'Full-Stack Developer',
+    'Pentesting Enthusiast',
+  ];
 
   return (
     <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden px-4">
@@ -53,23 +59,28 @@ export default function HeroSection() {
           Hi, I&apos;m
         </motion.p>
 
-        {/* Name with terminal effect */}
+        {/* Name - Clean without glitch for performance */}
         <motion.h1
           variants={itemVariants}
-          className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-bold mb-4 sm:mb-6 text-cyber-primary text-shadow leading-tight"
+          className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-cyber-primary text-shadow leading-tight mb-4 sm:mb-6"
         >
           Charles
           <br />
           Lantigua Jorge
         </motion.h1>
 
-        {/* Title */}
-        <motion.h2
+        {/* Animated Title */}
+        <motion.div
           variants={itemVariants}
-          className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-cyber-secondary mb-4 sm:mb-6 text-shadow px-2"
+          className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-cyber-secondary mb-4 sm:mb-6 text-shadow px-2 h-[1.5em] flex items-center justify-center"
         >
-          Cybersecurity Engineer & Developer
-        </motion.h2>
+          <AnimatedText
+            phrases={subtitlePhrases}
+            typingSpeed={70}
+            deletingSpeed={40}
+            pauseDuration={2500}
+          />
+        </motion.div>
 
         {/* Subtitle */}
         <motion.p
@@ -79,7 +90,7 @@ export default function HeroSection() {
           Passionate about cybersecurity, tool development and technological innovation
         </motion.p>
 
-        {/* CTA Buttons */}
+        {/* CTA Buttons - Simpler, faster */}
         <motion.div
           variants={itemVariants}
           className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-8 sm:mb-12 px-4"
@@ -100,7 +111,7 @@ export default function HeroSection() {
           </a>
         </motion.div>
 
-        {/* Social Links - Always visible with glow */}
+        {/* Social Links */}
         <motion.div
           initial="visible"
           animate="visible"

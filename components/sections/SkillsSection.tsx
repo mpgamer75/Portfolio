@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Code2, Shield, Globe, Wrench, Award } from 'lucide-react';
+import CredlyBadge from '@/components/ui/CredlyBadge';
 
 export default function SkillsSection() {
   const skillCategories = [
@@ -29,12 +30,6 @@ export default function SkillsSection() {
       items: ['Git', 'GitHub', 'Docker', 'TryHackMe', 'Active Directory'],
       color: 'text-cyber-primary',
     },
-    {
-      icon: Award,
-      title: 'Certifications',
-      items: ['Cisco Introduction to Cybersecurity'],
-      color: 'text-cyber-secondary',
-    },
   ];
 
   return (
@@ -52,7 +47,7 @@ export default function SkillsSection() {
           <div className="w-20 sm:w-24 h-1 bg-cyber-primary mx-auto mb-8 sm:mb-12 md:mb-16 cyber-neon" />
 
           {/* Skills Grid */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
             {skillCategories.map((category, index) => {
               const Icon = category.icon;
               return (
@@ -91,6 +86,56 @@ export default function SkillsSection() {
             })}
           </div>
 
+          {/* Certifications Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="mt-12 sm:mt-16"
+          >
+            <div className="flex items-center justify-center space-x-3 mb-8">
+              <Award className="text-cyber-primary" size={28} />
+              <h3 className="text-2xl sm:text-3xl font-bold text-white">Certifications</h3>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-6 md:gap-8">
+              {/* Cisco Credly Badge */}
+              <div className="flex flex-col items-center">
+                <CredlyBadge
+                  badgeId="606eed2a-e969-489e-8f0f-049aa12e36ad"
+                  width={150}
+                  height={270}
+                />
+                <a
+                  href="https://www.credly.com/badges/606eed2a-e969-489e-8f0f-049aa12e36ad/public_url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 text-sm text-cyber-secondary hover:text-cyber-primary transition-colors"
+                >
+                  Cisco Introduction to Cybersecurity →
+                </a>
+              </div>
+
+              {/* CompTIA Security+ Badge */}
+              <div className="flex flex-col items-center">
+                <CredlyBadge
+                  badgeId="892d3bff-6d4f-4b21-bdf7-2a14d28c5985"
+                  width={150}
+                  height={270}
+                />
+                <a
+                  href="https://www.credly.com/badges/892d3bff-6d4f-4b21-bdf7-2a14d28c5985/public_url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 text-sm text-cyber-secondary hover:text-cyber-primary transition-colors"
+                >
+                  CompTIA Security+ →
+                </a>
+              </div>
+            </div>
+          </motion.div>
+
           {/* Additional Info */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -102,7 +147,7 @@ export default function SkillsSection() {
             <div className="cyber-card rounded-lg p-4 sm:p-5 md:p-6 text-center">
               <div className="text-3xl sm:text-4xl font-bold text-cyber-primary mb-2">TryHackMe</div>
               <p className="text-gray-400 text-sm sm:text-base">Active on the platform</p>
-              
+
               <a
                 href="https://tryhackme.com"
                 target="_blank"
@@ -116,7 +161,7 @@ export default function SkillsSection() {
             <div className="cyber-card rounded-lg p-4 sm:p-5 md:p-6 text-center">
               <div className="text-3xl sm:text-4xl font-bold text-cyber-primary mb-2">GitHub</div>
               <p className="text-gray-400 text-sm sm:text-base">Active profile with 5+ public repos</p>
-              
+
               <a
                 href="https://github.com/mpgamer75"
                 target="_blank"

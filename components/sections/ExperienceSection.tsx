@@ -66,9 +66,8 @@ export default function ExperienceSection() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: index * 0.2 }}
-                className={`relative mb-8 sm:mb-10 md:mb-12 lg:mb-16 ${
-                  index % 2 === 0 ? 'md:pr-[50%] md:mr-8' : 'md:pl-[50%] md:ml-8'
-                }`}
+                className={`relative mb-8 sm:mb-10 md:mb-12 lg:mb-16 ${index % 2 === 0 ? 'md:pr-[50%] md:mr-8' : 'md:pl-[50%] md:ml-8'
+                  }`}
               >
                 {/* Timeline dot - hidden on mobile */}
                 <div className="hidden md:block absolute top-0 left-1/2 transform -translate-x-1/2 w-3 h-3 sm:w-4 sm:h-4 bg-cyber-primary rounded-full border-2 sm:border-4 border-cyber-darker shadow-[0_0_10px_rgba(255,255,255,0.5)]" />

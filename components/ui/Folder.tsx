@@ -29,7 +29,7 @@ interface FolderProps {
 
 const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: FolderProps) => {
   const [isMobile, setIsMobile] = useState(false);
-  
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -124,9 +124,8 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
   return (
     <div style={scaleStyle} className={className}>
       <div
-        className={`group relative transition-all ${isMobile ? 'duration-150' : 'duration-200'} ease-in cursor-pointer ${
-          !open ? 'hover:-translate-y-2 hover:scale-105' : ''
-        }`}
+        className={`group relative transition-all ${isMobile ? 'duration-150' : 'duration-200'} ease-in cursor-pointer ${!open ? 'hover:-translate-y-2 hover:scale-105' : ''
+          }`}
         style={{
           ...folderStyle,
           transform: open ? 'translateY(-8px)' : undefined,
@@ -147,9 +146,8 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
         }}
       >
         <div
-          className={`relative w-[100px] h-[80px] rounded-tl-0 rounded-tr-[10px] rounded-br-[10px] rounded-bl-[10px] ${
-            isMobile ? 'ring-2 ring-white/20' : ''
-          } ${!open ? 'group-hover:ring-2 group-hover:ring-white/30' : ''}`}
+          className={`relative w-[100px] h-[80px] rounded-tl-0 rounded-tr-[10px] rounded-br-[10px] rounded-bl-[10px] ${isMobile ? 'ring-2 ring-white/20' : ''
+            } ${!open ? 'group-hover:ring-2 group-hover:ring-white/30' : ''}`}
           style={{
             backgroundColor: 'var(--folder-back-color)',
           }}
@@ -167,7 +165,7 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
             if (i === 4) sizeClasses = open ? 'w-[70%] h-[80%]' : 'w-[70%] h-[40%]';
 
             const transformStyle = open
-              ? isMobile 
+              ? isMobile
                 ? getOpenTransform(i)
                 : `${getOpenTransform(i)} translate(${paperOffsets[i].x}px, ${paperOffsets[i].y}px)`
               : undefined;
@@ -188,17 +186,20 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
                 key={i}
                 onMouseMove={e => handlePaperMouseMove(e, i)}
                 onMouseLeave={() => handlePaperMouseLeave(i)}
-                className={`absolute bottom-[10%] left-1/2 ${
-                  !open ? 'transform -translate-x-1/2 translate-y-[10%] group-hover:translate-y-0' : isMobile ? '' : 'hover:scale-115 hover:z-30'
-                } ${sizeClasses} ${open ? 'ring-2 ring-white/40' : ''}`}
+                className={`absolute bottom-[10%] left-1/2 ${!open ? 'transform -translate-x-1/2 translate-y-[10%] group-hover:translate-y-0' : isMobile ? '' : 'hover:scale-115 hover:z-30'
+                  } ${sizeClasses} ${open ? 'ring-2 ring-white/40' : ''}`}
                 style={{
                   zIndex: open ? 20 + i : 20,
                   backgroundColor: getPaperColor(i),
                   borderRadius: '10px',
                   willChange: open && !isMobile ? 'transform' : 'auto',
-                  transition: open
-                    ? `all ${isMobile ? '0.35s' : '0.5s'} cubic-bezier(0.34, 1.56, 0.64, 1)`
-                    : `all ${isMobile ? '0.2s' : '0.3s'} ease-in-out`,
+                  transitionProperty: 'transform, box-shadow, width, height',
+                  transitionDuration: open
+                    ? (isMobile ? '0.35s' : '0.5s')
+                    : (isMobile ? '0.2s' : '0.3s'),
+                  transitionTimingFunction: open
+                    ? 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+                    : 'ease-in-out',
                   transitionDelay: open ? `${i * 0.06}s` : '0s',
                   boxShadow: open
                     ? isMobile
@@ -213,9 +214,8 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
             );
           })}
           <div
-            className={`absolute z-30 w-full h-full origin-bottom transition-all ${isMobile ? 'duration-150' : 'duration-300'} ease-in-out ${
-              !open ? 'group-hover:[transform:skew(15deg)_scaleY(0.6)]' : ''
-            }`}
+            className={`absolute z-30 w-full h-full origin-bottom transition-all ${isMobile ? 'duration-150' : 'duration-300'} ease-in-out ${!open ? 'group-hover:[transform:skew(15deg)_scaleY(0.6)]' : ''
+              }`}
             style={{
               backgroundColor: 'var(--folder-color)',
               borderRadius: '5px 10px 10px 10px',
@@ -223,9 +223,8 @@ const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: Fol
             }}
           ></div>
           <div
-            className={`absolute z-30 w-full h-full origin-bottom transition-all ${isMobile ? 'duration-150' : 'duration-300'} ease-in-out ${
-              !open ? 'group-hover:[transform:skew(-15deg)_scaleY(0.6)]' : ''
-            }`}
+            className={`absolute z-30 w-full h-full origin-bottom transition-all ${isMobile ? 'duration-150' : 'duration-300'} ease-in-out ${!open ? 'group-hover:[transform:skew(-15deg)_scaleY(0.6)]' : ''
+              }`}
             style={{
               backgroundColor: 'var(--folder-color)',
               borderRadius: '5px 10px 10px 10px',

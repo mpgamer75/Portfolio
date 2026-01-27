@@ -48,7 +48,7 @@ export default function ContactSection() {
             <span className="text-cyber-primary">Contact Me</span>
           </h2>
           <div className="w-20 sm:w-24 h-1 bg-cyber-primary mx-auto mb-6 sm:mb-8 cyber-neon" />
-          
+
           <p className="text-lg sm:text-xl text-gray-300 text-center max-w-2xl mx-auto mb-8 sm:mb-12 md:mb-16">
             Interested in working together? Feel free to reach out!
           </p>
@@ -67,10 +67,10 @@ export default function ContactSection() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={{ scale: 1.02, y: -2 }}
                   className="cyber-card rounded-lg p-4 sm:p-5 md:p-6 flex items-center space-x-3 sm:space-x-4 cursor-pointer group"
                 >
-                  <div className="p-3 sm:p-4 bg-cyber-primary/10 rounded-lg flex-shrink-0">
+                  <div className="p-3 sm:p-4 bg-cyber-primary/10 rounded-lg flex-shrink-0 group-hover:bg-cyber-primary/20 transition-colors">
                     <Icon className={`${method.color} group-hover:scale-110 transition-transform`} size={28} />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -98,7 +98,7 @@ export default function ContactSection() {
             <p className="text-gray-300 mb-4 sm:mb-6 max-w-md mx-auto text-sm sm:text-base">
               Feel free to contact me to discuss projects, opportunities or just to chat about cybersecurity!
             </p>
-            
+
             <a
               href="mailto:charleslantiguajorge@gmail.com"
               className="cyber-button rounded-lg inline-block"
@@ -117,23 +117,27 @@ export default function ContactSection() {
           >
             <p className="text-gray-400 mb-3 sm:mb-4 text-sm sm:text-base">You can also find me on:</p>
             <div className="flex justify-center gap-4 sm:gap-6">
-              <a
+              <motion.a
                 href="https://github.com/mpgamer75"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-cyber-primary transition-colors"
+                whileHover={{ scale: 1.2, y: -3 }}
+                whileTap={{ scale: 0.95 }}
               >
                 <Github size={28} className="sm:w-8 sm:h-8" />
-              </a>
-              
-              <a
+              </motion.a>
+
+              <motion.a
                 href="https://www.linkedin.com/in/charles-lantigua-jorge"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-cyber-primary transition-colors"
+                whileHover={{ scale: 1.2, y: -3 }}
+                whileTap={{ scale: 0.95 }}
               >
                 <Linkedin size={28} className="sm:w-8 sm:h-8" />
-              </a>
+              </motion.a>
             </div>
           </motion.div>
         </motion.div>
