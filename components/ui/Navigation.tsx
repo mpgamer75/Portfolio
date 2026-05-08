@@ -4,93 +4,104 @@ import { useState, useEffect, useRef } from 'react';
 import { Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const navItems = [
+  { label: 'Home', href: '#home' },
+  { label: 'About', href: '#about' },
+  { label: 'Experience', href: '#experience' },
+  { label: 'Projects', href: '#projects' },
+  { label: 'Skills', href: '#skills' },
+  { label: 'Contact', href: '#contact' },
+];
+
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
-  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+  const [indicatorStyle, setIndicatorStyle] = useState({
+    left: 0,
+    width: 0,
+    opacity: 0,
+  });
   const navRef = useRef<HTMLDivElement>(null);
+  const navRectRef = useRef<DOMRect | null>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
-    window.addEventListener('scroll', handleScroll);
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navItems = [
-    { label: 'Home', href: '#home' },
-    { label: 'About', href: '#about' },
-    { label: 'Experience', href: '#experience' },
-    { label: 'Projects', href: '#projects' },
-    { label: 'Skills', href: '#skills' },
-    { label: 'Contact', href: '#contact' },
-  ];
+  // Cache the nav container rect — recalc only on resize, never on hover.
+  useEffect(() => {
+    const node = navRef.current;
+    if (!node) return;
+    const refresh = () => {
+      navRectRef.current = node.getBoundingClientRect();
+    };
+    refresh();
+    const ro = new ResizeObserver(refresh);
+    ro.observe(node);
+    window.addEventListener('resize', refresh, { passive: true });
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', refresh);
+    };
+  }, []);
 
-  const handleMouseEnter = (e: React.MouseEvent<HTMLAnchorElement>, index: number) => {
-    setHoverIndex(index);
-    const target = e.currentTarget;
-    if (navRef.current) {
-      const navRect = navRef.current.getBoundingClientRect();
-      const targetRect = target.getBoundingClientRect();
-      setIndicatorStyle({
-        left: targetRect.left - navRect.left,
-        width: targetRect.width,
-      });
-    }
+  const handleMouseEnter = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    const navRect = navRectRef.current;
+    if (!navRect) return;
+    const targetRect = event.currentTarget.getBoundingClientRect();
+    setIndicatorStyle({
+      left: targetRect.left - navRect.left,
+      width: targetRect.width,
+      opacity: 1,
+    });
   };
 
   const handleMouseLeave = () => {
-    setHoverIndex(null);
+    setIndicatorStyle((prev) => ({ ...prev, opacity: 0 }));
   };
 
   return (
     <motion.nav
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-cyber-darker/95 backdrop-blur-md shadow-lg' : 'bg-transparent'
-        }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? 'bg-cyber-darker/95 backdrop-blur-md shadow-lg'
+          : 'bg-transparent'
+      }`}
+      aria-label="Primary"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           <motion.a
             href="#home"
             className="text-2xl font-bold text-cyber-primary"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            aria-label="Home"
           >
             {'<CL />'}
           </motion.a>
 
-          {/* Desktop Navigation */}
           <div
             ref={navRef}
             className="hidden md:flex items-center space-x-1 relative"
             onMouseLeave={handleMouseLeave}
           >
-            {/* Sliding indicator */}
             <motion.div
               className="absolute h-full rounded-lg bg-cyber-primary/10 border border-cyber-primary/30 pointer-events-none"
               initial={false}
-              animate={{
-                left: hoverIndex !== null ? indicatorStyle.left : 0,
-                width: hoverIndex !== null ? indicatorStyle.width : 0,
-                opacity: hoverIndex !== null ? 1 : 0,
-              }}
-              transition={{
-                type: 'spring',
-                stiffness: 400,
-                damping: 30,
-              }}
+              animate={indicatorStyle}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             />
 
-            {navItems.map((item, index) => (
+            {navItems.map((item) => (
               <a
                 key={item.href}
                 href={item.href}
-                onMouseEnter={(e) => handleMouseEnter(e, index)}
+                onMouseEnter={handleMouseEnter}
                 className="relative text-gray-300 hover:text-cyber-primary px-4 py-2 rounded-lg transition-colors duration-200 z-10"
               >
                 <span className="relative z-10">{item.label}</span>
@@ -98,7 +109,6 @@ export default function Navigation() {
             ))}
           </div>
 
-          {/* Mobile Menu Button */}
           <div className="md:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -106,13 +116,12 @@ export default function Navigation() {
               aria-label={isOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={isOpen}
             >
-              {isOpen ? <X size={28} /> : <Menu size={28} />}
+              {isOpen ? <X size={28} aria-hidden="true" /> : <Menu size={28} aria-hidden="true" />}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Menu */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -121,7 +130,7 @@ export default function Navigation() {
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden glass-effect border-t border-cyber-primary/30"
           >
-            <nav className="px-4 py-6 space-y-4" aria-label="Mobile navigation">
+            <nav className="px-4 py-6 space-y-4" aria-label="Mobile">
               {navItems.map((item, index) => (
                 <motion.a
                   key={item.href}

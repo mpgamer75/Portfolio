@@ -1,24 +1,62 @@
 'use client';
-import { useState, useEffect } from 'react';
 
-// Fonction utilitaire pour assombrir la couleur
+import { useMemo, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { useIsMobile } from '@/hooks/useIsMobile';
+
 const darkenColor = (hex: string, percent: number) => {
-  let color = hex.startsWith('#') ? hex.slice(1) : hex;
-  if (color.length === 3) {
-    color = color
-      .split('')
-      .map(c => c + c)
-      .join('');
-  }
-  const num = parseInt(color, 16);
+  const stripped = hex.startsWith('#') ? hex.slice(1) : hex;
+  const expanded =
+    stripped.length === 3
+      ? stripped.split('').map((c) => c + c).join('')
+      : stripped;
+  const num = parseInt(expanded, 16);
   let r = (num >> 16) & 0xff;
   let g = (num >> 8) & 0xff;
   let b = num & 0xff;
   r = Math.max(0, Math.min(255, Math.floor(r * (1 - percent))));
   g = Math.max(0, Math.min(255, Math.floor(g * (1 - percent))));
   b = Math.max(0, Math.min(255, Math.floor(b * (1 - percent))));
-  return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+  return (
+    '#' +
+    ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase()
+  );
 };
+
+const PAPER_COLORS = ['#E8F4FD', '#F0F9FF', '#FFFFFF', '#F5F5FF', '#FFF8F0'];
+const MAX_ITEMS = 5;
+
+const desktopOpenTransform = [
+  'translate(-155%, -120%) rotate(-22deg) scale(1.08)',
+  'translate(-58%, -140%) rotate(-9deg) scale(1.12)',
+  'translate(58%, -140%) rotate(9deg) scale(1.12)',
+  'translate(155%, -120%) rotate(22deg) scale(1.08)',
+  'translate(0%, -100%) rotate(0deg) scale(1.15)',
+];
+
+const mobileOpenTransform = [
+  'translate(-115%, -95%) rotate(-16deg) scale(1.05)',
+  'translate(-45%, -110%) rotate(-7deg) scale(1.08)',
+  'translate(45%, -110%) rotate(7deg) scale(1.08)',
+  'translate(115%, -95%) rotate(16deg) scale(1.05)',
+  'translate(0%, -85%) rotate(0deg) scale(1.1)',
+];
+
+const closedSizes = [
+  'w-[70%] h-[80%]',
+  'w-[80%] h-[70%]',
+  'w-[90%] h-[60%]',
+  'w-[80%] h-[50%]',
+  'w-[70%] h-[40%]',
+];
+
+const openSizes = [
+  'w-[70%] h-[80%]',
+  'w-[80%] h-[80%]',
+  'w-[90%] h-[80%]',
+  'w-[80%] h-[80%]',
+  'w-[70%] h-[80%]',
+];
 
 interface FolderProps {
   color?: string;
@@ -27,214 +65,161 @@ interface FolderProps {
   className?: string;
 }
 
-const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: FolderProps) => {
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  const maxItems = 5;
-  const papers = items.slice(0, maxItems);
-  while (papers.length < maxItems) {
-    papers.push(null);
-  }
-
+export default function Folder({
+  color = '#9CA3AF',
+  size = 1,
+  items = [],
+  className = '',
+}: FolderProps) {
+  const isMobile = useIsMobile();
+  const reduced = useReducedMotion();
   const [open, setOpen] = useState(false);
-  const [paperOffsets, setPaperOffsets] = useState(Array.from({ length: maxItems }, () => ({ x: 0, y: 0 })));
 
-  const folderBackColor = darkenColor(color, 0.08);
-  // Nouvelles couleurs cyber plus vibrantes
-  const paper1 = '#E8F4FD'; // Bleu très pâle
-  const paper2 = '#F0F9FF'; // Bleu glacé
-  const paper3 = '#FFFFFF'; // Blanc pur
-  const paper4 = '#F5F5FF'; // Violet très pâle
-  const paper5 = '#FFF8F0'; // Beige très pâle
+  const papers = useMemo(() => {
+    const padded: Array<React.ReactNode | null> = items.slice(0, MAX_ITEMS);
+    while (padded.length < MAX_ITEMS) padded.push(null);
+    return padded;
+  }, [items]);
 
-  const handleClick = () => {
-    setOpen(prev => !prev);
-    if (open) {
-      setPaperOffsets(Array.from({ length: maxItems }, () => ({ x: 0, y: 0 })));
-    }
-  };
+  const folderBackColor = useMemo(() => darkenColor(color, 0.08), [color]);
+  const transforms = isMobile ? mobileOpenTransform : desktopOpenTransform;
 
-  const handlePaperMouseMove = (e: React.MouseEvent, index: number) => {
-    if (!open || isMobile) return;
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const offsetX = (e.clientX - centerX) * 0.15;
-    const offsetY = (e.clientY - centerY) * 0.15;
-    setPaperOffsets(prev => {
-      const newOffsets = [...prev];
-      newOffsets[index] = { x: offsetX, y: offsetY };
-      return newOffsets;
-    });
-  };
+  const transition = reduced
+    ? { duration: 0 }
+    : { type: 'spring' as const, stiffness: 260, damping: 24, mass: 0.9 };
 
-  const handlePaperMouseLeave = (index: number) => {
-    if (isMobile) return;
-    setPaperOffsets(prev => {
-      const newOffsets = [...prev];
-      newOffsets[index] = { x: 0, y: 0 };
-      return newOffsets;
-    });
-  };
-
-  const folderStyle = {
-    '--folder-color': color,
-    '--folder-back-color': folderBackColor,
-    '--paper-1': paper1,
-    '--paper-2': paper2,
-    '--paper-3': paper3,
-    '--paper-4': paper4,
-    '--paper-5': paper5,
-  };
-
-  const scaleStyle = { transform: `scale(${size})` };
-
-  const getOpenTransform = (index: number) => {
-    if (isMobile) {
-      switch (index) {
-        case 0: return 'translate(-115%, -95%) rotate(-16deg) scale(1.05)';
-        case 1: return 'translate(-45%, -110%) rotate(-7deg) scale(1.08)';
-        case 2: return 'translate(45%, -110%) rotate(7deg) scale(1.08)';
-        case 3: return 'translate(115%, -95%) rotate(16deg) scale(1.05)';
-        case 4: return 'translate(0%, -85%) rotate(0deg) scale(1.1)';
-        default: return '';
-      }
-    }
-
-    // Desktop - Mieux centré
-    switch (index) {
-      case 0: return 'translate(-155%, -120%) rotate(-22deg) scale(1.08)';
-      case 1: return 'translate(-58%, -140%) rotate(-9deg) scale(1.12)';
-      case 2: return 'translate(58%, -140%) rotate(9deg) scale(1.12)';
-      case 3: return 'translate(155%, -120%) rotate(22deg) scale(1.08)';
-      case 4: return 'translate(0%, -100%) rotate(0deg) scale(1.15)';
-      default: return '';
-    }
-  };
+  const handleToggle = () => setOpen((prev) => !prev);
 
   return (
-    <div style={scaleStyle} className={className}>
+    <div style={{ transform: `scale(${size})` }} className={className}>
       <div
-        className={`group relative transition-all ${isMobile ? 'duration-150' : 'duration-200'} ease-in cursor-pointer ${!open ? 'hover:-translate-y-2 hover:scale-105' : ''
-          }`}
-        style={{
-          ...folderStyle,
-          transform: open ? 'translateY(-8px)' : undefined,
-          filter: isMobile
-            ? 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6)) drop-shadow(0 8px 24px rgba(0, 0, 0, 0.4))'
-            : 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3))',
-        }}
-        onClick={handleClick}
+        className="relative cursor-pointer select-none group"
         role="button"
         aria-label={open ? 'Close folder' : 'Open folder to view projects'}
         aria-expanded={open}
         tabIndex={0}
+        onClick={handleToggle}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            handleClick();
+            handleToggle();
           }
         }}
       >
-        <div
-          className={`relative w-[100px] h-[80px] rounded-tl-0 rounded-tr-[10px] rounded-br-[10px] rounded-bl-[10px] ${isMobile ? 'ring-2 ring-white/20' : ''
-            } ${!open ? 'group-hover:ring-2 group-hover:ring-white/30' : ''}`}
+        {/* Soft halo when open — static gradient, no per-frame work. */}
+        <AnimatePresence>
+          {open && !reduced && (
+            <motion.div
+              key="halo"
+              initial={{ opacity: 0, scale: 0.6 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.6 }}
+              transition={{ duration: 0.45 }}
+              aria-hidden="true"
+              className="pointer-events-none absolute left-1/2 top-1/2 h-[260px] w-[260px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-2xl"
+              style={{
+                background:
+                  'radial-gradient(closest-side, rgba(255,255,255,0.18), rgba(255,255,255,0) 70%)',
+              }}
+            />
+          )}
+        </AnimatePresence>
+
+        <motion.div
+          animate={{ y: open ? -8 : 0 }}
+          whileHover={!open ? { y: -8, scale: 1.05 } : undefined}
+          transition={transition}
+          className="relative w-[100px] h-[80px] rounded-tl-0 rounded-tr-[10px] rounded-br-[10px] rounded-bl-[10px]"
           style={{
-            backgroundColor: 'var(--folder-back-color)',
+            backgroundColor: folderBackColor,
+            filter: isMobile
+              ? 'drop-shadow(0 4px 12px rgba(0,0,0,0.6)) drop-shadow(0 8px 24px rgba(0,0,0,0.4))'
+              : 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))',
           }}
         >
           <span
-            className="absolute z-0 bottom-[98%] left-0 w-[30px] h-[10px] rounded-tl-[5px] rounded-tr-[5px] rounded-bl-0 rounded-br-0"
-            style={{ backgroundColor: 'var(--folder-back-color)' }}
-          ></span>
+            className="absolute z-0 bottom-[98%] left-0 w-[30px] h-[10px] rounded-tl-[5px] rounded-tr-[5px]"
+            style={{ backgroundColor: folderBackColor }}
+          />
+
           {papers.map((item, i) => {
-            let sizeClasses = '';
-            if (i === 0) sizeClasses = open ? 'w-[70%] h-[80%]' : 'w-[70%] h-[80%]';
-            if (i === 1) sizeClasses = open ? 'w-[80%] h-[80%]' : 'w-[80%] h-[70%]';
-            if (i === 2) sizeClasses = open ? 'w-[90%] h-[80%]' : 'w-[90%] h-[60%]';
-            if (i === 3) sizeClasses = open ? 'w-[80%] h-[80%]' : 'w-[80%] h-[50%]';
-            if (i === 4) sizeClasses = open ? 'w-[70%] h-[80%]' : 'w-[70%] h-[40%]';
-
-            const transformStyle = open
-              ? isMobile
-                ? getOpenTransform(i)
-                : `${getOpenTransform(i)} translate(${paperOffsets[i].x}px, ${paperOffsets[i].y}px)`
-              : undefined;
-
-            const getPaperColor = (index: number) => {
-              switch (index) {
-                case 0: return 'var(--paper-1)';
-                case 1: return 'var(--paper-2)';
-                case 2: return 'var(--paper-3)';
-                case 3: return 'var(--paper-4)';
-                case 4: return 'var(--paper-5)';
-                default: return 'var(--paper-3)';
-              }
-            }
+            const sizeClass = open ? openSizes[i] : closedSizes[i];
+            const closedTransform = 'translateX(-50%) translateY(10%)';
+            const openTransform = transforms[i];
 
             return (
-              <div
+              <motion.div
                 key={i}
-                onMouseMove={e => handlePaperMouseMove(e, i)}
-                onMouseLeave={() => handlePaperMouseLeave(i)}
-                className={`absolute bottom-[10%] left-1/2 ${!open ? 'transform -translate-x-1/2 translate-y-[10%] group-hover:translate-y-0' : isMobile ? '' : 'hover:scale-115 hover:z-30'
-                  } ${sizeClasses} ${open ? 'ring-2 ring-white/40' : ''}`}
+                animate={{
+                  transform: open ? openTransform : closedTransform,
+                }}
+                transition={{
+                  ...transition,
+                  delay: open && !reduced ? i * 0.04 : 0,
+                }}
+                whileHover={
+                  open && !reduced && !isMobile
+                    ? { scale: 1.18, zIndex: 30 }
+                    : undefined
+                }
+                className={`absolute bottom-[10%] left-1/2 ${sizeClass} ${
+                  open ? 'ring-1 ring-white/40' : ''
+                }`}
                 style={{
-                  zIndex: open ? 20 + i : 20,
-                  backgroundColor: getPaperColor(i),
+                  zIndex: 20 + i,
+                  backgroundColor: PAPER_COLORS[i] ?? PAPER_COLORS[2],
                   borderRadius: '10px',
-                  willChange: open && !isMobile ? 'transform' : 'auto',
-                  transitionProperty: 'transform, box-shadow, width, height',
-                  transitionDuration: open
-                    ? (isMobile ? '0.35s' : '0.5s')
-                    : (isMobile ? '0.2s' : '0.3s'),
-                  transitionTimingFunction: open
-                    ? 'cubic-bezier(0.34, 1.56, 0.64, 1)'
-                    : 'ease-in-out',
-                  transitionDelay: open ? `${i * 0.06}s` : '0s',
+                  willChange: open ? 'transform' : 'auto',
                   boxShadow: open
-                    ? isMobile
-                      ? '0 4px 16px rgba(0, 0, 0, 0.5), 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.15)'
-                      : '0 8px 24px rgba(0, 0, 0, 0.6), 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.2)'
+                    ? '0 12px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.15)'
                     : 'none',
-                  transform: !open ? 'translateX(-50%) translateY(10%)' : transformStyle,
                 }}
               >
                 {item}
-              </div>
+              </motion.div>
             );
           })}
-          <div
-            className={`absolute z-30 w-full h-full origin-bottom transition-all ${isMobile ? 'duration-150' : 'duration-300'} ease-in-out ${!open ? 'group-hover:[transform:skew(15deg)_scaleY(0.6)]' : ''
-              }`}
-            style={{
-              backgroundColor: 'var(--folder-color)',
-              borderRadius: '5px 10px 10px 10px',
-              ...(open && { transform: 'skew(15deg) scaleY(0.6)' }),
+
+          {/* Folder cover — left flap */}
+          <motion.div
+            animate={{
+              transform: open
+                ? 'skew(15deg) scaleY(0.6)'
+                : 'skew(0deg) scaleY(1)',
             }}
-          ></div>
-          <div
-            className={`absolute z-30 w-full h-full origin-bottom transition-all ${isMobile ? 'duration-150' : 'duration-300'} ease-in-out ${!open ? 'group-hover:[transform:skew(-15deg)_scaleY(0.6)]' : ''
-              }`}
+            whileHover={
+              !open && !reduced
+                ? { transform: 'skew(15deg) scaleY(0.6)' }
+                : undefined
+            }
+            transition={transition}
+            className="absolute z-30 w-full h-full origin-bottom"
             style={{
-              backgroundColor: 'var(--folder-color)',
+              backgroundColor: color,
               borderRadius: '5px 10px 10px 10px',
-              ...(open && { transform: 'skew(-15deg) scaleY(0.6)' }),
             }}
-          ></div>
-        </div>
+          />
+          {/* Folder cover — right flap */}
+          <motion.div
+            animate={{
+              transform: open
+                ? 'skew(-15deg) scaleY(0.6)'
+                : 'skew(0deg) scaleY(1)',
+            }}
+            whileHover={
+              !open && !reduced
+                ? { transform: 'skew(-15deg) scaleY(0.6)' }
+                : undefined
+            }
+            transition={transition}
+            className="absolute z-30 w-full h-full origin-bottom"
+            style={{
+              backgroundColor: color,
+              borderRadius: '5px 10px 10px 10px',
+            }}
+          />
+        </motion.div>
       </div>
     </div>
   );
-};
-
-export default Folder;
+}

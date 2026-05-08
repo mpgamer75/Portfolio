@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Folder from '@/components/ui/Folder';
 import ProjectDetailModal from '@/components/ui/ProjectDetailModal';
 import Image from 'next/image';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 type Project = {
   title: string;
@@ -18,16 +19,7 @@ type Project = {
 
 export default function ProjectsSection() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  const isMobile = useIsMobile();
 
   const projects: Project[] = [
     {
