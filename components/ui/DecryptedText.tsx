@@ -38,9 +38,10 @@ export default function DecryptedText({
   const [hasAnimated, setHasAnimated] = useState(false);
   const containerRef = useRef<HTMLSpanElement | null>(null);
   const timeoutRef = useRef<number | null>(null);
+  const finishedRef = useRef(false);
 
   const runAnimation = useCallback(() => {
-    if (timeoutRef.current !== null) return;
+    if (timeoutRef.current !== null || finishedRef.current) return;
     setHasAnimated(true);
     const revealed = new Set<number>();
 
@@ -66,6 +67,7 @@ export default function DecryptedText({
       timeoutRef.current = null;
       const idx = pickNext();
       if (idx === -1) {
+        finishedRef.current = true;
         setDisplayText(text);
         return;
       }
@@ -92,7 +94,7 @@ export default function DecryptedText({
   }, [animateOn, reduced, runAnimation]);
 
   useEffect(() => {
-    if (animateOn !== 'view' || hasAnimated || reduced) return;
+    if (animateOn !== 'view' || hasAnimated || reduced || finishedRef.current) return;
     const node = containerRef.current;
     if (!node) return;
 

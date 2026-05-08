@@ -70,7 +70,7 @@ const Prism = ({
     const HOVSTR = Math.max(0, hoverStrength || 1);
     const INERT = Math.max(0, Math.min(1, inertia || 0.12));
 
-    const dpr = isMobile ? 1 : Math.min(1.5, window.devicePixelRatio || 1);
+    const dpr = isMobile ? 1 : Math.min(1.25, window.devicePixelRatio || 1);
     const renderer = new Renderer({
       dpr,
       alpha: transparent,
@@ -184,7 +184,7 @@ const Prism = ({
           wob = mat2(c0, c1, c2, c0);
         }
 
-        const int STEPS = 80;
+        const int STEPS = 60;
         for (int i = 0; i < STEPS; i++) {
           p = vec3(f, z);
           p.xz = p.xz * wob;
@@ -419,13 +419,15 @@ const Prism = ({
 
     let intersectionObserver: IntersectionObserver | null = null;
     if (suspendWhenOffscreen) {
+      // Don't paint a frame before the observer reports visibility — it
+      // calls back synchronously after observe(), so we let it kick off
+      // the RAF rather than starting and immediately stopping.
       intersectionObserver = new IntersectionObserver((entries) => {
         const vis = entries.some((e) => e.isIntersecting);
         if (vis) startRAF();
         else stopRAF();
       });
       intersectionObserver.observe(container);
-      startRAF();
     } else {
       startRAF();
     }

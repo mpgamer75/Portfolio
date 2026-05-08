@@ -1,7 +1,5 @@
 'use client';
 
-import { Heart } from 'lucide-react';
-
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
@@ -15,20 +13,14 @@ export default function Footer() {
           </div>
 
           {/* Built with */}
-          <div className="flex items-center space-x-2 text-gray-400 text-xs sm:text-sm smooth-transition hover:text-cyber-secondary">
+          <div className="flex items-center text-gray-400 text-xs sm:text-sm smooth-transition hover:text-cyber-secondary">
             <span className="hidden sm:inline">Built with Next.js and Tailwind CSS</span>
             <span className="sm:hidden">Built with care</span>
-            <Heart
-              className="text-cyber-accent hidden sm:inline smooth-transition hover:text-cyber-primary"
-              size={14}
-              fill="currentColor"
-              aria-hidden="true"
-            />
           </div>
 
           {/* Version */}
           <div className="text-gray-400 text-xs sm:text-sm font-mono smooth-transition hover:text-cyber-primary">
-            v1.0.0
+            v1.2.0
           </div>
         </div>
 

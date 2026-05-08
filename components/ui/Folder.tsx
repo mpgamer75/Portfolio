@@ -131,7 +131,7 @@ export default function Folder({
               exit={{ opacity: 0, scale: 0.6 }}
               transition={{ duration: 0.45 }}
               aria-hidden="true"
-              className="pointer-events-none absolute left-1/2 top-1/2 h-[260px] w-[260px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-2xl"
+              className={`pointer-events-none absolute left-1/2 top-1/2 h-[260px] w-[260px] -translate-x-1/2 -translate-y-1/2 rounded-full ${isMobile ? 'blur-xl' : 'blur-2xl'}`}
               style={{
                 background:
                   'radial-gradient(closest-side, rgba(255,255,255,0.18), rgba(255,255,255,0) 70%)',
@@ -142,7 +142,7 @@ export default function Folder({
 
         <motion.div
           animate={{ y: open ? -8 : 0 }}
-          whileHover={!open ? { y: -8, scale: 1.05 } : undefined}
+          whileHover={!open && !isMobile && !reduced ? { y: -8, scale: 1.05 } : undefined}
           transition={transition}
           className="relative w-[100px] h-[80px] rounded-tl-0 rounded-tr-[10px] rounded-br-[10px] rounded-bl-[10px]"
           style={{
@@ -203,7 +203,7 @@ export default function Folder({
                 : 'skew(0deg) scaleY(1)',
             }}
             whileHover={
-              !open && !reduced
+              !open && !reduced && !isMobile
                 ? { transform: 'skew(15deg) scaleY(0.6)' }
                 : undefined
             }
@@ -222,7 +222,7 @@ export default function Folder({
                 : 'skew(0deg) scaleY(1)',
             }}
             whileHover={
-              !open && !reduced
+              !open && !reduced && !isMobile
                 ? { transform: 'skew(-15deg) scaleY(0.6)' }
                 : undefined
             }
