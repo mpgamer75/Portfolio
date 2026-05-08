@@ -78,7 +78,7 @@ export default function SplitText({
             key={idx}
             variants={child}
             aria-hidden="true"
-            className="inline-block will-change-transform"
+            className="inline-block"
             style={{ transformOrigin: '50% 100%' }}
           >
             {token}

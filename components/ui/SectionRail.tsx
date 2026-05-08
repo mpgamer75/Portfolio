@@ -24,27 +24,26 @@ export default function SectionRail() {
   useEffect(() => {
     if (isMobile) return;
 
-    const observers: IntersectionObserver[] = [];
-    SECTIONS.forEach(({ id }) => {
-      const el = document.getElementById(id);
-      if (!el) return;
+    const elements = SECTIONS
+      .map(({ id }) => document.getElementById(id))
+      .filter((el): el is HTMLElement => el !== null);
 
-      const observer = new IntersectionObserver(
-        (entries) => {
-          for (const entry of entries) {
-            if (entry.isIntersecting) {
-              setActiveId(id);
-              break;
-            }
-          }
-        },
-        { threshold: 0.45, rootMargin: '-15% 0px -45% 0px' },
-      );
-      observer.observe(el);
-      observers.push(observer);
-    });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter((e) => e.isIntersecting);
+        if (visible.length === 0) return;
+        const top = visible.reduce((a, b) =>
+          a.boundingClientRect.top < b.boundingClientRect.top ? a : b,
+        );
+        if (top.target instanceof HTMLElement) {
+          setActiveId(top.target.id);
+        }
+      },
+      { threshold: 0.45, rootMargin: '-15% 0px -45% 0px' },
+    );
 
-    return () => observers.forEach((o) => o.disconnect());
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
   }, [isMobile]);
 
   if (isMobile) return null;

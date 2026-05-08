@@ -18,7 +18,7 @@ export default function ScrollProgress() {
             setIsVisible(window.scrollY > window.innerHeight * 0.5);
         };
 
-        window.addEventListener('scroll', handleScroll);
+        window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 

@@ -157,11 +157,6 @@ export default function Folder({
                   ...transition,
                   delay: open ? i * 0.04 : 0,
                 }}
-                whileHover={
-                  open && !reduced && !isMobile
-                    ? { scale: 1.18, zIndex: 30 }
-                    : undefined
-                }
                 className={`absolute bottom-[10%] left-1/2 ${sizeClass} ${
                   open ? 'ring-1 ring-white/40' : ''
                 }`}
@@ -170,11 +165,7 @@ export default function Folder({
                   backgroundColor: PAPER_COLORS[i] ?? PAPER_COLORS[2],
                   borderRadius: '10px',
                   willChange: open ? 'transform' : 'auto',
-                  boxShadow: open
-                    ? isMobile
-                      ? '0 4px 16px rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.15)'
-                      : '0 8px 24px rgba(0,0,0,0.6), 0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.2)'
-                    : 'none',
+                  boxShadow: open ? '0 12px 32px rgba(0,0,0,0.5)' : 'none',
                 }}
               >
                 {item}
