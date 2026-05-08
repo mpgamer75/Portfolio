@@ -11,7 +11,7 @@ import ProjectsSection from '@/components/sections/ProjectsSection';
 import SkillsSection from '@/components/sections/SkillsSection';
 import ContactSection from '@/components/sections/ContactSection';
 import Footer from '@/components/ui/Footer';
-import SectionRail from '@/components/ui/SectionRail';
+import Dock from '@/components/ui/Dock';
 
 const Prism = dynamic(() => import('@/components/ui/Prism'), { ssr: false });
 const MobileBackground = dynamic(
@@ -72,7 +72,7 @@ export default function HomeShell() {
       </main>
 
       <Footer />
-      <SectionRail />
+      <Dock />
     </div>
   );
 }
