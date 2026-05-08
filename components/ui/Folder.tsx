@@ -1,5 +1,6 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 // Fonction utilitaire pour assombrir la couleur
 const darkenColor = (hex: string, percent: number) => {
@@ -28,16 +29,7 @@ interface FolderProps {
 }
 
 const Folder = ({ color = '#9CA3AF', size = 1, items = [], className = '' }: FolderProps) => {
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  const isMobile = useIsMobile();
 
   const maxItems = 5;
   const papers = items.slice(0, maxItems);

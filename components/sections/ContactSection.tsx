@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { Mail, Linkedin, Github, Phone } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import SplitText from '@/components/ui/SplitText';
 
 export default function ContactSection() {
   const t = useTranslations('contact');
@@ -48,7 +49,7 @@ export default function ContactSection() {
           transition={{ duration: 0.6 }}
         >
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 cyber-scan">
-            <span className="text-cyber-primary">{t('title')}</span>
+            <SplitText className="text-cyber-primary">{t('title')}</SplitText>
           </h2>
           <div className="w-20 sm:w-24 h-1 bg-cyber-primary mx-auto mb-6 sm:mb-8 cyber-neon" />
 
@@ -56,16 +57,16 @@ export default function ContactSection() {
             {t('subtitle')}
           </p>
 
-          {/* Contact Cards */}
           <div className="grid sm:grid-cols-2 gap-4 sm:gap-5 md:gap-6 mb-8 sm:mb-10 md:mb-12">
             {contactMethods.map((method, index) => {
               const Icon = method.icon;
+              const isExternal = method.href.startsWith('http');
               return (
                 <motion.a
                   key={index}
                   href={method.href}
-                  target={method.href.startsWith('http') ? '_blank' : undefined}
-                  rel={method.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                  target={isExternal ? '_blank' : undefined}
+                  rel={isExternal ? 'noopener noreferrer' : undefined}
                   initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -74,10 +75,16 @@ export default function ContactSection() {
                   className="cyber-card rounded-lg p-4 sm:p-5 md:p-6 flex items-center space-x-3 sm:space-x-4 cursor-pointer group"
                 >
                   <div className="p-3 sm:p-4 bg-cyber-primary/10 rounded-lg flex-shrink-0 group-hover:bg-cyber-primary/20 transition-colors">
-                    <Icon className={`${method.color} group-hover:scale-110 transition-transform`} size={28} />
+                    <Icon
+                      className={`${method.color} group-hover:scale-110 transition-transform`}
+                      size={28}
+                      aria-hidden="true"
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-base sm:text-lg font-semibold text-white mb-0.5 sm:mb-1">{method.label}</h3>
+                    <h3 className="text-base sm:text-lg font-semibold text-white mb-0.5 sm:mb-1">
+                      {method.label}
+                    </h3>
                     <p className="text-gray-400 group-hover:text-cyber-primary transition-colors text-sm sm:text-base break-words">
                       {method.value}
                     </p>
@@ -87,7 +94,6 @@ export default function ContactSection() {
             })}
           </div>
 
-          {/* CTA */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -110,7 +116,6 @@ export default function ContactSection() {
             </a>
           </motion.div>
 
-          {/* Additional links */}
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
@@ -129,7 +134,7 @@ export default function ContactSection() {
                 whileHover={{ scale: 1.2, y: -3 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <Github size={28} className="sm:w-8 sm:h-8" />
+                <Github size={28} className="sm:w-8 sm:h-8" aria-hidden="true" />
               </motion.a>
 
               <motion.a
@@ -141,7 +146,7 @@ export default function ContactSection() {
                 whileHover={{ scale: 1.2, y: -3 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <Linkedin size={28} className="sm:w-8 sm:h-8" />
+                <Linkedin size={28} className="sm:w-8 sm:h-8" aria-hidden="true" />
               </motion.a>
             </div>
           </motion.div>

@@ -4,17 +4,18 @@ import { motion } from 'framer-motion';
 import { Code2, Shield, Globe, Wrench, Award } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import CredlyBadge from '@/components/ui/CredlyBadge';
+import SplitText from '@/components/ui/SplitText';
 
 type CategoryKey = 'programming' | 'security' | 'web' | 'tools';
 
-const ICONS: Record<CategoryKey, React.ComponentType<{ size?: number; className?: string }>> = {
+const ICON_BY_KEY: Record<CategoryKey, React.ComponentType<{ size?: number; className?: string }>> = {
   programming: Code2,
   security: Shield,
   web: Globe,
   tools: Wrench,
 };
 
-const COLORS: Record<CategoryKey, string> = {
+const COLOR_BY_KEY: Record<CategoryKey, string> = {
   programming: 'text-cyber-primary',
   security: 'text-cyber-secondary',
   web: 'text-cyber-accent',
@@ -36,14 +37,13 @@ export default function SkillsSection() {
           transition={{ duration: 0.6 }}
         >
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 cyber-scan">
-            <span className="text-cyber-primary">{t('title')}</span>
+            <SplitText className="text-cyber-primary">{t('title')}</SplitText>
           </h2>
           <div className="w-20 sm:w-24 h-1 bg-cyber-primary mx-auto mb-8 sm:mb-12 md:mb-16 cyber-neon" />
 
-          {/* Skills Grid */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
             {CATEGORY_KEYS.map((key, index) => {
-              const Icon = ICONS[key];
+              const Icon = ICON_BY_KEY[key];
               const items = t.raw(`categories.${key}.items`) as string[];
               return (
                 <motion.div
@@ -56,7 +56,7 @@ export default function SkillsSection() {
                 >
                   <div className="flex items-center space-x-2 sm:space-x-3 mb-4 sm:mb-6">
                     <div className="p-2 sm:p-3 bg-cyber-primary/10 rounded-lg flex-shrink-0">
-                      <Icon className={COLORS[key]} size={24} />
+                      <Icon className={COLOR_BY_KEY[key]} size={24} />
                     </div>
                     <h3 className="text-lg sm:text-xl font-bold text-white">
                       {t(`categories.${key}.title`)}
@@ -83,7 +83,6 @@ export default function SkillsSection() {
             })}
           </div>
 
-          {/* Certifications Section */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -92,12 +91,13 @@ export default function SkillsSection() {
             className="mt-12 sm:mt-16"
           >
             <div className="flex items-center justify-center space-x-3 mb-8">
-              <Award className="text-cyber-primary" size={28} />
-              <h3 className="text-2xl sm:text-3xl font-bold text-white">{t('certifications.title')}</h3>
+              <Award className="text-cyber-primary" size={28} aria-hidden="true" />
+              <h3 className="text-2xl sm:text-3xl font-bold text-white">
+                {t('certifications.title')}
+              </h3>
             </div>
 
             <div className="flex flex-wrap justify-center gap-6 md:gap-8">
-              {/* Cisco Credly Badge */}
               <div className="flex flex-col items-center">
                 <CredlyBadge
                   badgeId="606eed2a-e969-489e-8f0f-049aa12e36ad"
@@ -114,7 +114,6 @@ export default function SkillsSection() {
                 </a>
               </div>
 
-              {/* CompTIA Security+ Badge */}
               <div className="flex flex-col items-center">
                 <CredlyBadge
                   badgeId="892d3bff-6d4f-4b21-bdf7-2a14d28c5985"
@@ -133,7 +132,6 @@ export default function SkillsSection() {
             </div>
           </motion.div>
 
-          {/* Additional Info */}
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
@@ -142,8 +140,12 @@ export default function SkillsSection() {
             className="mt-8 sm:mt-12 md:mt-16 grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6"
           >
             <div className="cyber-card rounded-lg p-4 sm:p-5 md:p-6 text-center">
-              <div className="text-3xl sm:text-4xl font-bold text-cyber-primary mb-2">{t('highlights.tryhackme.title')}</div>
-              <p className="text-gray-400 text-sm sm:text-base">{t('highlights.tryhackme.description')}</p>
+              <div className="text-3xl sm:text-4xl font-bold text-cyber-primary mb-2">
+                {t('highlights.tryhackme.title')}
+              </div>
+              <p className="text-gray-400 text-sm sm:text-base">
+                {t('highlights.tryhackme.description')}
+              </p>
               <a
                 href="https://tryhackme.com"
                 target="_blank"
@@ -155,8 +157,12 @@ export default function SkillsSection() {
             </div>
 
             <div className="cyber-card rounded-lg p-4 sm:p-5 md:p-6 text-center">
-              <div className="text-3xl sm:text-4xl font-bold text-cyber-primary mb-2">{t('highlights.github.title')}</div>
-              <p className="text-gray-400 text-sm sm:text-base">{t('highlights.github.description')}</p>
+              <div className="text-3xl sm:text-4xl font-bold text-cyber-primary mb-2">
+                {t('highlights.github.title')}
+              </div>
+              <p className="text-gray-400 text-sm sm:text-base">
+                {t('highlights.github.description')}
+              </p>
               <a
                 href="https://github.com/mpgamer75"
                 target="_blank"
@@ -168,9 +174,15 @@ export default function SkillsSection() {
             </div>
 
             <div className="cyber-card rounded-lg p-4 sm:p-5 md:p-6 text-center sm:col-span-2 md:col-span-1">
-              <div className="text-3xl sm:text-4xl font-bold text-cyber-primary mb-2">{t('highlights.school.title')}</div>
-              <p className="text-gray-400 text-sm sm:text-base">{t('highlights.school.description')}</p>
-              <p className="text-cyber-secondary mt-3 sm:mt-4 text-xs sm:text-sm">{t('highlights.school.period')}</p>
+              <div className="text-3xl sm:text-4xl font-bold text-cyber-primary mb-2">
+                {t('highlights.school.title')}
+              </div>
+              <p className="text-gray-400 text-sm sm:text-base">
+                {t('highlights.school.description')}
+              </p>
+              <p className="text-cyber-secondary mt-3 sm:mt-4 text-xs sm:text-sm">
+                {t('highlights.school.period')}
+              </p>
             </div>
           </motion.div>
         </motion.div>
