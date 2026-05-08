@@ -55,7 +55,7 @@ export default function SkillsSection() {
                   className="cyber-card rounded-lg p-4 sm:p-5 md:p-6"
                 >
                   <div className="flex items-center space-x-2 sm:space-x-3 mb-4 sm:mb-6">
-                    <div className="p-2 sm:p-3 bg-cyber-primary/10 rounded-lg flex-shrink-0">
+                    <div className="p-2 sm:p-3 bg-cyber-primary/10 rounded-lg shrink-0">
                       <Icon className={COLOR_BY_KEY[key]} size={24} />
                     </div>
                     <h3 className="text-lg sm:text-xl font-bold text-white">

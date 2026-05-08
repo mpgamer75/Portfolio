@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslations } from 'next-intl';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 
 type NavKey = 'home' | 'about' | 'experience' | 'projects' | 'skills' | 'contact';
 
@@ -72,39 +73,43 @@ export default function Navigation() {
             {'<CL />'}
           </motion.a>
 
-          <div
-            ref={navRef}
-            className="hidden md:flex items-center space-x-1 relative"
-            onMouseLeave={handleMouseLeave}
-          >
-            <motion.div
-              className="absolute h-full rounded-lg bg-cyber-primary/10 border border-cyber-primary/30 pointer-events-none"
-              initial={false}
-              animate={indicatorStyle}
-              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            />
-
-            {navItems.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                onMouseEnter={handleMouseEnter}
-                className="relative text-gray-300 hover:text-cyber-primary px-4 py-2 rounded-lg transition-colors duration-200 z-10"
-              >
-                <span className="relative z-10">{t(item.key)}</span>
-              </a>
-            ))}
-          </div>
-
-          <div className="md:hidden">
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="text-cyber-primary hover:text-cyber-secondary smooth-transition-fast p-2 -m-2 rounded-lg scale-on-hover"
-              aria-label={isOpen ? t('closeMenu') : t('openMenu')}
-              aria-expanded={isOpen}
+          <div className="flex items-center gap-3">
+            <div
+              ref={navRef}
+              className="hidden md:flex items-center space-x-1 relative"
+              onMouseLeave={handleMouseLeave}
             >
-              {isOpen ? <X size={28} aria-hidden="true" /> : <Menu size={28} aria-hidden="true" />}
-            </button>
+              <motion.div
+                className="absolute h-full rounded-lg bg-cyber-primary/10 border border-cyber-primary/30 pointer-events-none"
+                initial={false}
+                animate={indicatorStyle}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
+
+              {navItems.map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  onMouseEnter={handleMouseEnter}
+                  className="relative text-gray-300 hover:text-cyber-primary px-4 py-2 rounded-lg transition-colors duration-200 z-10"
+                >
+                  <span className="relative z-10">{t(item.key)}</span>
+                </a>
+              ))}
+            </div>
+
+            <LanguageSwitcher />
+
+            <div className="md:hidden">
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="text-cyber-primary hover:text-cyber-secondary smooth-transition-fast p-2 -m-2 rounded-lg scale-on-hover"
+                aria-label={isOpen ? t('closeMenu') : t('openMenu')}
+                aria-expanded={isOpen}
+              >
+                {isOpen ? <X size={28} aria-hidden="true" /> : <Menu size={28} aria-hidden="true" />}
+              </button>
+            </div>
           </div>
         </div>
       </div>

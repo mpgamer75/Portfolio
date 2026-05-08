@@ -148,19 +148,19 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
                   <>
                     <button
                       onClick={prevImage}
-                      className="absolute top-1/2 left-2 sm:left-4 -translate-y-1/2 bg-cyber-primary/20 backdrop-blur-sm text-cyber-primary p-2 sm:p-3 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 smooth-transition z-10 hover:bg-cyber-primary hover:text-cyber-darker hover:scale-110 border border-cyber-primary/50 scale-on-hover"
+                      className="absolute top-1/2 left-2 sm:left-4 -translate-y-1/2 bg-cyber-primary/20 backdrop-blur-xs text-cyber-primary p-2 sm:p-3 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 smooth-transition z-10 hover:bg-cyber-primary hover:text-cyber-darker hover:scale-110 border border-cyber-primary/50 scale-on-hover"
                       aria-label="Previous image"
                     >
                       <ChevronLeft size={20} className="sm:w-7 sm:h-7" aria-hidden="true" />
                     </button>
                     <button
                       onClick={nextImage}
-                      className="absolute top-1/2 right-2 sm:right-4 -translate-y-1/2 bg-cyber-primary/20 backdrop-blur-sm text-cyber-primary p-2 sm:p-3 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 smooth-transition z-10 hover:bg-cyber-primary hover:text-cyber-darker hover:scale-110 border border-cyber-primary/50 scale-on-hover"
+                      className="absolute top-1/2 right-2 sm:right-4 -translate-y-1/2 bg-cyber-primary/20 backdrop-blur-xs text-cyber-primary p-2 sm:p-3 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 smooth-transition z-10 hover:bg-cyber-primary hover:text-cyber-darker hover:scale-110 border border-cyber-primary/50 scale-on-hover"
                       aria-label="Next image"
                     >
                       <ChevronRight size={20} className="sm:w-7 sm:h-7" aria-hidden="true" />
                     </button>
-                    <div className="absolute bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5 sm:gap-2 z-10 bg-cyber-darker/50 backdrop-blur-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full">
+                    <div className="absolute bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5 sm:gap-2 z-10 bg-cyber-darker/50 backdrop-blur-xs px-3 sm:px-4 py-1.5 sm:py-2 rounded-full">
                       {(project.imagePaths || []).map((_, i) => (
                         <button
                           key={i}
@@ -226,7 +226,7 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="text-gray-300 mb-4 sm:mb-6 leading-relaxed flex-grow text-sm sm:text-base"
+              className="text-gray-300 mb-4 sm:mb-6 leading-relaxed grow text-sm sm:text-base"
             >
               {project.description}
             </motion.p>

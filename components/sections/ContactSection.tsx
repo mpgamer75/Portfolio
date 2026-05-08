@@ -74,7 +74,7 @@ export default function ContactSection() {
                   whileHover={{ scale: 1.02, y: -2 }}
                   className="cyber-card rounded-lg p-4 sm:p-5 md:p-6 flex items-center space-x-3 sm:space-x-4 cursor-pointer group"
                 >
-                  <div className="p-3 sm:p-4 bg-cyber-primary/10 rounded-lg flex-shrink-0 group-hover:bg-cyber-primary/20 transition-colors">
+                  <div className="p-3 sm:p-4 bg-cyber-primary/10 rounded-lg shrink-0 group-hover:bg-cyber-primary/20 transition-colors">
                     <Icon
                       className={`${method.color} group-hover:scale-110 transition-transform`}
                       size={28}
@@ -85,7 +85,7 @@ export default function ContactSection() {
                     <h3 className="text-base sm:text-lg font-semibold text-white mb-0.5 sm:mb-1">
                       {method.label}
                     </h3>
-                    <p className="text-gray-400 group-hover:text-cyber-primary transition-colors text-sm sm:text-base break-words">
+                    <p className="text-gray-400 group-hover:text-cyber-primary transition-colors text-sm sm:text-base wrap-break-word">
                       {method.value}
                     </p>
                   </div>

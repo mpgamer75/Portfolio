@@ -1,6 +1,76 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@theme {
+  --color-cyber-primary: #ffffff;
+  --color-cyber-secondary: #e5e7eb;
+  --color-cyber-dark: #0a0e27;
+  --color-cyber-darker: #050814;
+  --color-cyber-accent: #9ca3af;
+
+  --font-mono:
+    var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+
+  --background-image-gradient-radial: radial-gradient(var(--tw-gradient-stops));
+  --background-image-gradient-conic: conic-gradient(
+    from 180deg at 50% 50%,
+    var(--tw-gradient-stops)
+  );
+
+  --animate-fade-in: fadeIn 0.5s ease-in-out;
+  --animate-slide-up: slideUp 0.5s ease-out;
+  --animate-glow: glow 2s ease-in-out infinite alternate;
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+  @keyframes slideUp {
+    0% {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  @keyframes glow {
+    0% {
+      box-shadow:
+        0 0 5px #ffffff,
+        0 0 10px #ffffff;
+    }
+    100% {
+      box-shadow:
+        0 0 10px #ffffff,
+        0 0 20px #ffffff,
+        0 0 30px #ffffff;
+    }
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
 
 :root {
   --cyber-primary: #FFFFFF;
@@ -57,6 +127,20 @@ html {
   top: 16px;
   outline: 2px solid var(--cyber-primary);
   outline-offset: 2px;
+}
+
+/* View Transitions API — used by LanguageSwitcher when available */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0ms;
+  }
 }
 
 body {
@@ -136,7 +220,7 @@ body {
 
 /* Card hover effect */
 .cyber-card {
-  @apply border border-cyber-primary/30 bg-cyber-dark/50 backdrop-blur-sm;
+  @apply border border-cyber-primary/30 bg-cyber-dark/50 backdrop-blur-xs;
   transition: all var(--transition-normal) ease;
   will-change: transform, box-shadow, border-color;
 }
@@ -306,7 +390,7 @@ a:focus-visible {
 
 /* PROJECT MODAL STYLES */
 .project-modal-backdrop {
-  @apply fixed inset-0 bg-cyber-darker/95 backdrop-blur-md z-[100] flex items-center justify-center p-4;
+  @apply fixed inset-0 bg-cyber-darker/95 backdrop-blur-md z-100 flex items-center justify-center p-4;
   cursor: zoom-out;
 }
 

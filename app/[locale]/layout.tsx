@@ -4,6 +4,7 @@ import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import { setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
+import LocaleTransitionWrapper from '@/components/ui/LocaleTransitionWrapper';
 import '../globals.css';
 
 const jetbrainsMono = JetBrains_Mono({
@@ -88,7 +89,9 @@ export default async function LocaleLayout({
         <a href="#main" className="skip-to-content">
           Skip to content
         </a>
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider>
+          <LocaleTransitionWrapper>{children}</LocaleTransitionWrapper>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

@@ -31,7 +31,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-4 sm:mt-6 h-1 bg-gradient-to-r from-transparent via-cyber-primary to-transparent opacity-30 smooth-transition hover:opacity-50" />
+        <div className="mt-4 sm:mt-6 h-1 bg-linear-to-r from-transparent via-cyber-primary to-transparent opacity-30 smooth-transition hover:opacity-50" />
       </div>
     </footer>
   );
