@@ -84,9 +84,24 @@ export default function Folder({
   const folderBackColor = useMemo(() => darkenColor(color, 0.08), [color]);
   const transforms = isMobile ? mobileOpenTransform : desktopOpenTransform;
 
+  // Tighter, less bouncy spring on desktop; predictable tween on mobile to
+  // keep the fan-out smooth on mid-tier phones (no spring oscillation).
   const transition = reduced
     ? { duration: 0 }
-    : { type: 'spring' as const, stiffness: 260, damping: 24, mass: 0.9 };
+    : isMobile
+      ? {
+          type: 'tween' as const,
+          duration: 0.32,
+          ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+        }
+      : {
+          type: 'spring' as const,
+          stiffness: 320,
+          damping: 28,
+          mass: 0.65,
+        };
+
+  const staggerStep = isMobile ? 0.025 : 0.035;
 
   const handleToggle = () => setOpen((prev) => !prev);
 
@@ -155,7 +170,7 @@ export default function Folder({
                 }}
                 transition={{
                   ...transition,
-                  delay: open && !reduced ? i * 0.04 : 0,
+                  delay: open && !reduced ? i * staggerStep : 0,
                 }}
                 whileHover={
                   open && !reduced && !isMobile
