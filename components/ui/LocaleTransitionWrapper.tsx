@@ -19,10 +19,10 @@ export default function LocaleTransitionWrapper({
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={locale}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.18, ease: 'easeOut' }}
+        initial={{ opacity: 0, filter: 'blur(6px)' }}
+        animate={{ opacity: 1, filter: 'blur(0px)' }}
+        exit={{ opacity: 0, filter: 'blur(6px)' }}
+        transition={{ duration: 0.24, ease: 'easeOut' }}
       >
         {children}
       </motion.div>
