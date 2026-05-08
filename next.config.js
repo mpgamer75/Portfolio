@@ -1,11 +1,4 @@
-import type { NextConfig } from 'next';
-import createNextIntlPlugin from 'next-intl/plugin';
-import { fileURLToPath } from 'node:url';
-import { dirname } from 'node:path';
-
-const projectRoot = dirname(fileURLToPath(import.meta.url));
-const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
-
+/** @type {import('next').NextConfig} */
 const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'X-Frame-Options', value: 'DENY' },
@@ -38,11 +31,11 @@ const securityHeaders = [
   },
 ];
 
-const nextConfig: NextConfig = {
+const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
-  turbopack: { root: projectRoot },
+  turbopack: { root: __dirname },
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
@@ -55,4 +48,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withNextIntl(nextConfig);
+module.exports = nextConfig;

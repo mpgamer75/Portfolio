@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Renderer, Triangle, Program, Mesh } from 'ogl';
-import { useIsMobile } from '@/hooks/useIsMobile';
 
 interface PrismProps {
   height?: number;
@@ -40,7 +39,16 @@ const Prism = ({
   timeScale = 0.5,
 }: PrismProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const isMobile = useIsMobile();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -436,7 +444,7 @@ const Prism = ({
       if (animationType === 'hover' && onPointerMove) {
         window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('mouseleave', onLeave);
-        window.removeEventListener('blur-sm', onBlur);
+        window.removeEventListener('blur', onBlur);
       }
       intersectionObserver?.disconnect();
       if (gl.canvas.parentElement === container)

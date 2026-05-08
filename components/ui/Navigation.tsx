@@ -3,22 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTranslations } from 'next-intl';
-import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
-
-type NavKey = 'home' | 'about' | 'experience' | 'projects' | 'skills' | 'contact';
-
-const navItems: Array<{ key: NavKey; href: string }> = [
-  { key: 'home', href: '#home' },
-  { key: 'about', href: '#about' },
-  { key: 'experience', href: '#experience' },
-  { key: 'projects', href: '#projects' },
-  { key: 'skills', href: '#skills' },
-  { key: 'contact', href: '#contact' },
-];
 
 export default function Navigation() {
-  const t = useTranslations('nav');
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -29,9 +15,18 @@ export default function Navigation() {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
     };
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const navItems = [
+    { label: 'Home', href: '#home' },
+    { label: 'About', href: '#about' },
+    { label: 'Experience', href: '#experience' },
+    { label: 'Projects', href: '#projects' },
+    { label: 'Skills', href: '#skills' },
+    { label: 'Contact', href: '#contact' },
+  ];
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLAnchorElement>, index: number) => {
     setHoverIndex(index);
@@ -70,53 +65,49 @@ export default function Navigation() {
           </motion.a>
 
           {/* Desktop Navigation */}
-          <div className="flex items-center gap-3">
-            <div
-              ref={navRef}
-              className="hidden md:flex items-center space-x-1 relative"
-              onMouseLeave={handleMouseLeave}
-            >
-              {/* Sliding indicator */}
-              <motion.div
-                className="absolute h-full rounded-lg bg-cyber-primary/10 border border-cyber-primary/30 pointer-events-none"
-                initial={false}
-                animate={{
-                  left: hoverIndex !== null ? indicatorStyle.left : 0,
-                  width: hoverIndex !== null ? indicatorStyle.width : 0,
-                  opacity: hoverIndex !== null ? 1 : 0,
-                }}
-                transition={{
-                  type: 'spring',
-                  stiffness: 400,
-                  damping: 30,
-                }}
-              />
+          <div
+            ref={navRef}
+            className="hidden md:flex items-center space-x-1 relative"
+            onMouseLeave={handleMouseLeave}
+          >
+            {/* Sliding indicator */}
+            <motion.div
+              className="absolute h-full rounded-lg bg-cyber-primary/10 border border-cyber-primary/30 pointer-events-none"
+              initial={false}
+              animate={{
+                left: hoverIndex !== null ? indicatorStyle.left : 0,
+                width: hoverIndex !== null ? indicatorStyle.width : 0,
+                opacity: hoverIndex !== null ? 1 : 0,
+              }}
+              transition={{
+                type: 'spring',
+                stiffness: 400,
+                damping: 30,
+              }}
+            />
 
-              {navItems.map((item, index) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  onMouseEnter={(e) => handleMouseEnter(e, index)}
-                  className="relative text-gray-300 hover:text-cyber-primary px-4 py-2 rounded-lg transition-colors duration-200 z-10"
-                >
-                  <span className="relative z-10">{t(item.key)}</span>
-                </a>
-              ))}
-            </div>
-
-            <LanguageSwitcher />
-
-            {/* Mobile Menu Button */}
-            <div className="md:hidden">
-              <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="text-cyber-primary hover:text-cyber-secondary smooth-transition-fast p-2 -m-2 rounded-lg scale-on-hover"
-                aria-label={isOpen ? t('closeMenu') : t('openMenu')}
-                aria-expanded={isOpen}
+            {navItems.map((item, index) => (
+              <a
+                key={item.href}
+                href={item.href}
+                onMouseEnter={(e) => handleMouseEnter(e, index)}
+                className="relative text-gray-300 hover:text-cyber-primary px-4 py-2 rounded-lg transition-colors duration-200 z-10"
               >
-                {isOpen ? <X size={28} /> : <Menu size={28} />}
-              </button>
-            </div>
+                <span className="relative z-10">{item.label}</span>
+              </a>
+            ))}
+          </div>
+
+          {/* Mobile Menu Button */}
+          <div className="md:hidden">
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="text-cyber-primary hover:text-cyber-secondary smooth-transition-fast p-2 -m-2 rounded-lg scale-on-hover"
+              aria-label={isOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={isOpen}
+            >
+              {isOpen ? <X size={28} /> : <Menu size={28} />}
+            </button>
           </div>
         </div>
       </div>
@@ -141,7 +132,7 @@ export default function Navigation() {
                   transition={{ delay: index * 0.05 }}
                   className="block text-gray-300 hover:text-cyber-primary smooth-transition-fast py-2 px-3 -mx-3 rounded-lg hover:bg-cyber-primary/10"
                 >
-                  {t(item.key)}
+                  {item.label}
                 </motion.a>
               ))}
             </nav>
