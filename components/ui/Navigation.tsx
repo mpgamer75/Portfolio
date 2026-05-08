@@ -21,76 +21,82 @@ export default function Navigation() {
   const t = useTranslations('nav');
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [indicatorStyle, setIndicatorStyle] = useState({
-    left: 0,
-    width: 0,
-    opacity: 0,
-  });
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   const navRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleMouseEnter = (
-    event: React.MouseEvent<HTMLAnchorElement>,
-  ) => {
-    const target = event.currentTarget;
-    if (!navRef.current) return;
-    const navRect = navRef.current.getBoundingClientRect();
-    const targetRect = target.getBoundingClientRect();
-    setIndicatorStyle({
-      left: targetRect.left - navRect.left,
-      width: targetRect.width,
-      opacity: 1,
-    });
+  const handleMouseEnter = (e: React.MouseEvent<HTMLAnchorElement>, index: number) => {
+    setHoverIndex(index);
+    const target = e.currentTarget;
+    if (navRef.current) {
+      const navRect = navRef.current.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      setIndicatorStyle({
+        left: targetRect.left - navRect.left,
+        width: targetRect.width,
+      });
+    }
   };
 
   const handleMouseLeave = () => {
-    setIndicatorStyle((prev) => ({ ...prev, opacity: 0 }));
+    setHoverIndex(null);
   };
 
   return (
     <motion.nav
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? 'bg-cyber-darker/95 backdrop-blur-md shadow-lg' : 'bg-transparent'
-      }`}
-      aria-label="Primary"
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-cyber-darker/95 backdrop-blur-md shadow-lg' : 'bg-transparent'
+        }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
+          {/* Logo */}
           <motion.a
             href="#home"
-            className="text-2xl font-bold text-cyber-primary font-mono"
+            className="text-2xl font-bold text-cyber-primary"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            aria-label={t('home')}
           >
             {'<CL />'}
           </motion.a>
 
+          {/* Desktop Navigation */}
           <div className="flex items-center gap-3">
             <div
               ref={navRef}
               className="hidden md:flex items-center space-x-1 relative"
               onMouseLeave={handleMouseLeave}
             >
+              {/* Sliding indicator */}
               <motion.div
                 className="absolute h-full rounded-lg bg-cyber-primary/10 border border-cyber-primary/30 pointer-events-none"
                 initial={false}
-                animate={indicatorStyle}
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                animate={{
+                  left: hoverIndex !== null ? indicatorStyle.left : 0,
+                  width: hoverIndex !== null ? indicatorStyle.width : 0,
+                  opacity: hoverIndex !== null ? 1 : 0,
+                }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 400,
+                  damping: 30,
+                }}
               />
 
-              {navItems.map((item) => (
+              {navItems.map((item, index) => (
                 <a
                   key={item.href}
                   href={item.href}
-                  onMouseEnter={handleMouseEnter}
+                  onMouseEnter={(e) => handleMouseEnter(e, index)}
                   className="relative text-gray-300 hover:text-cyber-primary px-4 py-2 rounded-lg transition-colors duration-200 z-10"
                 >
                   <span className="relative z-10">{t(item.key)}</span>
@@ -100,6 +106,7 @@ export default function Navigation() {
 
             <LanguageSwitcher />
 
+            {/* Mobile Menu Button */}
             <div className="md:hidden">
               <button
                 onClick={() => setIsOpen(!isOpen)}
@@ -107,13 +114,14 @@ export default function Navigation() {
                 aria-label={isOpen ? t('closeMenu') : t('openMenu')}
                 aria-expanded={isOpen}
               >
-                {isOpen ? <X size={28} aria-hidden="true" /> : <Menu size={28} aria-hidden="true" />}
+                {isOpen ? <X size={28} /> : <Menu size={28} />}
               </button>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Mobile Menu */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -122,7 +130,7 @@ export default function Navigation() {
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden glass-effect border-t border-cyber-primary/30"
           >
-            <nav className="px-4 py-6 space-y-4" aria-label="Mobile">
+            <nav className="px-4 py-6 space-y-4" aria-label="Mobile navigation">
               {navItems.map((item, index) => (
                 <motion.a
                   key={item.href}
