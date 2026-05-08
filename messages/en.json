@@ -5,57 +5,26 @@
     "experience": "Experience",
     "projects": "Projects",
     "skills": "Skills",
-    "contact": "Contact",
-    "openMenu": "Open menu",
-    "closeMenu": "Close menu",
-    "skipToContent": "Skip to content"
+    "contact": "Contact"
   },
   "hero": {
     "greeting": "Hi, I'm",
-    "name": "Charles\nLantigua Jorge",
     "title": "Cybersecurity Engineer & Developer",
-    "subtitle": "Passionate about cybersecurity, tool development and technological innovation",
-    "subtitlePhrases": [
-      "Cybersecurity Engineer",
-      "Software Developer",
-      "Pentesting Enthusiast"
-    ],
+    "subtitle": "Passionate about offensive security, tool development and technological innovation",
     "cta": "View my projects",
-    "ctaContact": "Contact me",
-    "githubAria": "GitHub",
-    "linkedinAria": "LinkedIn",
-    "emailAria": "Email"
+    "ctaContact": "Contact me"
   },
   "about": {
     "title": "About Me",
     "description": "Computer Science and Cybersecurity Engineering student at ECE Paris, I specialize in offensive security, tool development and threat analysis. With hands-on experience in SOC, pentesting and secure application development, I constantly seek to deepen my technical skills.",
     "location": "Paris, France",
     "status": "Master's Student - ECE Paris",
-    "availability": "Available for internships",
-    "altText": "Charles Lantigua Jorge",
-    "stats": {
-      "projects": "Projects",
-      "internships": "Internships",
-      "languages": "Trilingual",
-      "languagesValue": "French, Spanish, English"
-    }
+    "availability": "Available for internships"
   },
   "experience": {
     "title": "Professional Experience",
     "present": "Present",
     "jobs": [
-      {
-        "title": "Cybersecurity Engineer Intern",
-        "company": "Airbus Helicopters",
-        "location": "Marignane, France",
-        "period": "March 2026 - Present",
-        "description": [
-          "Contribution to vulnerability management operations within a transverse security team (SOC, Endpoint Protection, Architecture): asset inventory integration (CMDB), automated data collection and classification covering workstations, servers, and industrial systems",
-          "Design and implementation of a vulnerability scanning architecture to improve coverage and detection accuracy in the enterprise environment, including OT/IT convergence zones",
-          "Development of predictive data-analytics capabilities: correlation of vulnerability data with asset criticality to prioritize remediation and model cybersecurity impact, applying machine-learning principles",
-          "Development of a real-time dashboard with KPIs and predictive indicators, integrated into the security department's governance framework to drive corrective-action plans"
-        ]
-      },
       {
         "title": "Cybersecurity Engineer Intern",
         "company": "AlticeDo",
@@ -93,39 +62,22 @@
   },
   "projects": {
     "title": "Projects",
-    "viewCode": "View Code",
-    "viewDemo": "Live Demo",
-    "openHint": "Click the folder to explore projects",
-    "viewMore": "View more on GitHub",
-    "featured": "FEATURED",
-    "technologies": "Technologies",
-    "noPreview": "No preview available",
+    "viewCode": "View code",
+    "viewDemo": "View demo",
     "items": [
       {
         "title": "Security Scanner",
         "description": "Security assessment tool in Bash for Red Teams, integrating OSINT, network, web and exploitation modules. Interactive interface and adaptive modes to optimize pentesting audits.",
         "tech": ["Bash", "Nmap", "Nuclei", "Subfinder", "OSINT", "Gobuster", "Metasploit"],
         "github": "https://github.com/mpgamer75/security-scanner",
-        "featured": true,
-        "imagePaths": [
-          "/images/projects/security-scanner1.png",
-          "/images/projects/security-scanner2.png",
-          "/images/projects/security-scanner3.png"
-        ]
+        "featured": true
       },
       {
         "title": "Encryptor",
         "description": "Multi-platform file encryption utility in Bash and OpenSSL. Implementation of 8 modern algorithms (AES-256-GCM, ChaCha20) and secure key management via Elliptic Curve Cryptography (ECC).",
         "tech": ["Bash", "OpenSSL", "Debian Packaging", "GitHub Actions"],
         "github": "https://github.com/mpgamer75/encryptor",
-        "featured": true,
-        "imagePaths": [
-          "/images/projects/encryptor1.png",
-          "/images/projects/encryptor2.png",
-          "/images/projects/encryptor3.png",
-          "/images/projects/encryptor4.png",
-          "/images/projects/encryptor5.png"
-        ]
+        "featured": true
       },
       {
         "title": "SABER",
@@ -133,32 +85,21 @@
         "tech": ["Next.js", "JavaScript", "Web Cryptography", "Vercel"],
         "github": "https://github.com/mpgamer75/fall2024-webtech-210",
         "demo": "https://fall2024-webtech-210-saber11-charles-projects-0eed9e6d.vercel.app/",
-        "featured": true,
-        "imagePaths": ["/images/projects/Saber.png"]
+        "featured": true
       },
       {
         "title": "IoC App Altice",
         "description": "Application for managing and analyzing Indicators of Compromise (IoC) to improve threat detection and incident response.",
         "tech": ["Python", "Web Development", "Cybersecurity"],
         "github": "https://github.com/mpgamer75/IoC-app-altice",
-        "featured": false,
-        "imagePaths": [
-          "/images/projects/IoC1.png",
-          "/images/projects/IoC2.png",
-          "/images/projects/IoC3.png",
-          "/images/projects/IoC4.png",
-          "/images/projects/IoC5.png",
-          "/images/projects/IoC6.png",
-          "/images/projects/IoC7.png"
-        ]
+        "featured": false
       },
       {
         "title": "Warhammer 40k Terminal Display",
         "description": "Creative project combining passion for Warhammer 40k and development skills. Stylized and interactive terminal interface.",
         "tech": ["Terminal", "CLI", "Creative Coding"],
         "github": "https://github.com/mpgamer75/Warhammer-40k-terminal-display",
-        "featured": false,
-        "imagePaths": []
+        "featured": false
       }
     ]
   },
@@ -180,28 +121,10 @@
       "tools": {
         "title": "Tools & Platforms",
         "items": ["Git", "GitHub", "Docker", "TryHackMe", "Active Directory"]
-      }
-    },
-    "certifications": {
-      "title": "Certifications",
-      "cisco": "Cisco Introduction to Cybersecurity",
-      "comptia": "CompTIA Security+"
-    },
-    "highlights": {
-      "tryhackme": {
-        "title": "TryHackMe",
-        "description": "Active on the platform",
-        "cta": "View profile"
       },
-      "github": {
-        "title": "GitHub",
-        "description": "Active profile with 5+ public repos",
-        "cta": "View profile"
-      },
-      "school": {
-        "title": "ECE Paris",
-        "description": "Cybersecurity and Computer Science degree",
-        "period": "2023 - 2026"
+      "certifications": {
+        "title": "Certifications",
+        "items": ["Cisco Introduction to Cybersecurity"]
       }
     }
   },
@@ -212,26 +135,10 @@
     "linkedin": "LinkedIn",
     "github": "GitHub",
     "phone": "Phone",
-    "send": "Send message",
-    "cta": {
-      "title": "Ready to collaborate?",
-      "description": "Feel free to contact me to discuss projects, opportunities or just to chat about cybersecurity!"
-    },
-    "alsoFindMe": "You can also find me on:"
+    "send": "Send message"
   },
   "footer": {
     "rights": "All rights reserved",
-    "built": "Built with Next.js and Tailwind CSS",
-    "builtShort": "Built with care"
-  },
-  "errors": {
-    "notFoundCode": "ERR_404",
-    "notFoundTitle": "Page not found",
-    "notFoundBody": "The route you tried to reach has drifted off the grid. Let's get you back home.",
-    "notFoundCta": "Return to home",
-    "fatalCode": "ERR_FATAL",
-    "fatalTitle": "Something broke",
-    "fatalBody": "An unexpected error occurred. The team has been notified.",
-    "fatalCta": "Try again"
+    "built": "Built with Next.js and Tailwind CSS"
   }
 }
