@@ -22,6 +22,8 @@ export default function MobileBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const starsRef = useRef<Star[]>([]);
   const animationFrameRef = useRef<number>(0);
+  const isVisibleRef = useRef<boolean>(true);
+  const cachedConnectionsRef = useRef<Connection[]>([]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -30,19 +32,16 @@ export default function MobileBackground() {
     const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
 
-    // Set canvas size
     const setCanvasSize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     };
     setCanvasSize();
-    window.addEventListener('resize', setCanvasSize);
+    window.addEventListener('resize', setCanvasSize, { passive: true });
 
-    // Initialize stars
     const initStars = () => {
       starsRef.current = [];
-      const numStars = Math.floor((canvas.width * canvas.height) / 8000); // Density based on screen size
-      
+      const numStars = Math.floor((canvas.width * canvas.height) / 8000);
       for (let i = 0; i < numStars; i++) {
         starsRef.current.push({
           x: Math.random() * canvas.width,
@@ -57,56 +56,60 @@ export default function MobileBackground() {
     };
     initStars();
 
-    // Animation loop
+    let frameCount = 0;
+    const maxConnectionDistance = 120;
+
     const animate = () => {
+      // Skip the entire frame budget when offscreen — pause RAF instead
+      // (loop will be restarted by the IntersectionObserver below).
+      if (!isVisibleRef.current) return;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      frameCount += 1;
 
-      const connections: Connection[] = [];
-      const maxConnectionDistance = 120;
+      // Recompute connections every other frame — visually identical at
+      // 60 fps, halves the O(N^2) distance check on mid-tier mobile.
+      if ((frameCount & 1) === 0) {
+        const connections: Connection[] = [];
+        const stars = starsRef.current;
+        for (let i = 0; i < stars.length; i++) {
+          for (let j = i + 1; j < stars.length; j++) {
+            const dx = stars[i].x - stars[j].x;
+            const dy = stars[i].y - stars[j].y;
+            const distance = Math.hypot(dx, dy);
+            if (distance < maxConnectionDistance) {
+              connections.push({ from: stars[i], to: stars[j], distance });
+            }
+          }
+        }
+        cachedConnectionsRef.current = connections;
+      }
 
-      // Update and draw stars
-      starsRef.current.forEach((star, index) => {
-        // Update position (slow upward drift)
+      starsRef.current.forEach((star) => {
         star.y -= star.velocity;
         if (star.y < -10) {
           star.y = canvas.height + 10;
           star.x = Math.random() * canvas.width;
         }
 
-        // Update twinkle
         star.twinklePhase += star.twinkleSpeed;
         const twinkle = Math.sin(star.twinklePhase) * 0.3 + 0.7;
         const currentOpacity = star.opacity * twinkle;
 
-        // Draw star
         ctx.beginPath();
         ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(255, 255, 255, ${currentOpacity})`;
         ctx.fill();
 
-        // Add glow for larger stars
         if (star.size > 1.5) {
           ctx.beginPath();
           ctx.arc(star.x, star.y, star.size * 2, 0, Math.PI * 2);
           ctx.fillStyle = `rgba(255, 255, 255, ${currentOpacity * 0.2})`;
           ctx.fill();
         }
-
-        // Find nearby stars for connections
-        for (let j = index + 1; j < starsRef.current.length; j++) {
-          const other = starsRef.current[j];
-          const dx = star.x - other.x;
-          const dy = star.y - other.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-
-          if (distance < maxConnectionDistance) {
-            connections.push({ from: star, to: other, distance });
-          }
-        }
       });
 
-      // Draw connections (constellation lines)
-      connections.forEach(({ from, to, distance }) => {
+      cachedConnectionsRef.current.forEach(({ from, to, distance }) => {
         const opacity = (1 - distance / maxConnectionDistance) * 0.15;
         ctx.beginPath();
         ctx.moveTo(from.x, from.y);
@@ -119,13 +122,34 @@ export default function MobileBackground() {
       animationFrameRef.current = requestAnimationFrame(animate);
     };
 
-    animate();
+    const startLoop = () => {
+      if (animationFrameRef.current) return;
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+
+    const stopLoop = () => {
+      if (!animationFrameRef.current) return;
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = 0;
+    };
+
+    // Pause the loop while the canvas is offscreen.
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          isVisibleRef.current = entry.isIntersecting;
+          if (entry.isIntersecting) startLoop();
+          else stopLoop();
+        }
+      },
+      { threshold: 0 },
+    );
+    observer.observe(canvas);
 
     return () => {
       window.removeEventListener('resize', setCanvasSize);
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
+      observer.disconnect();
+      stopLoop();
     };
   }, []);
 
