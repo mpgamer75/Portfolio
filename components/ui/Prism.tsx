@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Renderer, Triangle, Program, Mesh } from 'ogl';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 interface PrismProps {
   height?: number;
@@ -39,16 +40,7 @@ const Prism = ({
   timeScale = 0.5,
 }: PrismProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const container = containerRef.current;
@@ -425,15 +417,15 @@ const Prism = ({
       }
     };
 
+    let intersectionObserver: IntersectionObserver | null = null;
     if (suspendWhenOffscreen) {
-      const io = new IntersectionObserver((entries) => {
+      intersectionObserver = new IntersectionObserver((entries) => {
         const vis = entries.some((e) => e.isIntersecting);
         if (vis) startRAF();
         else stopRAF();
       });
-      io.observe(container);
+      intersectionObserver.observe(container);
       startRAF();
-      (container as any).__prismIO = io;
     } else {
       startRAF();
     }
@@ -446,11 +438,7 @@ const Prism = ({
         window.removeEventListener('mouseleave', onLeave);
         window.removeEventListener('blur', onBlur);
       }
-      if (suspendWhenOffscreen) {
-        const io = (container as any).__prismIO;
-        if (io) io.disconnect();
-        delete (container as any).__prismIO;
-      }
+      intersectionObserver?.disconnect();
       if (gl.canvas.parentElement === container)
         container.removeChild(gl.canvas);
     };

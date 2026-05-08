@@ -5,21 +5,40 @@
     "experience": "Experience",
     "projects": "Projects",
     "skills": "Skills",
-    "contact": "Contact"
+    "contact": "Contact",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "skipToContent": "Skip to content"
   },
   "hero": {
     "greeting": "Hi, I'm",
+    "name": "Charles\nLantigua Jorge",
     "title": "Cybersecurity Engineer & Developer",
-    "subtitle": "Passionate about offensive security, tool development and technological innovation",
+    "subtitle": "Passionate about cybersecurity, tool development and technological innovation",
+    "subtitlePhrases": [
+      "Cybersecurity Engineer",
+      "Full-Stack Developer",
+      "Pentesting Enthusiast"
+    ],
     "cta": "View my projects",
-    "ctaContact": "Contact me"
+    "ctaContact": "Contact me",
+    "githubAria": "GitHub",
+    "linkedinAria": "LinkedIn",
+    "emailAria": "Email"
   },
   "about": {
     "title": "About Me",
     "description": "Computer Science and Cybersecurity Engineering student at ECE Paris, I specialize in offensive security, tool development and threat analysis. With hands-on experience in SOC, pentesting and secure application development, I constantly seek to deepen my technical skills.",
     "location": "Paris, France",
     "status": "Master's Student - ECE Paris",
-    "availability": "Available for internships"
+    "availability": "Available for internships",
+    "altText": "Charles Lantigua Jorge",
+    "stats": {
+      "projects": "Projects",
+      "internships": "Internships",
+      "languages": "Trilingual",
+      "languagesValue": "French, Spanish, English"
+    }
   },
   "experience": {
     "title": "Professional Experience",
@@ -62,22 +81,39 @@
   },
   "projects": {
     "title": "Projects",
-    "viewCode": "View code",
-    "viewDemo": "View demo",
+    "viewCode": "View Code",
+    "viewDemo": "Live Demo",
+    "openHint": "Click the folder to explore projects",
+    "viewMore": "View more on GitHub",
+    "featured": "FEATURED",
+    "technologies": "Technologies",
+    "noPreview": "No preview available",
     "items": [
       {
         "title": "Security Scanner",
         "description": "Security assessment tool in Bash for Red Teams, integrating OSINT, network, web and exploitation modules. Interactive interface and adaptive modes to optimize pentesting audits.",
         "tech": ["Bash", "Nmap", "Nuclei", "Subfinder", "OSINT", "Gobuster", "Metasploit"],
         "github": "https://github.com/mpgamer75/security-scanner",
-        "featured": true
+        "featured": true,
+        "imagePaths": [
+          "/images/projects/security-scanner1.png",
+          "/images/projects/security-scanner2.png",
+          "/images/projects/security-scanner3.png"
+        ]
       },
       {
         "title": "Encryptor",
         "description": "Multi-platform file encryption utility in Bash and OpenSSL. Implementation of 8 modern algorithms (AES-256-GCM, ChaCha20) and secure key management via Elliptic Curve Cryptography (ECC).",
         "tech": ["Bash", "OpenSSL", "Debian Packaging", "GitHub Actions"],
         "github": "https://github.com/mpgamer75/encryptor",
-        "featured": true
+        "featured": true,
+        "imagePaths": [
+          "/images/projects/encryptor1.png",
+          "/images/projects/encryptor2.png",
+          "/images/projects/encryptor3.png",
+          "/images/projects/encryptor4.png",
+          "/images/projects/encryptor5.png"
+        ]
       },
       {
         "title": "SABER",
@@ -85,21 +121,32 @@
         "tech": ["Next.js", "JavaScript", "Web Cryptography", "Vercel"],
         "github": "https://github.com/mpgamer75/fall2024-webtech-210",
         "demo": "https://fall2024-webtech-210-saber11-charles-projects-0eed9e6d.vercel.app/",
-        "featured": true
+        "featured": true,
+        "imagePaths": ["/images/projects/Saber.png"]
       },
       {
         "title": "IoC App Altice",
         "description": "Application for managing and analyzing Indicators of Compromise (IoC) to improve threat detection and incident response.",
         "tech": ["Python", "Web Development", "Cybersecurity"],
         "github": "https://github.com/mpgamer75/IoC-app-altice",
-        "featured": false
+        "featured": false,
+        "imagePaths": [
+          "/images/projects/IoC1.png",
+          "/images/projects/IoC2.png",
+          "/images/projects/IoC3.png",
+          "/images/projects/IoC4.png",
+          "/images/projects/IoC5.png",
+          "/images/projects/IoC6.png",
+          "/images/projects/IoC7.png"
+        ]
       },
       {
         "title": "Warhammer 40k Terminal Display",
         "description": "Creative project combining passion for Warhammer 40k and development skills. Stylized and interactive terminal interface.",
         "tech": ["Terminal", "CLI", "Creative Coding"],
         "github": "https://github.com/mpgamer75/Warhammer-40k-terminal-display",
-        "featured": false
+        "featured": false,
+        "imagePaths": []
       }
     ]
   },
@@ -121,10 +168,28 @@
       "tools": {
         "title": "Tools & Platforms",
         "items": ["Git", "GitHub", "Docker", "TryHackMe", "Active Directory"]
+      }
+    },
+    "certifications": {
+      "title": "Certifications",
+      "cisco": "Cisco Introduction to Cybersecurity",
+      "comptia": "CompTIA Security+"
+    },
+    "highlights": {
+      "tryhackme": {
+        "title": "TryHackMe",
+        "description": "Active on the platform",
+        "cta": "View profile"
       },
-      "certifications": {
-        "title": "Certifications",
-        "items": ["Cisco Introduction to Cybersecurity"]
+      "github": {
+        "title": "GitHub",
+        "description": "Active profile with 5+ public repos",
+        "cta": "View profile"
+      },
+      "school": {
+        "title": "ECE Paris",
+        "description": "Cybersecurity and Computer Science degree",
+        "period": "2023 - 2026"
       }
     }
   },
@@ -135,10 +200,26 @@
     "linkedin": "LinkedIn",
     "github": "GitHub",
     "phone": "Phone",
-    "send": "Send message"
+    "send": "Send message",
+    "cta": {
+      "title": "Ready to collaborate?",
+      "description": "Feel free to contact me to discuss projects, opportunities or just to chat about cybersecurity!"
+    },
+    "alsoFindMe": "You can also find me on:"
   },
   "footer": {
     "rights": "All rights reserved",
-    "built": "Built with Next.js and Tailwind CSS"
+    "built": "Built with Next.js and Tailwind CSS",
+    "builtShort": "Built with care"
+  },
+  "errors": {
+    "notFoundCode": "ERR_404",
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "The route you tried to reach has drifted off the grid. Let's get you back home.",
+    "notFoundCta": "Return to home",
+    "fatalCode": "ERR_FATAL",
+    "fatalTitle": "Something broke",
+    "fatalBody": "An unexpected error occurred. The team has been notified.",
+    "fatalCta": "Try again"
   }
 }
