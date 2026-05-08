@@ -72,9 +72,9 @@ export default function CursorHUD({ status = 'IDLE' }: CursorHUDProps) {
       aria-hidden="true"
       style={{ x: xs, y: ys, opacity: visible ? 1 : 0 }}
       transition={{ opacity: { duration: 0.2 } }}
-      className="pointer-events-none fixed top-0 left-0 z-[150] font-mono text-[10px] uppercase tracking-widest text-cyber-primary/80 mix-blend-difference select-none"
+      className="pointer-events-none fixed top-0 left-0 z-150 font-mono text-[10px] uppercase tracking-widest text-cyber-primary/80 mix-blend-difference select-none"
     >
-      <div className="rounded-md border border-cyber-primary/30 bg-cyber-darker/80 backdrop-blur-sm px-2 py-1 leading-tight space-y-0.5 min-w-[120px]">
+      <div className="rounded-md border border-cyber-primary/30 bg-cyber-darker/80 backdrop-blur-xs px-2 py-1 leading-tight space-y-0.5 min-w-[120px]">
         <div className="flex items-center gap-1.5">
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-cyber-primary animate-pulse" />
           <span className="text-cyber-primary">{displayedStatus}</span>

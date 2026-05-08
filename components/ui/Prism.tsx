@@ -436,7 +436,7 @@ const Prism = ({
       if (animationType === 'hover' && onPointerMove) {
         window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('mouseleave', onLeave);
-        window.removeEventListener('blur', onBlur);
+        window.removeEventListener('blur-sm', onBlur);
       }
       intersectionObserver?.disconnect();
       if (gl.canvas.parentElement === container)

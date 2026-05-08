@@ -64,7 +64,7 @@ export default function SplitText({
 
   return (
     <motion.span
-      className={`inline-block [perspective:600px] ${className}`}
+      className={`inline-block perspective-[600px] ${className}`}
       variants={container}
       initial="hidden"
       whileInView="visible"

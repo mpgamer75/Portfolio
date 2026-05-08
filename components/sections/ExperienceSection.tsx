@@ -52,11 +52,11 @@ export default function ExperienceSection() {
                 <div className="cyber-card rounded-lg p-4 sm:p-5 md:p-6">
                   <div className="flex items-start justify-between mb-3 sm:mb-4">
                     <div className="flex items-center space-x-2 sm:space-x-3 flex-1">
-                      <div className="p-1.5 sm:p-2 bg-cyber-primary/10 rounded-lg flex-shrink-0">
+                      <div className="p-1.5 sm:p-2 bg-cyber-primary/10 rounded-lg shrink-0">
                         <Briefcase className="text-cyber-primary" size={20} aria-hidden="true" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-lg sm:text-xl font-bold text-white break-words">
+                        <h3 className="text-lg sm:text-xl font-bold text-white wrap-break-word">
                           {job.title}
                         </h3>
                         <p className="text-cyber-secondary font-semibold text-sm sm:text-base">
@@ -68,11 +68,11 @@ export default function ExperienceSection() {
 
                   <div className="space-y-1.5 sm:space-y-2 mb-3 sm:mb-4">
                     <div className="flex items-center space-x-2 text-gray-400 text-xs sm:text-sm">
-                      <MapPin size={14} className="text-cyber-primary flex-shrink-0" aria-hidden="true" />
-                      <span className="break-words">{job.location}</span>
+                      <MapPin size={14} className="text-cyber-primary shrink-0" aria-hidden="true" />
+                      <span className="wrap-break-word">{job.location}</span>
                     </div>
                     <div className="flex items-center space-x-2 text-gray-400 text-xs sm:text-sm">
-                      <Calendar size={14} className="text-cyber-primary flex-shrink-0" aria-hidden="true" />
+                      <Calendar size={14} className="text-cyber-primary shrink-0" aria-hidden="true" />
                       <span>{job.period}</span>
                     </div>
                   </div>
@@ -80,7 +80,7 @@ export default function ExperienceSection() {
                   <ul className="space-y-1.5 sm:space-y-2">
                     {job.description.map((item, i) => (
                       <li key={i} className="text-gray-300 text-xs sm:text-sm flex items-start">
-                        <span className="text-cyber-primary mr-2 mt-0.5 flex-shrink-0" aria-hidden="true">
+                        <span className="text-cyber-primary mr-2 mt-0.5 shrink-0" aria-hidden="true">
                           ▹
                         </span>
                         <span>{item}</span>

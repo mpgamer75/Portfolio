@@ -41,7 +41,7 @@ export default function AboutSection() {
                   className="relative rounded-lg h-full w-full overflow-hidden border-2 border-cyber-primary/50 group-hover:border-cyber-primary smooth-transition group-hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] sm:group-hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]"
                   style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-cyber-primary/0 to-cyber-primary/10 opacity-0 group-hover:opacity-100 smooth-transition z-10" />
+                  <div className="absolute inset-0 bg-linear-to-br from-cyber-primary/0 to-cyber-primary/10 opacity-0 group-hover:opacity-100 smooth-transition z-10" />
                   <div
                     className="relative w-full h-full overflow-hidden"
                     style={{ transform: 'translateZ(0)', willChange: 'transform' }}
@@ -59,7 +59,7 @@ export default function AboutSection() {
                   </div>
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 smooth-transition-slow pointer-events-none">
                     <div
-                      className="shine-effect absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                      className="shine-effect absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent"
                       style={{
                         transform: 'translateX(-100%)',
                         transition: 'transform 1s ease-in-out',
@@ -88,15 +88,15 @@ export default function AboutSection() {
 
               <div className="space-y-3 sm:space-y-4 pt-4 sm:pt-6">
                 <div className="flex items-center space-x-3 text-white">
-                  <MapPin className="text-cyber-primary flex-shrink-0" size={20} aria-hidden="true" />
+                  <MapPin className="text-cyber-primary shrink-0" size={20} aria-hidden="true" />
                   <span className="font-medium text-sm sm:text-base">{t('location')}</span>
                 </div>
                 <div className="flex items-center space-x-3 text-white">
-                  <GraduationCap className="text-cyber-primary flex-shrink-0" size={20} aria-hidden="true" />
+                  <GraduationCap className="text-cyber-primary shrink-0" size={20} aria-hidden="true" />
                   <span className="font-medium text-sm sm:text-base">{t('status')}</span>
                 </div>
                 <div className="flex items-center space-x-3 text-white">
-                  <Calendar className="text-cyber-primary flex-shrink-0" size={20} aria-hidden="true" />
+                  <Calendar className="text-cyber-primary shrink-0" size={20} aria-hidden="true" />
                   <span className="font-medium text-sm sm:text-base">{t('availability')}</span>
                 </div>
               </div>

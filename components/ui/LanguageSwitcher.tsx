@@ -41,7 +41,7 @@ export default function LanguageSwitcher() {
     <div
       role="group"
       aria-label="Language"
-      className="relative flex items-center gap-0.5 rounded-full border border-cyber-primary/20 bg-cyber-darker/60 backdrop-blur-sm px-1 py-0.5"
+      className="relative flex items-center gap-0.5 rounded-full border border-cyber-primary/20 bg-cyber-darker/60 backdrop-blur-xs px-1 py-0.5"
     >
       {routing.locales.map((loc) => {
         const isActive = loc === currentLocale;

@@ -132,7 +132,7 @@ export default function ClickSpark({
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-[200]"
+      className="pointer-events-none fixed inset-0 z-200"
     />
   );
 }

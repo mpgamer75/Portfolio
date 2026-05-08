@@ -22,21 +22,18 @@ export default function ScrambledText({
 }: ScrambledTextProps) {
   const reduced = useReducedMotion();
   const containerRef = useRef<HTMLSpanElement>(null);
-  const [displayChars, setDisplayChars] = useState<string[]>(() =>
-    children.split(''),
-  );
-  const restoreTimers = useRef<Map<number, number>>(new Map());
-
   const charPositions = useMemo(() => children.split(''), [children]);
-
-  useEffect(() => {
-    setDisplayChars(charPositions);
-  }, [charPositions]);
+  // Locale changes remount this component via AnimatePresence in
+  // LocaleTransitionWrapper, so a lazy initializer is enough — no
+  // need to sync displayChars from a useEffect.
+  const [displayChars, setDisplayChars] = useState<string[]>(() => charPositions);
+  const restoreTimers = useRef<Map<number, number>>(new Map());
 
   useEffect(() => {
     if (reduced) return;
     const node = containerRef.current;
     if (!node) return;
+    const timers = restoreTimers.current;
 
     const onPointerMove = (event: PointerEvent) => {
       const spans = node.querySelectorAll<HTMLSpanElement>('[data-scramble-idx]');
@@ -65,7 +62,7 @@ export default function ScrambledText({
             return next;
           });
 
-          const existing = restoreTimers.current.get(idx);
+          const existing = timers.get(idx);
           if (existing) window.clearTimeout(existing);
           const timer = window.setTimeout(() => {
             setDisplayChars((prev) => {
@@ -74,9 +71,9 @@ export default function ScrambledText({
               next[idx] = original;
               return next;
             });
-            restoreTimers.current.delete(idx);
+            timers.delete(idx);
           }, 300);
-          restoreTimers.current.set(idx, timer);
+          timers.set(idx, timer);
         }
       });
     };
@@ -84,8 +81,8 @@ export default function ScrambledText({
     node.addEventListener('pointermove', onPointerMove, { passive: true });
     return () => {
       node.removeEventListener('pointermove', onPointerMove);
-      restoreTimers.current.forEach((id) => window.clearTimeout(id));
-      restoreTimers.current.clear();
+      timers.forEach((id) => window.clearTimeout(id));
+      timers.clear();
     };
   }, [characters, charPositions, radius, reduced]);
 

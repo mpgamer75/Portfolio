@@ -28,7 +28,7 @@ export default function ProjectsSection() {
       }}
       aria-label={`Open ${project.title} details`}
     >
-      <div className="w-full h-full bg-gradient-to-br from-white via-gray-50 to-gray-100 rounded-lg flex flex-col items-center justify-between p-2 sm:p-3 transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-2xl border-2 border-gray-300 group-hover:border-cyber-primary">
+      <div className="w-full h-full bg-linear-to-br from-white via-gray-50 to-gray-100 rounded-lg flex flex-col items-center justify-between p-2 sm:p-3 transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-2xl border-2 border-gray-300 group-hover:border-cyber-primary">
         <div className="w-full h-[80px] sm:h-[110px] relative rounded-md overflow-hidden bg-cyber-darker/5 flex items-center justify-center mb-1.5 sm:mb-2">
           {project.imagePaths && project.imagePaths.length > 0 ? (
             <div className="relative w-full h-full">
@@ -62,7 +62,7 @@ export default function ProjectsSection() {
             </div>
           )}
         </div>
-        <div className="w-full bg-white/90 backdrop-blur-sm rounded-md px-1.5 sm:px-2 py-1 sm:py-1.5">
+        <div className="w-full bg-white/90 backdrop-blur-xs rounded-md px-1.5 sm:px-2 py-1 sm:py-1.5">
           <h4 className="text-cyber-darker text-[9px] sm:text-[10px] font-bold text-center truncate mb-0.5 sm:mb-1">
             {project.title}
           </h4>
@@ -70,13 +70,13 @@ export default function ProjectsSection() {
             {project.tech.slice(0, 2).map((tech, i) => (
               <span
                 key={i}
-                className="text-[6px] sm:text-[7px] font-mono text-gray-600 bg-gray-200 px-1 py-0.5 rounded"
+                className="text-[6px] sm:text-[7px] font-mono text-gray-600 bg-gray-200 px-1 py-0.5 rounded-sm"
               >
                 {tech}
               </span>
             ))}
             {project.tech.length > 2 && (
-              <span className="text-[6px] sm:text-[7px] font-mono text-gray-600 bg-gray-200 px-1 py-0.5 rounded">
+              <span className="text-[6px] sm:text-[7px] font-mono text-gray-600 bg-gray-200 px-1 py-0.5 rounded-sm">
                 +{project.tech.length - 2}
               </span>
             )}
