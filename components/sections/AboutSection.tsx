@@ -5,6 +5,7 @@ import { MapPin, GraduationCap, Calendar } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import SplitText from '@/components/ui/SplitText';
+import ScrambledText from '@/components/ui/ScrambledText';
 
 export default function AboutSection() {
   const t = useTranslations('about');
@@ -77,9 +78,13 @@ export default function AboutSection() {
               transition={{ duration: 0.6, delay: 0.4 }}
               className="space-y-4 sm:space-y-6 order-1 md:order-2"
             >
-              <p className="text-base sm:text-lg text-white leading-relaxed font-medium">
+              <ScrambledText
+                paragraph
+                radius={70}
+                className="text-base sm:text-lg text-white leading-relaxed font-medium"
+              >
                 {t('description')}
-              </p>
+              </ScrambledText>
 
               <div className="space-y-3 sm:space-y-4 pt-4 sm:pt-6">
                 <div className="flex items-center space-x-3 text-white">

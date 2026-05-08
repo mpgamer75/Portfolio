@@ -17,7 +17,7 @@
     "subtitle": "Passionate about cybersecurity, tool development and technological innovation",
     "subtitlePhrases": [
       "Cybersecurity Engineer",
-      "Full-Stack Developer",
+      "Software Developer",
       "Pentesting Enthusiast"
     ],
     "cta": "View my projects",
@@ -44,6 +44,18 @@
     "title": "Professional Experience",
     "present": "Present",
     "jobs": [
+      {
+        "title": "Cybersecurity Engineer Intern",
+        "company": "Airbus Helicopters",
+        "location": "Marignane, France",
+        "period": "March 2026 - Present",
+        "description": [
+          "Contribution to vulnerability management operations within a transverse security team (SOC, Endpoint Protection, Architecture): asset inventory integration (CMDB), automated data collection and classification covering workstations, servers, and industrial systems",
+          "Design and implementation of a vulnerability scanning architecture to improve coverage and detection accuracy in the enterprise environment, including OT/IT convergence zones",
+          "Development of predictive data-analytics capabilities: correlation of vulnerability data with asset criticality to prioritize remediation and model cybersecurity impact, applying machine-learning principles",
+          "Development of a real-time dashboard with KPIs and predictive indicators, integrated into the security department's governance framework to drive corrective-action plans"
+        ]
+      },
       {
         "title": "Cybersecurity Engineer Intern",
         "company": "AlticeDo",

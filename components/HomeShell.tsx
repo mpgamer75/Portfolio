@@ -12,7 +12,8 @@ import SkillsSection from '@/components/sections/SkillsSection';
 import ContactSection from '@/components/sections/ContactSection';
 import Footer from '@/components/ui/Footer';
 import ClickSpark from '@/components/ui/ClickSpark';
-import Dock from '@/components/ui/Dock';
+import SectionRail from '@/components/ui/SectionRail';
+import CursorHUD from '@/components/ui/CursorHUD';
 
 const Prism = dynamic(() => import('@/components/ui/Prism'), { ssr: false });
 const MobileBackground = dynamic(
@@ -57,6 +58,7 @@ export default function HomeShell() {
       <Navigation />
       <ScrollProgress />
       <ClickSpark />
+      <CursorHUD />
 
       <main
         id="main"
@@ -74,7 +76,7 @@ export default function HomeShell() {
       </main>
 
       <Footer />
-      <Dock />
+      <SectionRail />
     </div>
   );
 }

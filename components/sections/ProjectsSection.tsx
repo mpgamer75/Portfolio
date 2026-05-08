@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import Folder from '@/components/ui/Folder';
 import ProjectDetailModal, { type Project } from '@/components/ui/ProjectDetailModal';
 import SplitText from '@/components/ui/SplitText';
+import DotGrid from '@/components/ui/DotGrid';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
 export default function ProjectsSection() {
@@ -90,8 +91,9 @@ export default function ProjectsSection() {
     <>
       <section
         id="projects"
-        className="relative py-12 sm:py-16 md:py-20 min-h-screen flex flex-col items-center justify-center px-4"
+        className="relative py-12 sm:py-16 md:py-20 min-h-screen flex flex-col items-center justify-center px-4 overflow-hidden"
       >
+        <DotGrid />
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}

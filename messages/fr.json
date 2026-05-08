@@ -17,7 +17,7 @@
     "subtitle": "Passionné par la cybersécurité, le développement d'outils et l'innovation technologique",
     "subtitlePhrases": [
       "Ingénieur Cybersécurité",
-      "Développeur Full-Stack",
+      "Développeur Logiciel",
       "Passionné de Pentesting"
     ],
     "cta": "Voir mes projets",
@@ -44,6 +44,18 @@
     "title": "Expérience Professionnelle",
     "present": "Présent",
     "jobs": [
+      {
+        "title": "Ingénieur en cybersécurité (Stage)",
+        "company": "Airbus Helicopters",
+        "location": "Marignane, France",
+        "period": "Mars 2026 - Présent",
+        "description": [
+          "Contribution aux opérations de gestion des vulnérabilités au sein d'une équipe sécurité transverse (SOC, Endpoint Protection, Architecture) : intégration de l'inventaire des actifs (CMDB), collecte et classification automatisées des données, couvrant postes de travail, serveurs et systèmes industriels",
+          "Conception et mise en œuvre d'une architecture de scan de vulnérabilités afin d'améliorer la couverture et la précision de détection dans l'environnement entreprise, incluant les zones de convergence OT/IT",
+          "Développement de capacités de data analytics prédictif : corrélation des données de vulnérabilités avec la criticité des actifs pour prioriser la remédiation et modéliser l'impact cybersécurité, en appliquant des principes de machine learning",
+          "Développement d'un dashboard temps réel avec KPIs et indicateurs prédictifs, intégré au cadre de gouvernance du département sécurité pour piloter les plans d'actions correctifs"
+        ]
+      },
       {
         "title": "Stagiaire Ingénieur Cybersécurité",
         "company": "AlticeDo",
