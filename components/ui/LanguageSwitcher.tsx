@@ -19,9 +19,19 @@ export default function LanguageSwitcher() {
 
   const switchTo = (next: (typeof routing.locales)[number]) => {
     if (next === currentLocale) return;
+
+    // Preserve scroll position across the locale swap — the page is one
+    // long anchor-scrolled document, so the user shouldn't be teleported
+    // back to the top.
+    const savedScrollY = window.scrollY;
+    const restoreScroll = () => {
+      requestAnimationFrame(() => window.scrollTo({ top: savedScrollY }));
+    };
+
     const navigate = () =>
       startTransition(() => {
         router.replace(pathname, { locale: next });
+        restoreScroll();
       });
 
     // Progressive enhancement: cross-fade via View Transitions API where
