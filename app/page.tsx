@@ -4,6 +4,7 @@ import Navigation from '@/components/ui/Navigation';
 import Prism from '@/components/ui/Prism';
 import MobileBackground from '@/components/ui/MobileBackground';
 import ScrollProgress from '@/components/ui/ScrollProgress';
+import ClickSpark from '@/components/ui/ClickSpark';
 import HeroSection from '@/components/sections/HeroSection';
 import AboutSection from '@/components/sections/AboutSection';
 import ExperienceSection from '@/components/sections/ExperienceSection';
@@ -50,6 +51,7 @@ export default function HomePage() {
 
       <Navigation />
       <ScrollProgress />
+      <ClickSpark />
 
       <main
         id="main"

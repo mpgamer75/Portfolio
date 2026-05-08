@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { Github, Linkedin, Mail } from 'lucide-react';
 import AnimatedText from '@/components/ui/AnimatedText';
+import DecryptedText from '@/components/ui/DecryptedText';
 
 const subtitlePhrases = [
   'Cybersecurity Engineer',
@@ -53,9 +54,14 @@ export default function HeroSection() {
           variants={itemVariants}
           className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-shadow leading-tight mb-4 sm:mb-6"
         >
-          <span className="text-cyber-secondary">Charles</span>
-          <br />
-          <span className="text-cyber-primary">Lantigua Jorge</span>
+          <DecryptedText
+            text={'Charles\nLantigua Jorge'}
+            animateOn="mount"
+            speed={50}
+            revealDirection="start"
+            className="text-cyber-primary"
+            encryptedClassName="text-cyber-accent/70"
+          />
         </motion.h1>
 
         <motion.div

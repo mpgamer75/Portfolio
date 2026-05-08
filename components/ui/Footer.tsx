@@ -17,8 +17,13 @@ export default function Footer() {
           {/* Built with */}
           <div className="flex items-center space-x-2 text-gray-400 text-xs sm:text-sm smooth-transition hover:text-cyber-secondary">
             <span className="hidden sm:inline">Built with Next.js and Tailwind CSS</span>
-            <span className="sm:hidden">Built with ❤️</span>
-            <Heart className="text-cyber-accent hidden sm:inline smooth-transition hover:text-cyber-primary" size={14} fill="currentColor" />
+            <span className="sm:hidden">Built with care</span>
+            <Heart
+              className="text-cyber-accent hidden sm:inline smooth-transition hover:text-cyber-primary"
+              size={14}
+              fill="currentColor"
+              aria-hidden="true"
+            />
           </div>
 
           {/* Version */}

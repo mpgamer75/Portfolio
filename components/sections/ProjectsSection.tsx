@@ -181,7 +181,7 @@ export default function ProjectsSection() {
             transition={{ duration: 0.6, delay: 0.4 }}
             className="text-center text-cyber-primary text-readable font-mono mt-16 sm:mt-24 md:mt-32 text-base sm:text-lg md:text-xl font-bold animate-pulse"
           >
-            👆 Click the Folder to explore projects
+            Click the folder to explore projects
           </motion.p>
 
           <motion.div
