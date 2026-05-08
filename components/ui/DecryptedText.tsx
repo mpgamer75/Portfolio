@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useReducedMotion } from '@/hooks/useIsMobile';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useReducedMotion } from 'framer-motion';
 
 interface DecryptedTextProps {
   text: string;
@@ -21,31 +21,72 @@ const DEFAULT_CHARS = '!@#$%^&*()_+-=[]{}|;:,.<>?/\\01ABCDEF';
 export default function DecryptedText({
   text,
   speed = 60,
-  maxIterations = 12,
   characters = DEFAULT_CHARS,
   className = '',
   encryptedClassName = '',
   parentClassName = '',
   animateOn = 'view',
   revealDirection = 'start',
-  sequential = true,
 }: DecryptedTextProps) {
   const reduced = useReducedMotion();
   const [displayText, setDisplayText] = useState(text);
-  const [revealedIndices, setRevealedIndices] = useState<Set<number>>(
-    new Set(),
-  );
   const [hasAnimated, setHasAnimated] = useState(false);
   const containerRef = useRef<HTMLSpanElement | null>(null);
-  const isInteracting = useRef(false);
-  const timeoutsRef = useRef<number[]>([]);
+  const timeoutRef = useRef<number | null>(null);
+
+  const runAnimation = useCallback(() => {
+    if (timeoutRef.current !== null) return;
+    setHasAnimated(true);
+    const revealed = new Set<number>();
+
+    const pickNext = (): number => {
+      const total = text.length;
+      if (revealDirection === 'end') {
+        for (let i = total - 1; i >= 0; i--) if (!revealed.has(i)) return i;
+      } else if (revealDirection === 'center') {
+        const mid = Math.floor(total / 2);
+        for (let offset = 0; offset <= mid; offset++) {
+          const left = mid - offset;
+          const right = mid + offset;
+          if (left >= 0 && !revealed.has(left)) return left;
+          if (right < total && !revealed.has(right)) return right;
+        }
+      } else {
+        for (let i = 0; i < total; i++) if (!revealed.has(i)) return i;
+      }
+      return -1;
+    };
+
+    const tick = () => {
+      timeoutRef.current = null;
+      const idx = pickNext();
+      if (idx === -1) {
+        setDisplayText(text);
+        return;
+      }
+      revealed.add(idx);
+
+      const next = text
+        .split('')
+        .map((char, i) => {
+          if (revealed.has(i) || char === ' ' || char === '\n') return char;
+          return characters[Math.floor(Math.random() * characters.length)];
+        })
+        .join('');
+      setDisplayText(next);
+
+      timeoutRef.current = window.setTimeout(tick, speed);
+    };
+
+    timeoutRef.current = window.setTimeout(tick, speed);
+  }, [characters, revealDirection, speed, text]);
 
   useEffect(() => {
-    if (reduced || hasAnimated) return;
+    if (reduced) return;
     if (animateOn === 'mount') {
       runAnimation();
     }
-  }, [reduced]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [reduced, animateOn, runAnimation]);
 
   useEffect(() => {
     if (animateOn !== 'view' || hasAnimated || reduced) return;
@@ -66,88 +107,16 @@ export default function DecryptedText({
     );
     io.observe(node);
     return () => io.disconnect();
-  }, [animateOn, hasAnimated, reduced]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [animateOn, hasAnimated, reduced, runAnimation]);
 
   useEffect(() => {
     return () => {
-      timeoutsRef.current.forEach((id) => window.clearTimeout(id));
-      timeoutsRef.current = [];
+      if (timeoutRef.current !== null) {
+        window.clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     };
   }, []);
-
-  function nextIndex(revealed: Set<number>): number {
-    const total = text.length;
-    if (revealDirection === 'end') {
-      for (let i = total - 1; i >= 0; i--) {
-        if (!revealed.has(i)) return i;
-      }
-    } else if (revealDirection === 'center') {
-      const mid = Math.floor(total / 2);
-      for (let offset = 0; offset <= mid; offset++) {
-        const left = mid - offset;
-        const right = mid + offset;
-        if (left >= 0 && !revealed.has(left)) return left;
-        if (right < total && !revealed.has(right)) return right;
-      }
-    } else {
-      for (let i = 0; i < total; i++) {
-        if (!revealed.has(i)) return i;
-      }
-    }
-    return -1;
-  }
-
-  function shuffle(input: string, revealed: Set<number>): string {
-    return input
-      .split('')
-      .map((char, idx) => {
-        if (char === ' ' || char === '\n') return char;
-        if (revealed.has(idx)) return text[idx];
-        return characters[Math.floor(Math.random() * characters.length)];
-      })
-      .join('');
-  }
-
-  function runAnimation() {
-    if (hasAnimated) return;
-    setHasAnimated(true);
-    let iter = 0;
-    const revealed = new Set<number>();
-
-    const tick = () => {
-      iter += 1;
-      if (sequential) {
-        if (iter % Math.max(1, Math.floor(maxIterations / 4)) === 0) {
-          const idx = nextIndex(revealed);
-          if (idx !== -1) revealed.add(idx);
-        }
-      } else if (iter >= maxIterations) {
-        for (let i = 0; i < text.length; i++) revealed.add(i);
-      }
-
-      setRevealedIndices(new Set(revealed));
-      setDisplayText(shuffle(text, revealed));
-
-      if (revealed.size < text.length) {
-        timeoutsRef.current.push(window.setTimeout(tick, speed));
-      } else {
-        setDisplayText(text);
-      }
-    };
-
-    timeoutsRef.current.push(window.setTimeout(tick, speed));
-  }
-
-  function handleHoverStart() {
-    if (animateOn !== 'hover' || reduced || isInteracting.current) return;
-    isInteracting.current = true;
-    setHasAnimated(false);
-    setRevealedIndices(new Set());
-    requestAnimationFrame(() => runAnimation());
-    setTimeout(() => {
-      isInteracting.current = false;
-    }, speed * maxIterations + 200);
-  }
 
   if (reduced) {
     return (
@@ -164,15 +133,10 @@ export default function DecryptedText({
   }
 
   return (
-    <span
-      ref={containerRef}
-      className={parentClassName}
-      onMouseEnter={animateOn === 'hover' ? handleHoverStart : undefined}
-      aria-label={text}
-    >
+    <span ref={containerRef} className={parentClassName} aria-label={text}>
       {displayText.split('').map((char, idx) => {
-        const revealed = revealedIndices.has(idx) || char === ' ' || char === '\n';
         if (char === '\n') return <br key={idx} aria-hidden="true" />;
+        const revealed = char === text[idx] || char === ' ';
         return (
           <span
             key={idx}
