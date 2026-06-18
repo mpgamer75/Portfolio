@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { MapPin, GraduationCap, Calendar } from 'lucide-react';
+import { MapPin, GraduationCap } from 'lucide-react';
 import Image from 'next/image';
 
 export default function AboutSection() {
@@ -110,10 +110,6 @@ export default function AboutSection() {
                   <span className="font-medium text-sm sm:text-base">Master&apos;s Student - ECE Paris</span>
                 </div>
                 
-                <div className="flex items-center space-x-3 text-white">
-                  <Calendar className="text-cyber-primary flex-shrink-0" size={20} />
-                  <span className="font-medium text-sm sm:text-base">Available for internships</span>
-                </div>
               </div>
 
               {/* Stats */}

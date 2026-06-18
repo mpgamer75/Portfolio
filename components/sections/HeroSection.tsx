@@ -49,17 +49,6 @@ export default function HeroSection() {
         className="relative z-10 max-w-6xl mx-auto w-full"
       >
         <div className="max-w-3xl text-center md:text-left">
-          {/* Status kicker */}
-          <motion.div
-            variants={itemVariants}
-            className="inline-flex items-center gap-2 mb-5 sm:mb-6 px-3 py-1 rounded-full border border-cyber-brand/40 bg-cyber-brand/10"
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-cyber-brand2" />
-            <span className="font-mono text-[10px] sm:text-xs tracking-[0.2em] uppercase text-cyber-accent">
-              Available for 2026 internships
-            </span>
-          </motion.div>
-
           <motion.p
             variants={itemVariants}
             className="text-cyber-accent text-sm sm:text-base md:text-lg mb-2 sm:mb-3 font-mono"
