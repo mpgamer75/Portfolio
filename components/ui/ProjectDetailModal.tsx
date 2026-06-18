@@ -272,6 +272,7 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
                   href={project.github}
                   target="_blank"
                   rel="noopener noreferrer"
+                  data-fx="scan"
                   className="flex items-center justify-center space-x-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-cyber-darker text-cyber-primary border border-cyber-primary/50 rounded-lg hover:bg-cyber-brand hover:text-white hover:border-cyber-brand transition-all duration-300 hover:shadow-[0_0_15px_rgba(52,211,153,0.6)] font-semibold text-sm sm:text-base"
                 >
                   <Github size={18} className="sm:w-5 sm:h-5" aria-hidden="true" />
@@ -283,6 +284,7 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
                   href={project.demo}
                   target="_blank"
                   rel="noopener noreferrer"
+                  data-fx="scan"
                   className="flex items-center justify-center space-x-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-cyber-brand text-white rounded-lg hover:bg-cyber-brand2 transition-all duration-300 hover:shadow-[0_0_15px_rgba(52,211,153,0.6)] font-semibold text-sm sm:text-base"
                 >
                   <ExternalLink size={18} className="sm:w-5 sm:h-5" aria-hidden="true" />

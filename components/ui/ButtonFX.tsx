@@ -56,7 +56,10 @@ export default function ButtonFX() {
 
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as HTMLElement | null;
-      const btn = target?.closest?.('.cyber-button') as HTMLElement | null;
+      // `.cyber-button` opts in automatically; `[data-fx="scan"]` lets non
+      // cyber-button elements (e.g. the modal's View Code / Live Demo links)
+      // opt into the scan effect without inheriting the button styling.
+      const btn = target?.closest?.('.cyber-button, [data-fx="scan"]') as HTMLElement | null;
       if (!btn) return;
 
       const rect = btn.getBoundingClientRect();
