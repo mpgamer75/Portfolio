@@ -21,6 +21,10 @@ interface PrismProps {
   bloom?: number;
   suspendWhenOffscreen?: boolean;
   timeScale?: number;
+  /** Freeze the shader (stop the RAF) whenever this selector's element is
+   *  offscreen. Pointed at the hero, the GPU idles once you scroll into
+   *  content. Falls back to the container when omitted. */
+  activeSelector?: string;
 }
 
 const Prism = ({
@@ -39,6 +43,7 @@ const Prism = ({
   bloom = 1,
   suspendWhenOffscreen = false,
   timeScale = 0.5,
+  activeSelector,
 }: PrismProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
@@ -73,7 +78,10 @@ const Prism = ({
     const HOVSTR = Math.max(0, hoverStrength || 1);
     const INERT = Math.max(0, Math.min(1, inertia || 0.12));
 
-    const dpr = isMobile ? 1 : Math.min(1.25, window.devicePixelRatio || 1);
+    // Render at 1× even on hi-DPI desktops: the prism is a soft, bloomed shape
+    // where extra device pixels aren't perceptible but roughly double the
+    // fragment-shader cost. A large, near-invisible performance win.
+    const dpr = 1;
     const renderer = new Renderer({
       dpr,
       alpha: transparent,
@@ -201,7 +209,11 @@ const Prism = ({
 
         o = tanh4(o * o * (uGlow * uBloom) / 1e5);
 
-        vec3 col = o.rgb;
+        // Single-hue emerald tint: map the prism's intensity onto the brand
+        // green instead of the default rainbow, so the background reads as
+        // terminal-emerald rather than blue/cyan.
+        float intensity = clamp(dot(o.rgb, vec3(0.3333)), 0.0, 1.0);
+        vec3 col = vec3(0.204, 0.827, 0.600) * intensity;
         float n = rand(gl_FragCoord.xy + vec2(iTime));
         col += (n - 0.5) * uNoise;
         col = clamp(col, 0.0, 1.0);
@@ -262,7 +274,12 @@ const Prism = ({
       program.uniforms.uPxScale.value =
         1 / ((gl.drawingBufferHeight || 1) * 0.1 * SCALE);
     };
-    const ro = new ResizeObserver(resize);
+    const ro = new ResizeObserver(() => {
+      resize();
+      // If we're frozen (RAF stopped while scrolled past the hero), repaint a
+      // single frame so a resize doesn't leave the canvas stretched/blank.
+      if (!raf) renderer.render({ scene: mesh });
+    });
     ro.observe(container);
     resize();
 
@@ -421,16 +438,19 @@ const Prism = ({
     };
 
     let intersectionObserver: IntersectionObserver | null = null;
-    if (suspendWhenOffscreen) {
-      // Don't paint a frame before the observer reports visibility — it
-      // calls back synchronously after observe(), so we let it kick off
-      // the RAF rather than starting and immediately stopping.
+    // Freeze the shader whenever the watched element is offscreen. With
+    // activeSelector pointed at the hero, the RAF stops the moment you scroll
+    // into the content and the last frame stays painted as a static backdrop —
+    // the single biggest site-wide perf win. Falls back to the container.
+    const watched =
+      (activeSelector && document.querySelector(activeSelector)) || container;
+    if (suspendWhenOffscreen || activeSelector) {
       intersectionObserver = new IntersectionObserver((entries) => {
         const vis = entries.some((e) => e.isIntersecting);
         if (vis) startRAF();
         else stopRAF();
       });
-      intersectionObserver.observe(container);
+      intersectionObserver.observe(watched);
     } else {
       startRAF();
     }
@@ -464,6 +484,7 @@ const Prism = ({
     inertia,
     bloom,
     suspendWhenOffscreen,
+    activeSelector,
     isMobile,
     reduced,
   ]);
@@ -477,7 +498,7 @@ const Prism = ({
         className="w-full h-full relative"
         style={{
           background:
-            'radial-gradient(120% 90% at 50% 30%, rgba(99,102,241,0.14), rgba(5,8,20,0) 60%)',
+            'radial-gradient(120% 90% at 50% 30%, rgba(52,211,153,0.14), rgba(5,8,20,0) 60%)',
         }}
       />
     );

@@ -1,5 +1,6 @@
 'use client';
 
+import { useSyncExternalStore } from 'react';
 import Navigation from '@/components/ui/Navigation';
 import Prism from '@/components/ui/Prism';
 import MobileBackground from '@/components/ui/MobileBackground';
@@ -16,6 +17,15 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 
 export default function HomePage() {
   const isMobile = useIsMobile();
+  // Gate the background until after mount: render the plain dark layer first
+  // (matches SSR), then mount the correct background. Removes the first-paint
+  // background swap/flash and avoids spinning up WebGL on phones.
+  // useSyncExternalStore keeps it hydration-safe (server + first paint = false).
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   return (
     <div className="relative min-h-screen">
@@ -30,7 +40,7 @@ export default function HomePage() {
           perspective: '1000px',
         }}
       >
-        {!isMobile ? (
+        {mounted && !isMobile && (
           <Prism
             height={3.5}
             baseWidth={5.5}
@@ -43,15 +53,15 @@ export default function HomePage() {
             timeScale={0.4}
             bloom={0.5}
             suspendWhenOffscreen
+            activeSelector="#home"
           />
-        ) : (
-          <MobileBackground />
         )}
+        {mounted && isMobile && <MobileBackground />}
       </div>
 
       <Navigation />
       <ScrollProgress />
-      <ClickSpark sparkColor="#8B5CF6" duration={300} />
+      <ClickSpark sparkColor="#34D399" duration={300} />
 
       <main
         id="main"

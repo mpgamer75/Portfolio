@@ -137,37 +137,30 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
             {hasImages ? (
               <>
                 <div className="w-full h-full flex items-center justify-center p-4 sm:p-6 md:p-8">
-                  <motion.div
-                    key={validImageIndex}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="relative w-full h-full max-h-[250px] sm:max-h-[350px] md:max-h-[500px]"
-                  >
+                  <div className="relative w-full h-full max-h-[250px] sm:max-h-[350px] md:max-h-[500px]">
                     <Image
                       src={project.imagePaths![validImageIndex]}
                       alt={`${project.title} screenshot ${validImageIndex + 1}`}
                       fill
                       className="object-contain"
-                      sizes="(max-width: 768px) 100vw, 50vw"
+                      sizes="(max-width: 768px) 90vw, 45vw"
                       priority
                     />
-                  </motion.div>
+                  </div>
                 </div>
 
                 {hasMultipleImages && (
                   <>
                     <button
                       onClick={prevImage}
-                      className="absolute top-1/2 left-2 sm:left-4 -translate-y-1/2 bg-cyber-primary/20 backdrop-blur-sm text-cyber-primary p-2 sm:p-3 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 smooth-transition z-10 hover:bg-cyber-primary hover:text-cyber-darker hover:scale-110 border border-cyber-primary/50 scale-on-hover"
+                      className="absolute top-1/2 left-2 sm:left-4 -translate-y-1/2 bg-cyber-primary/20 backdrop-blur-sm text-cyber-primary p-3 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 smooth-transition z-10 hover:bg-cyber-primary hover:text-cyber-darker hover:scale-110 border border-cyber-primary/50 scale-on-hover"
                       aria-label="Previous image"
                     >
                       <ChevronLeft size={20} className="sm:w-7 sm:h-7" aria-hidden="true" />
                     </button>
                     <button
                       onClick={nextImage}
-                      className="absolute top-1/2 right-2 sm:right-4 -translate-y-1/2 bg-cyber-primary/20 backdrop-blur-sm text-cyber-primary p-2 sm:p-3 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 smooth-transition z-10 hover:bg-cyber-primary hover:text-cyber-darker hover:scale-110 border border-cyber-primary/50 scale-on-hover"
+                      className="absolute top-1/2 right-2 sm:right-4 -translate-y-1/2 bg-cyber-primary/20 backdrop-blur-sm text-cyber-primary p-3 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 smooth-transition z-10 hover:bg-cyber-primary hover:text-cyber-darker hover:scale-110 border border-cyber-primary/50 scale-on-hover"
                       aria-label="Next image"
                     >
                       <ChevronRight size={20} className="sm:w-7 sm:h-7" aria-hidden="true" />
@@ -182,7 +175,7 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
                           }}
                           className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-all duration-300 ${
                             i === validImageIndex
-                              ? 'bg-cyber-brand scale-125 shadow-[0_0_8px_rgba(99,102,241,0.9)]'
+                              ? 'bg-cyber-brand scale-125 shadow-[0_0_8px_rgba(52,211,153,0.9)]'
                               : 'bg-cyber-primary/40 hover:bg-cyber-primary/70'
                           }`}
                           aria-label={`Image ${i + 1}`}
@@ -219,7 +212,7 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
               <motion.span
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="self-start bg-cyber-brand text-white px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs font-bold mb-3 sm:mb-4 shadow-[0_0_12px_rgba(99,102,241,0.5)]"
+                className="self-start bg-cyber-brand text-white px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs font-bold mb-3 sm:mb-4 shadow-[0_0_12px_rgba(52,211,153,0.5)]"
               >
                 FEATURED
               </motion.span>
@@ -279,7 +272,7 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
                   href={project.github}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center space-x-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-cyber-darker text-cyber-primary border border-cyber-primary/50 rounded-lg hover:bg-cyber-brand hover:text-white hover:border-cyber-brand transition-all duration-300 hover:shadow-[0_0_15px_rgba(99,102,241,0.6)] font-semibold text-sm sm:text-base"
+                  className="flex items-center justify-center space-x-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-cyber-darker text-cyber-primary border border-cyber-primary/50 rounded-lg hover:bg-cyber-brand hover:text-white hover:border-cyber-brand transition-all duration-300 hover:shadow-[0_0_15px_rgba(52,211,153,0.6)] font-semibold text-sm sm:text-base"
                 >
                   <Github size={18} className="sm:w-5 sm:h-5" aria-hidden="true" />
                   <span>View Code</span>
@@ -290,7 +283,7 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
                   href={project.demo}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center space-x-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-cyber-brand text-white rounded-lg hover:bg-cyber-brand2 transition-all duration-300 hover:shadow-[0_0_15px_rgba(99,102,241,0.6)] font-semibold text-sm sm:text-base"
+                  className="flex items-center justify-center space-x-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-cyber-brand text-white rounded-lg hover:bg-cyber-brand2 transition-all duration-300 hover:shadow-[0_0_15px_rgba(52,211,153,0.6)] font-semibold text-sm sm:text-base"
                 >
                   <ExternalLink size={18} className="sm:w-5 sm:h-5" aria-hidden="true" />
                   <span>Live Demo</span>

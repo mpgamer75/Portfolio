@@ -26,12 +26,12 @@ export default function ScrollProgress() {
 
             <motion.div
                 style={{ scaleX: scrollYProgress, transformOrigin: '0%' }}
-                className="absolute inset-0 bg-gradient-to-r from-cyber-primary via-cyber-secondary to-cyber-primary"
+                className="absolute inset-0 bg-cyber-brand"
             />
 
             <motion.div
                 style={{ scaleX: scrollYProgress, transformOrigin: '0%' }}
-                className="absolute inset-0 bg-gradient-to-r from-cyber-primary via-cyber-secondary to-cyber-primary blur-sm opacity-60"
+                className="absolute inset-0 bg-cyber-brand blur-sm opacity-60"
             />
         </motion.div>
     );

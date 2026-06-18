@@ -106,7 +106,7 @@ export default function SkillsSection() {
               <h3 className="text-2xl sm:text-3xl font-bold text-white">Certifications</h3>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-6 md:gap-8">
+            <div className="flex flex-wrap justify-center gap-4 sm:gap-6 md:gap-8">
               {/* Cisco Credly Badge */}
               <div className="flex flex-col items-center">
                 <CredlyBadge

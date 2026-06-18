@@ -140,7 +140,7 @@ export default function Folder({
               className={`pointer-events-none absolute left-1/2 top-1/2 h-[260px] w-[260px] -translate-x-1/2 -translate-y-1/2 rounded-full ${isMobile ? 'blur-lg' : 'blur-xl'}`}
               style={{
                 background:
-                  'radial-gradient(closest-side, rgba(99,102,241,0.28), rgba(139,92,246,0) 70%)',
+                  'radial-gradient(closest-side, rgba(52,211,153,0.28), rgba(16,185,129,0) 70%)',
               }}
             />
           )}

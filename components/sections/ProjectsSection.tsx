@@ -103,7 +103,7 @@ export default function ProjectsSection() {
           }}
           aria-label={`Open ${project.title} details`}
         >
-          <div className="w-full h-full bg-cyber-darker/90 rounded-lg flex flex-col items-center justify-between p-2 sm:p-3 transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-[0_0_20px_rgba(99,102,241,0.3)] border border-cyber-primary/30 group-hover:border-cyber-brand/70">
+          <div className="w-full h-full bg-cyber-darker/90 rounded-lg flex flex-col items-center justify-between p-2 sm:p-3 transition-all duration-300 group-hover:scale-[1.02] active:scale-[0.98] group-hover:shadow-[0_0_20px_rgba(52,211,153,0.3)] border border-cyber-primary/30 group-hover:border-cyber-brand/70">
             {/* Image slot — dark placeholder so the card is visible even before the image loads */}
             <div className="w-full h-[80px] sm:h-[110px] relative rounded-md overflow-hidden bg-cyber-dark/60 border border-cyber-primary/15 flex items-center justify-center mb-1.5 sm:mb-2">
               {project.imagePaths && project.imagePaths.length > 0 ? (
@@ -189,7 +189,7 @@ export default function ProjectsSection() {
             transition={{ duration: 0.8, delay: 0.2, type: 'spring' }}
             className="flex justify-center items-center h-48 sm:h-56 md:h-64"
           >
-            <Folder color="#6366F1" size={isMobile ? 2 : 3} items={folderItems} />
+            <Folder color="#34D399" size={isMobile ? 2 : 3} items={folderItems} />
           </motion.div>
 
           <motion.p

@@ -48,7 +48,7 @@ export default function CredlyBadge({ badgeId, width = 150, height = 270 }: Cred
             className="relative group cursor-pointer"
         >
             {/* Glow effect on hover */}
-            <div className="absolute -inset-2 bg-gradient-to-r from-cyber-primary/20 via-cyber-secondary/20 to-cyber-primary/20 rounded-xl opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500" />
+            <div className="absolute -inset-2 bg-gradient-to-r from-cyber-brand/20 via-cyber-brand2/20 to-cyber-brand/20 rounded-xl opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500" />
 
             {/* Badge container */}
             <div
@@ -61,11 +61,6 @@ export default function CredlyBadge({ badgeId, width = 150, height = 270 }: Cred
                     data-share-badge-id={badgeId}
                     data-share-badge-host="https://www.credly.com"
                 />
-
-                {/* Subtle scan line effect */}
-                <div className="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-cyber-primary/5 to-transparent animate-pulse" />
-                </div>
             </div>
         </motion.div>
     );

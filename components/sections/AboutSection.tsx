@@ -40,7 +40,7 @@ export default function AboutSection() {
 
                 {/* Image container with hover effects - Performance optimized */}
                 <div
-                  className="relative rounded-lg h-full w-full overflow-hidden border-2 border-cyber-primary/40 group-hover:border-cyber-brand smooth-transition group-hover:shadow-[0_0_20px_rgba(99,102,241,0.35)] sm:group-hover:shadow-[0_0_30px_rgba(99,102,241,0.35)]"
+                  className="relative rounded-lg h-full w-full overflow-hidden border-2 border-cyber-primary/40 group-hover:border-cyber-brand smooth-transition group-hover:shadow-[0_0_20px_rgba(52,211,153,0.35)] sm:group-hover:shadow-[0_0_30px_rgba(52,211,153,0.35)]"
                   style={{
                     transform: 'translateZ(0)',
                     backfaceVisibility: 'hidden',

@@ -82,7 +82,7 @@ export default function ExperienceSection() {
                   }`}
               >
                 {/* Timeline dot - hidden on mobile */}
-                <div className="hidden md:block absolute top-0 left-1/2 transform -translate-x-1/2 w-3 h-3 sm:w-4 sm:h-4 bg-cyber-brand rounded-full border-2 sm:border-4 border-cyber-darker shadow-[0_0_10px_rgba(99,102,241,0.7)]" />
+                <div className="hidden md:block absolute top-0 left-1/2 transform -translate-x-1/2 w-3 h-3 sm:w-4 sm:h-4 bg-cyber-brand rounded-full border-2 sm:border-4 border-cyber-darker shadow-[0_0_10px_rgba(52,211,153,0.7)]" />
 
                 {/* Card */}
                 <div className="cyber-card rounded-lg p-4 sm:p-5 md:p-6">

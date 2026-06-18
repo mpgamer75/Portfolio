@@ -15,8 +15,8 @@ const config: Config = {
           dark: "#0a0e27",
           darker: "#050814",
           accent: "#B8C0D2",    // muted text — aligned with CSS var, AA on #050814
-          brand: "#6366F1",     // indigo brand accent
-          brand2: "#8B5CF6",    // violet brand accent
+          brand: "#34D399",     // terminal emerald — primary accent
+          brand2: "#10B981",    // deeper emerald — hover / secondary accent
         },
       },
       fontFamily: {

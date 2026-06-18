@@ -9,11 +9,10 @@
   --cyber-dark: #0a0e27;
   --cyber-darker: #050814;
 
-  /* Brand accent — cold electric indigo→violet, used sparingly */
-  --accent: #6366F1;
-  --accent-2: #8B5CF6;
-  --accent-grad: linear-gradient(135deg, #6366F1, #8B5CF6);
-  --accent-soft: rgba(99, 102, 241, 0.15);
+  /* Brand accent — terminal emerald, solid (no gradient), used sparingly */
+  --accent: #34D399;
+  --accent-2: #10B981;
+  --accent-soft: rgba(52, 211, 153, 0.15);
 
   --transition-fast: 150ms;
   --transition-normal: 250ms;
@@ -27,9 +26,9 @@
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
 
-  /* Glows now carry the accent hue, not white */
-  --glow-primary: 0 0 20px rgba(99, 102, 241, 0.35);
-  --glow-strong: 0 0 32px rgba(99, 102, 241, 0.5);
+  /* Glows carry the emerald accent hue, kept subtle */
+  --glow-primary: 0 0 18px rgba(52, 211, 153, 0.30);
+  --glow-strong: 0 0 28px rgba(52, 211, 153, 0.42);
 }
 
 * {
@@ -148,7 +147,6 @@ h2,
     linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
   background-size: 50px 50px;
-  animation: gridMove 20s linear infinite;
 }
 
 @media (max-width: 768px) {
@@ -157,11 +155,6 @@ h2,
     animation: none;
     opacity: 0;
   }
-}
-
-@keyframes gridMove {
-  0% { background-position: 0 0; }
-  100% { background-position: 50px 50px; }
 }
 
 /* Card */
@@ -196,7 +189,7 @@ h2,
 
   .cyber-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 0 12px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 0 12px rgba(52, 211, 153, 0.3);
   }
 
   .cyber-card:active {
@@ -216,7 +209,7 @@ h2,
 .cyber-button--primary {
   border-color: transparent;
   color: #fff;
-  background: var(--accent-grad);
+  background: var(--accent);
 }
 
 .cyber-button--primary::before {
@@ -225,7 +218,7 @@ h2,
 
 .cyber-button--primary:hover {
   color: #fff;
-  filter: brightness(1.1);
+  background: var(--accent-2);
   box-shadow: var(--glow-strong);
 }
 
@@ -239,7 +232,7 @@ h2,
 .cyber-button::before {
   content: '';
   @apply absolute inset-0;
-  background: var(--accent-grad);
+  background: var(--accent);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform var(--transition-normal) ease;
@@ -274,7 +267,7 @@ h2,
 
 @media (max-width: 768px) {
   .cyber-button:hover {
-    box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 0 12px rgba(52, 211, 153, 0.4);
     transform: translateY(-1px);
   }
 }
@@ -408,7 +401,7 @@ a:focus-visible {
 
 @media (max-width: 768px) {
   .project-modal-close-button {
-    @apply top-2 right-2 w-8 h-8 flex items-center justify-center bg-cyber-darker/80 rounded-full;
+    @apply top-3 right-3 w-11 h-11 flex items-center justify-center bg-cyber-darker/80 rounded-full;
     transition: all 0.2s;
   }
 }
@@ -540,6 +533,6 @@ button:focus-visible,
    Replaces the infinite drop-shadow `neon-glow` animation (5 always-on
    repaint loops). The underline <div> keeps its size; we recolour it here. */
 .cyber-neon {
-  background: var(--accent-grad);
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.45);
+  background: var(--accent);
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.40);
 }
