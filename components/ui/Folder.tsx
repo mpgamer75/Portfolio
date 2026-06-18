@@ -10,6 +10,9 @@ const darkenColor = (hex: string, percent: number) => {
     stripped.length === 3
       ? stripped.split('').map((c) => c + c).join('')
       : stripped;
+  // Fall back to the raw value if it isn't a 6-digit hex (e.g. a CSS var),
+  // so the folder back tab still gets a valid colour instead of "#NaN".
+  if (!/^[0-9a-fA-F]{6}$/.test(expanded)) return hex;
   const num = parseInt(expanded, 16);
   let r = (num >> 16) & 0xff;
   let g = (num >> 8) & 0xff;
@@ -84,22 +87,25 @@ export default function Folder({
   const folderBackColor = useMemo(() => darkenColor(color, 0.08), [color]);
   const transforms = isMobile ? mobileOpenTransform : desktopOpenTransform;
 
-  // Tighter, less bouncy spring on desktop; predictable tween on mobile to
-  // keep the fan-out smooth on mid-tier phones (no spring oscillation).
-  const transition = reduced
-    ? { duration: 0 }
-    : isMobile
-      ? {
-          type: 'tween' as const,
-          duration: 0.32,
-          ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
-        }
-      : {
-          type: 'spring' as const,
-          stiffness: 320,
-          damping: 28,
-          mass: 0.65,
-        };
+  // Stable transition refs: a useIsMobile flip (or any parent re-render) must
+  // not hand framer-motion a fresh object and re-target an in-flight fan-out.
+  // Desktop spring is near-critically-damped (settles in fewer frames, no
+  // overshoot) instead of the previous bouncy 320/28/0.65.
+  const desktopSpring = useMemo(
+    () => ({ type: 'spring' as const, stiffness: 210, damping: 30, mass: 0.7 }),
+    [],
+  );
+  const mobileTween = useMemo(
+    () => ({
+      type: 'tween' as const,
+      duration: 0.32,
+      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+    }),
+    [],
+  );
+  const instant = useMemo(() => ({ duration: 0 }), []);
+
+  const transition = reduced ? instant : isMobile ? mobileTween : desktopSpring;
 
   const staggerStep = isMobile ? 0.025 : 0.035;
 
@@ -131,10 +137,10 @@ export default function Folder({
               exit={{ opacity: 0, scale: 0.6 }}
               transition={{ duration: 0.45 }}
               aria-hidden="true"
-              className={`pointer-events-none absolute left-1/2 top-1/2 h-[260px] w-[260px] -translate-x-1/2 -translate-y-1/2 rounded-full ${isMobile ? 'blur-xl' : 'blur-2xl'}`}
+              className={`pointer-events-none absolute left-1/2 top-1/2 h-[260px] w-[260px] -translate-x-1/2 -translate-y-1/2 rounded-full ${isMobile ? 'blur-lg' : 'blur-xl'}`}
               style={{
                 background:
-                  'radial-gradient(closest-side, rgba(255,255,255,0.18), rgba(255,255,255,0) 70%)',
+                  'radial-gradient(closest-side, rgba(99,102,241,0.28), rgba(139,92,246,0) 70%)',
               }}
             />
           )}

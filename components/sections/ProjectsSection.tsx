@@ -49,7 +49,7 @@ const projects: Project[] = [
   {
     title: 'SABER',
     description:
-      'Secure web platform with Next.js for document encryption and decryption. Backend and interface development to ensure confidentiality of sensitive data exchanges.',
+      'End-to-end encrypted document platform built with Next.js and the Web Cryptography API. Files are encrypted client-side before upload, so plaintext never reaches the server — I built the crypto layer, API and interface, deployed on Vercel.',
     tech: ['Next.js', 'JavaScript', 'Web Cryptography', 'Vercel'],
     github: 'https://github.com/mpgamer75/fall2024-webtech-210',
     demo: 'https://fall2024-webtech-210-saber11-charles-projects-0eed9e6d.vercel.app/',
@@ -59,7 +59,7 @@ const projects: Project[] = [
   {
     title: 'IoC App Altice',
     description:
-      'Application for managing and analyzing Indicators of Compromise (IoC) to improve threat detection and incident response.',
+      'Built during my AlticeDo SOC internship: a Python application to ingest, normalise and correlate Indicators of Compromise (IPs, hashes, domains) so analysts can triage alerts and respond to incidents faster.',
     tech: ['Python', 'Web Development', 'Cybersecurity'],
     github: 'https://github.com/mpgamer75/IoC-app-altice',
     featured: false,
@@ -103,7 +103,7 @@ export default function ProjectsSection() {
           }}
           aria-label={`Open ${project.title} details`}
         >
-          <div className="w-full h-full bg-cyber-darker/85 backdrop-blur-sm rounded-lg flex flex-col items-center justify-between p-2 sm:p-3 transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-[0_0_20px_rgba(255,255,255,0.25)] border border-cyber-primary/30 group-hover:border-cyber-primary/70">
+          <div className="w-full h-full bg-cyber-darker/90 rounded-lg flex flex-col items-center justify-between p-2 sm:p-3 transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-[0_0_20px_rgba(99,102,241,0.3)] border border-cyber-primary/30 group-hover:border-cyber-brand/70">
             {/* Image slot — dark placeholder so the card is visible even before the image loads */}
             <div className="w-full h-[80px] sm:h-[110px] relative rounded-md overflow-hidden bg-cyber-dark/60 border border-cyber-primary/15 flex items-center justify-center mb-1.5 sm:mb-2">
               {project.imagePaths && project.imagePaths.length > 0 ? (
@@ -158,7 +158,7 @@ export default function ProjectsSection() {
               </div>
             </div>
           </div>
-          <div className="absolute inset-0 bg-cyber-primary/0 group-hover:bg-cyber-primary/5 transition-colors duration-300 rounded-lg pointer-events-none" />
+          <div className="absolute inset-0 bg-cyber-brand/0 group-hover:bg-cyber-brand/10 transition-colors duration-300 rounded-lg pointer-events-none" />
         </button>
       )),
     [isMobile],
@@ -189,7 +189,7 @@ export default function ProjectsSection() {
             transition={{ duration: 0.8, delay: 0.2, type: 'spring' }}
             className="flex justify-center items-center h-48 sm:h-56 md:h-64"
           >
-            <Folder color="var(--cyber-accent)" size={isMobile ? 2 : 3} items={folderItems} />
+            <Folder color="#6366F1" size={isMobile ? 2 : 3} items={folderItems} />
           </motion.div>
 
           <motion.p
@@ -197,7 +197,7 @@ export default function ProjectsSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="text-center text-cyber-primary text-readable font-mono mt-16 sm:mt-24 md:mt-32 text-base sm:text-lg md:text-xl font-bold animate-pulse"
+            className="text-center text-cyber-accent text-readable font-mono mt-16 sm:mt-24 md:mt-32 text-sm sm:text-base md:text-lg"
           >
             Click the folder to explore projects
           </motion.p>

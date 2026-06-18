@@ -35,13 +35,13 @@ export default function HomePage() {
             height={3.5}
             baseWidth={5.5}
             animationType="rotate"
-            glow={0.9}
+            glow={0.6}
             noise={0}
             scale={3.6}
             hueShift={0}
             colorFrequency={1}
             timeScale={0.4}
-            bloom={0.9}
+            bloom={0.5}
             suspendWhenOffscreen
           />
         ) : (
@@ -51,7 +51,7 @@ export default function HomePage() {
 
       <Navigation />
       <ScrollProgress />
-      <ClickSpark />
+      <ClickSpark sparkColor="#8B5CF6" duration={300} />
 
       <main
         id="main"
@@ -63,8 +63,8 @@ export default function HomePage() {
         <HeroSection />
         <AboutSection />
         <ExperienceSection />
-        <ProjectsSection />
         <SkillsSection />
+        <ProjectsSection />
         <ContactSection />
       </main>
 

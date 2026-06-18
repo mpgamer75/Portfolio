@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Github, ExternalLink, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 
@@ -27,6 +27,7 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
   const [currentImage, setCurrentImage] = useState(0);
   const dialogRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     if (!project) return;
@@ -111,10 +112,17 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 30 }}
         className="project-modal-content p-0.5 sm:p-1"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Screen-reader announcement for carousel image changes */}
+        <div className="sr-only" role="status" aria-live="polite">
+          {hasImages
+            ? `Image ${validImageIndex + 1} of ${project.imagePaths!.length}`
+            : ''}
+        </div>
+
         <button
           onClick={onClose}
           className="project-modal-close-button"
@@ -174,7 +182,7 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
                           }}
                           className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-all duration-300 ${
                             i === validImageIndex
-                              ? 'bg-cyber-primary scale-125 shadow-[0_0_8px_rgba(255,255,255,0.8)]'
+                              ? 'bg-cyber-brand scale-125 shadow-[0_0_8px_rgba(99,102,241,0.9)]'
                               : 'bg-cyber-primary/40 hover:bg-cyber-primary/70'
                           }`}
                           aria-label={`Image ${i + 1}`}
@@ -211,7 +219,7 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
               <motion.span
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="self-start bg-cyber-primary text-cyber-darker px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs font-bold mb-3 sm:mb-4 shadow-[0_0_10px_rgba(255,255,255,0.5)]"
+                className="self-start bg-cyber-brand text-white px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs font-bold mb-3 sm:mb-4 shadow-[0_0_12px_rgba(99,102,241,0.5)]"
               >
                 FEATURED
               </motion.span>
@@ -231,7 +239,7 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="text-gray-300 mb-4 sm:mb-6 leading-relaxed flex-grow text-sm sm:text-base"
+              className="text-cyber-secondary mb-4 sm:mb-6 leading-relaxed flex-grow text-sm sm:text-base"
             >
               {project.description}
             </motion.p>
@@ -271,7 +279,7 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
                   href={project.github}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center space-x-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-cyber-darker text-cyber-primary border border-cyber-primary/50 rounded-lg hover:bg-cyber-primary hover:text-cyber-darker transition-all duration-300 hover:shadow-[0_0_15px_rgba(255,255,255,0.5)] font-semibold text-sm sm:text-base"
+                  className="flex items-center justify-center space-x-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-cyber-darker text-cyber-primary border border-cyber-primary/50 rounded-lg hover:bg-cyber-brand hover:text-white hover:border-cyber-brand transition-all duration-300 hover:shadow-[0_0_15px_rgba(99,102,241,0.6)] font-semibold text-sm sm:text-base"
                 >
                   <Github size={18} className="sm:w-5 sm:h-5" aria-hidden="true" />
                   <span>View Code</span>
@@ -282,7 +290,7 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
                   href={project.demo}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center space-x-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-cyber-primary text-cyber-darker rounded-lg hover:bg-cyber-secondary transition-all duration-300 hover:shadow-[0_0_15px_rgba(255,255,255,0.5)] font-semibold text-sm sm:text-base"
+                  className="flex items-center justify-center space-x-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-cyber-brand text-white rounded-lg hover:bg-cyber-brand2 transition-all duration-300 hover:shadow-[0_0_15px_rgba(99,102,241,0.6)] font-semibold text-sm sm:text-base"
                 >
                   <ExternalLink size={18} className="sm:w-5 sm:h-5" aria-hidden="true" />
                   <span>Live Demo</span>

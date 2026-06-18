@@ -10,12 +10,26 @@ const config: Config = {
     extend: {
       colors: {
         cyber: {
-          primary: "#FFFFFF",    // CHANGÉ: Blanc
-          secondary: "#E5E7EB",  // CHANGÉ: Gris (Tailwind gray-200)
+          primary: "#FFFFFF",
+          secondary: "#E5E7EB",
           dark: "#0a0e27",
           darker: "#050814",
-          accent: "#9CA3AF",     // CHANGÉ: Gris (Tailwind gray-400)
+          accent: "#B8C0D2",    // muted text — aligned with CSS var, AA on #050814
+          brand: "#6366F1",     // indigo brand accent
+          brand2: "#8B5CF6",    // violet brand accent
         },
+      },
+      fontFamily: {
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "ui-monospace", "monospace"],
+        mono: ["var(--font-display)", "ui-monospace", "monospace"],
+      },
+      fontSize: {
+        // Tighter tracking + line-height on display sizes for deliberate punch
+        "5xl": ["3rem", { lineHeight: "1.05", letterSpacing: "-0.03em" }],
+        "6xl": ["3.75rem", { lineHeight: "1.02", letterSpacing: "-0.035em" }],
+        "7xl": ["4.5rem", { lineHeight: "1", letterSpacing: "-0.04em" }],
+        "8xl": ["6rem", { lineHeight: "0.98", letterSpacing: "-0.045em" }],
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",

@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Mail, Linkedin, Github, Phone } from 'lucide-react';
+import { Mail, Linkedin, Github, Phone, FileDown } from 'lucide-react';
 
 export default function ContactSection() {
   const contactMethods = [
@@ -49,7 +49,7 @@ export default function ContactSection() {
           </h2>
           <div className="w-20 sm:w-24 h-1 bg-cyber-primary mx-auto mb-6 sm:mb-8 cyber-neon" />
 
-          <p className="text-lg sm:text-xl text-gray-300 text-center max-w-2xl mx-auto mb-8 sm:mb-12 md:mb-16">
+          <p className="text-lg sm:text-xl text-cyber-secondary text-center max-w-2xl mx-auto mb-8 sm:mb-12 md:mb-16">
             Interested in working together? Feel free to reach out!
           </p>
 
@@ -75,7 +75,7 @@ export default function ContactSection() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-base sm:text-lg font-semibold text-white mb-0.5 sm:mb-1">{method.label}</h3>
-                    <p className="text-gray-400 group-hover:text-cyber-primary transition-colors text-sm sm:text-base break-words">
+                    <p className="text-cyber-accent group-hover:text-cyber-primary transition-colors text-sm sm:text-base break-words">
                       {method.value}
                     </p>
                   </div>
@@ -95,49 +95,26 @@ export default function ContactSection() {
             <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">
               Ready to collaborate?
             </h3>
-            <p className="text-gray-300 mb-4 sm:mb-6 max-w-md mx-auto text-sm sm:text-base">
+            <p className="text-cyber-secondary mb-4 sm:mb-6 max-w-md mx-auto text-sm sm:text-base">
               Feel free to contact me to discuss projects, opportunities or just to chat about cybersecurity!
             </p>
 
-            <a
-              href="mailto:charleslantiguajorge@gmail.com"
-              className="cyber-button rounded-lg inline-block"
-            >
-              Send message
-            </a>
-          </motion.div>
-
-          {/* Additional links */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className="mt-8 sm:mt-10 md:mt-12 text-center"
-          >
-            <p className="text-gray-400 mb-3 sm:mb-4 text-sm sm:text-base">You can also find me on:</p>
-            <div className="flex justify-center gap-4 sm:gap-6">
-              <motion.a
-                href="https://github.com/mpgamer75"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-400 hover:text-cyber-primary transition-colors"
-                whileHover={{ scale: 1.2, y: -3 }}
-                whileTap={{ scale: 0.95 }}
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
+              <a
+                href="/cv.pdf"
+                download
+                className="cyber-button cyber-button--primary inline-flex items-center justify-center gap-2"
+                aria-label="Download my CV (PDF)"
               >
-                <Github size={28} className="sm:w-8 sm:h-8" />
-              </motion.a>
-
-              <motion.a
-                href="https://www.linkedin.com/in/charles-lantigua-jorge"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-400 hover:text-cyber-primary transition-colors"
-                whileHover={{ scale: 1.2, y: -3 }}
-                whileTap={{ scale: 0.95 }}
+                <FileDown size={18} aria-hidden="true" />
+                Download CV
+              </a>
+              <a
+                href="mailto:charleslantiguajorge@gmail.com?subject=Let%27s%20work%20together"
+                className="cyber-button inline-block"
               >
-                <Linkedin size={28} className="sm:w-8 sm:h-8" />
-              </motion.a>
+                Email me
+              </a>
             </div>
           </motion.div>
         </motion.div>

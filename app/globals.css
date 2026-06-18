@@ -5,17 +5,31 @@
 :root {
   --cyber-primary: #FFFFFF;
   --cyber-secondary: #E5E7EB;
-  --cyber-accent: #B8C0D2; /* bumped from #9CA3AF for WCAG AA contrast on #050814 */
+  --cyber-accent: #B8C0D2; /* muted body/secondary text — AA on #050814 */
   --cyber-dark: #0a0e27;
   --cyber-darker: #050814;
+
+  /* Brand accent — cold electric indigo→violet, used sparingly */
+  --accent: #6366F1;
+  --accent-2: #8B5CF6;
+  --accent-grad: linear-gradient(135deg, #6366F1, #8B5CF6);
+  --accent-soft: rgba(99, 102, 241, 0.15);
+
   --transition-fast: 150ms;
   --transition-normal: 250ms;
   --transition-slow: 350ms;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --glow-primary: 0 0 20px rgba(255, 255, 255, 0.3);
-  --glow-strong: 0 0 30px rgba(255, 255, 255, 0.5);
+
+  /* Glows now carry the accent hue, not white */
+  --glow-primary: 0 0 20px rgba(99, 102, 241, 0.35);
+  --glow-strong: 0 0 32px rgba(99, 102, 241, 0.5);
 }
 
 * {
@@ -33,13 +47,22 @@ html {
 
 body {
   @apply text-white;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
   max-width: 100vw;
+}
+
+/* Display face — mono-forward engineer identity (ties to DecryptedText).
+   Scoped to major headings + opt-in `.font-display`; card sub-headings
+   (h3/h4) stay on the Inter body face for readability and hierarchy. */
+h1,
+h2,
+.font-display {
+  font-family: var(--font-display), 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: -0.02em;
 }
 
 /* Honor reduced motion globally — replaces the harmful
@@ -75,7 +98,7 @@ body {
 
 .skip-to-content:focus {
   top: 16px;
-  outline: 2px solid var(--cyber-primary);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -143,30 +166,37 @@ body {
 
 /* Card */
 .cyber-card {
-  @apply border border-cyber-primary/30 bg-cyber-dark/50 backdrop-blur-sm;
+  /* Opaque-ish on desktop: no backdrop-blur over the Prism WebGL canvas
+     (backdrop-filter stacked over the shader was a major scroll-jank source).
+     Blur is re-enabled on mobile below, where Prism is replaced by the
+     cheaper MobileBackground. */
+  @apply border border-cyber-primary/30 bg-cyber-dark/70;
   transition: all var(--transition-normal) ease;
-  will-change: transform, box-shadow, border-color;
 }
 
 .cyber-card:hover {
-  @apply border-cyber-primary shadow-[0_0_20px_rgba(255,255,255,0.3)];
+  border-color: var(--accent);
+  box-shadow: var(--glow-primary);
   transform: translateY(-5px) scale(1.01);
+  will-change: transform, box-shadow;
 }
 
 .cyber-card:focus-within {
-  @apply border-cyber-primary shadow-[0_0_25px_rgba(255,255,255,0.4)];
-  outline: 2px solid var(--cyber-primary);
+  border-color: var(--accent);
+  box-shadow: var(--glow-strong);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
 @media (max-width: 768px) {
   .cyber-card {
+    @apply backdrop-blur-sm bg-cyber-dark/50;
     transition: all var(--transition-fast) ease;
   }
 
   .cyber-card:hover {
     transform: translateY(-2px);
-    @apply shadow-[0_0_10px_rgba(255,255,255,0.2)];
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.3);
   }
 
   .cyber-card:active {
@@ -178,9 +208,25 @@ body {
 .cyber-button {
   @apply relative px-6 py-3 font-semibold text-cyber-primary border-2 border-cyber-primary overflow-hidden;
   @apply bg-cyber-darker/30;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   transition: all var(--transition-normal) ease;
-  will-change: transform, box-shadow;
+}
+
+/* Primary CTA — accent-filled, no slide-fill */
+.cyber-button--primary {
+  border-color: transparent;
+  color: #fff;
+  background: var(--accent-grad);
+}
+
+.cyber-button--primary::before {
+  content: none;
+}
+
+.cyber-button--primary:hover {
+  color: #fff;
+  filter: brightness(1.1);
+  box-shadow: var(--glow-strong);
 }
 
 @media (max-width: 768px) {
@@ -192,7 +238,8 @@ body {
 
 .cyber-button::before {
   content: '';
-  @apply absolute inset-0 bg-cyber-primary;
+  @apply absolute inset-0;
+  background: var(--accent-grad);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform var(--transition-normal) ease;
@@ -210,8 +257,10 @@ body {
 }
 
 .cyber-button:hover {
-  @apply text-cyber-darker shadow-[0_0_20px_rgba(255,255,255,0.5)];
+  @apply text-white;
+  box-shadow: var(--glow-strong);
   transform: translateY(-2px);
+  will-change: transform, box-shadow;
 }
 
 .cyber-button:active {
@@ -219,13 +268,13 @@ body {
 }
 
 .cyber-button:focus-visible {
-  outline: 3px solid var(--cyber-primary);
+  outline: 3px solid var(--accent);
   outline-offset: 3px;
 }
 
 @media (max-width: 768px) {
   .cyber-button:hover {
-    @apply shadow-[0_0_10px_rgba(255,255,255,0.3)];
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
     transform: translateY(-1px);
   }
 }
@@ -313,7 +362,7 @@ a {
 }
 
 a:focus-visible {
-  outline: 2px solid var(--cyber-primary);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 2px;
 }
@@ -393,7 +442,7 @@ button,
 
 button:focus-visible,
 .interactive:focus-visible {
-  outline: 2px solid var(--cyber-primary);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -415,7 +464,7 @@ button:focus-visible,
 }
 
 *:focus-visible {
-  outline: 2px solid var(--cyber-primary);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -479,48 +528,18 @@ button:focus-visible,
   }
 }
 
-/* ===== Cyber accent effects ===== */
+/* ===== Cyber accent effects (static — no per-frame paint) ===== */
 
-/* Laser scan (used on section headings via cyber-scan) */
-@keyframes laser-scan {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
+/* Section heading wrapper. The animated "laser-scan" line was a continuous
+   paint source on every <h2>; removed in favour of the static accent bar. */
 .cyber-scan {
   position: relative;
-  overflow: hidden;
 }
 
-.cyber-scan::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--cyber-primary),
-    transparent
-  );
-  animation: laser-scan 3s ease-in-out infinite;
-  opacity: 0.5;
-  z-index: 10;
-}
-
-/* Neon glow (used on h2 underline via cyber-neon) */
-@keyframes neon-glow {
-  0%, 100% {
-    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
-  }
-  50% {
-    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.9))
-            drop-shadow(0 0 25px rgba(255, 255, 255, 0.6));
-  }
-}
-
+/* Heading underline bar — static accent gradient with a soft static glow.
+   Replaces the infinite drop-shadow `neon-glow` animation (5 always-on
+   repaint loops). The underline <div> keeps its size; we recolour it here. */
 .cyber-neon {
-  animation: neon-glow 2s ease-in-out infinite;
+  background: var(--accent-grad);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.45);
 }

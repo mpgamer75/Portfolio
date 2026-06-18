@@ -31,7 +31,7 @@ export default function AboutSection() {
               <div className="relative w-full aspect-square max-w-sm sm:max-w-md mx-auto group">
                 {/* Decorative border with hover effect - Optimized */}
                 <div
-                  className="decorative-border absolute inset-0 border-2 border-cyber-primary rounded-lg smooth-transition group-hover:border-cyber-secondary"
+                  className="decorative-border absolute inset-0 border-2 border-cyber-brand/60 rounded-lg smooth-transition group-hover:border-cyber-brand"
                   style={{
                     transform: 'translate(12px, 12px)',
                     willChange: 'transform',
@@ -40,14 +40,14 @@ export default function AboutSection() {
 
                 {/* Image container with hover effects - Performance optimized */}
                 <div
-                  className="relative rounded-lg h-full w-full overflow-hidden border-2 border-cyber-primary/50 group-hover:border-cyber-primary smooth-transition group-hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] sm:group-hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]"
+                  className="relative rounded-lg h-full w-full overflow-hidden border-2 border-cyber-primary/40 group-hover:border-cyber-brand smooth-transition group-hover:shadow-[0_0_20px_rgba(99,102,241,0.35)] sm:group-hover:shadow-[0_0_30px_rgba(99,102,241,0.35)]"
                   style={{
                     transform: 'translateZ(0)',
                     backfaceVisibility: 'hidden',
                   }}
                 >
                   {/* Overlay gradient on hover */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-cyber-primary/0 to-cyber-primary/10 opacity-0 group-hover:opacity-100 smooth-transition z-10" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-cyber-brand/0 to-cyber-brand/10 opacity-0 group-hover:opacity-100 smooth-transition z-10" />
 
                   {/* Image with optimized zoom effect */}
                   <div

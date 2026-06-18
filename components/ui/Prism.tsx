@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useReducedMotion } from 'framer-motion';
 import { Renderer, Triangle, Program, Mesh } from 'ogl';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
@@ -41,10 +42,12 @@ const Prism = ({
 }: PrismProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    // Honor prefers-reduced-motion: skip the WebGL animation entirely.
+    if (!container || reduced) return;
 
     // Adjust parameters for mobile
     const mobileScale = isMobile ? scale * 0.6 : scale;
@@ -462,7 +465,23 @@ const Prism = ({
     bloom,
     suspendWhenOffscreen,
     isMobile,
+    reduced,
   ]);
+
+  // Static, calm fallback when motion is reduced — a faint accent wash
+  // instead of a forced full-screen WebGL animation.
+  if (reduced) {
+    return (
+      <div
+        aria-hidden="true"
+        className="w-full h-full relative"
+        style={{
+          background:
+            'radial-gradient(120% 90% at 50% 30%, rgba(99,102,241,0.14), rgba(5,8,20,0) 60%)',
+        }}
+      />
+    );
+  }
 
   return <div className="w-full h-full relative" ref={containerRef} />;
 };

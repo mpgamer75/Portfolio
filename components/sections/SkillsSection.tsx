@@ -7,28 +7,32 @@ import CredlyBadge from '@/components/ui/CredlyBadge';
 export default function SkillsSection() {
   const skillCategories = [
     {
-      icon: Code2,
-      title: 'Programming',
-      items: ['C', 'C#', 'Java', 'JavaScript', 'TypeScript', 'PowerShell', 'Python', 'SQL', 'Bash'],
-      color: 'text-cyber-primary',
-    },
-    {
       icon: Shield,
       title: 'Security & Systems',
+      context: 'Used in production at Airbus & AlticeDo SOC',
       items: ['Kali Linux', 'Linux', 'Nmap', 'Wireshark', 'Metasploit', 'Fortinet', 'Trellix EDR', 'OSINT'],
-      color: 'text-cyber-secondary',
+      color: 'text-cyber-brand2',
+    },
+    {
+      icon: Code2,
+      title: 'Programming',
+      context: 'Languages behind my tooling & automation work',
+      items: ['C', 'C#', 'Java', 'JavaScript', 'TypeScript', 'PowerShell', 'Python', 'SQL', 'Bash'],
+      color: 'text-cyber-brand2',
     },
     {
       icon: Globe,
       title: 'Web Development',
+      context: 'Shipped SABER and this portfolio',
       items: ['Next.js', 'React', 'Node.js', 'Vercel', 'REST API'],
-      color: 'text-cyber-accent',
+      color: 'text-cyber-brand2',
     },
     {
       icon: Wrench,
       title: 'Tools & Platforms',
+      context: 'Daily drivers for builds, labs and AD',
       items: ['Git', 'GitHub', 'Docker', 'TryHackMe', 'Active Directory'],
-      color: 'text-cyber-primary',
+      color: 'text-cyber-brand2',
     },
   ];
 
@@ -60,10 +64,13 @@ export default function SkillsSection() {
                   className="cyber-card rounded-lg p-4 sm:p-5 md:p-6"
                 >
                   <div className="flex items-center space-x-2 sm:space-x-3 mb-4 sm:mb-6">
-                    <div className="p-2 sm:p-3 bg-cyber-primary/10 rounded-lg flex-shrink-0">
+                    <div className="p-2 sm:p-3 bg-cyber-brand/10 rounded-lg flex-shrink-0">
                       <Icon className={category.color} size={24} />
                     </div>
-                    <h3 className="text-lg sm:text-xl font-bold text-white">{category.title}</h3>
+                    <div className="min-w-0">
+                      <h3 className="text-lg sm:text-xl font-bold text-white">{category.title}</h3>
+                      <p className="text-xs text-cyber-accent font-mono mt-0.5">{category.context}</p>
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap gap-1.5 sm:gap-2">
@@ -75,7 +82,7 @@ export default function SkillsSection() {
                         viewport={{ once: true }}
                         transition={{ duration: 0.3, delay: index * 0.1 + i * 0.05 }}
                         whileHover={{ scale: 1.1 }}
-                        className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-mono bg-cyber-darker text-gray-300 border border-cyber-primary/30 rounded-lg hover:border-cyber-primary hover:text-cyber-primary transition-all duration-300 cursor-default"
+                        className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-mono bg-cyber-darker text-cyber-secondary border border-cyber-primary/20 rounded-lg hover:border-cyber-brand hover:text-cyber-primary transition-all duration-300 cursor-default"
                       >
                         {skill}
                       </motion.span>
@@ -146,7 +153,7 @@ export default function SkillsSection() {
           >
             <div className="cyber-card rounded-lg p-4 sm:p-5 md:p-6 text-center">
               <div className="text-3xl sm:text-4xl font-bold text-cyber-primary mb-2">TryHackMe</div>
-              <p className="text-gray-400 text-sm sm:text-base">Active on the platform</p>
+              <p className="text-cyber-accent text-sm sm:text-base">Active on the platform</p>
 
               <a
                 href="https://tryhackme.com"
@@ -160,7 +167,7 @@ export default function SkillsSection() {
 
             <div className="cyber-card rounded-lg p-4 sm:p-5 md:p-6 text-center">
               <div className="text-3xl sm:text-4xl font-bold text-cyber-primary mb-2">GitHub</div>
-              <p className="text-gray-400 text-sm sm:text-base">Active profile with 5+ public repos</p>
+              <p className="text-cyber-accent text-sm sm:text-base">Active profile with 5+ public repos</p>
 
               <a
                 href="https://github.com/mpgamer75"
@@ -174,7 +181,7 @@ export default function SkillsSection() {
 
             <div className="cyber-card rounded-lg p-4 sm:p-5 md:p-6 text-center sm:col-span-2 md:col-span-1">
               <div className="text-3xl sm:text-4xl font-bold text-cyber-primary mb-2">ECE Paris</div>
-              <p className="text-gray-400 text-sm sm:text-base">Cybersecurity and Computer Science degree</p>
+              <p className="text-cyber-accent text-sm sm:text-base">Cybersecurity and Computer Science degree</p>
               <p className="text-cyber-secondary mt-3 sm:mt-4 text-xs sm:text-sm">2023 - 2026</p>
             </div>
           </motion.div>

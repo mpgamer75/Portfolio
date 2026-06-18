@@ -1,21 +1,21 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Github, Linkedin, Mail } from 'lucide-react';
+import { Github, Linkedin, Mail, FileDown } from 'lucide-react';
 import AnimatedText from '@/components/ui/AnimatedText';
 import DecryptedText from '@/components/ui/DecryptedText';
 
 const subtitlePhrases = [
   'Cybersecurity Engineer',
-  'Software Developer',
-  'Pentesting Enthusiast',
+  'Offensive Security & Tooling',
+  'SOC Automation',
 ];
 
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.15, delayChildren: 0.1 },
+    transition: { staggerChildren: 0.12, delayChildren: 0.1 },
   },
 };
 
@@ -24,16 +24,21 @@ const itemVariants = {
   visible: { y: 0, opacity: 1, transition: { duration: 0.4 } },
 };
 
-const socialVariants = {
-  hidden: { opacity: 0, scale: 0.8 },
-  visible: { opacity: 1, scale: 1, transition: { duration: 0.3 } },
-};
+const socialLinks = [
+  { href: 'https://github.com/mpgamer75', label: 'GitHub', Icon: Github },
+  {
+    href: 'https://www.linkedin.com/in/charles-lantigua-jorge',
+    label: 'LinkedIn',
+    Icon: Linkedin,
+  },
+  { href: 'mailto:charleslantiguajorge@gmail.com', label: 'Email', Icon: Mail },
+];
 
 export default function HeroSection() {
   return (
     <section
       id="home"
-      className="relative min-h-screen flex items-center justify-center overflow-hidden px-4"
+      className="relative min-h-screen flex items-center overflow-hidden px-4 sm:px-6 lg:px-8"
     >
       <div aria-hidden="true" className="absolute inset-0 cyber-grid opacity-20" />
 
@@ -41,121 +46,118 @@ export default function HeroSection() {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="relative z-10 max-w-5xl mx-auto w-full text-center"
+        className="relative z-10 max-w-6xl mx-auto w-full"
       >
-        <motion.p
-          variants={itemVariants}
-          className="text-cyber-accent text-base sm:text-lg md:text-xl mb-3 sm:mb-4 font-mono text-shadow"
-        >
-          Hi, I&apos;m
-        </motion.p>
-
-        <motion.h1
-          variants={itemVariants}
-          className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-shadow leading-tight mb-4 sm:mb-6"
-        >
-          <DecryptedText
-            text={'Charles\nLantigua Jorge'}
-            animateOn="mount"
-            speed={50}
-            revealDirection="start"
-            className="text-cyber-primary"
-            encryptedClassName="text-cyber-accent/70"
-          />
-        </motion.h1>
-
-        <motion.div
-          variants={itemVariants}
-          className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-cyber-secondary mb-4 sm:mb-6 text-shadow px-2 h-[1.5em] flex items-center justify-center"
-        >
-          <AnimatedText
-            phrases={subtitlePhrases}
-            typingSpeed={70}
-            deletingSpeed={40}
-            pauseDuration={2500}
-          />
-        </motion.div>
-
-        <motion.p
-          variants={itemVariants}
-          className="text-base sm:text-lg md:text-xl text-cyber-accent max-w-2xl mx-auto mb-8 sm:mb-12 text-shadow px-4"
-        >
-          Passionate about cybersecurity, tool development and technological innovation
-        </motion.p>
-
-        <motion.div
-          variants={itemVariants}
-          className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-8 sm:mb-12 px-4"
-        >
-          <a
-            href="#projects"
-            className="cyber-button w-full sm:w-auto text-center min-w-[200px]"
-            aria-label="View my projects"
+        <div className="max-w-3xl text-center md:text-left">
+          {/* Status kicker */}
+          <motion.div
+            variants={itemVariants}
+            className="inline-flex items-center gap-2 mb-5 sm:mb-6 px-3 py-1 rounded-full border border-cyber-brand/40 bg-cyber-brand/10"
           >
-            View my projects
-          </a>
-          <a
-            href="#contact"
-            className="cyber-button w-full sm:w-auto text-center bg-cyber-primary/10 min-w-[200px]"
-            aria-label="Contact me"
-          >
-            Contact me
-          </a>
-        </motion.div>
+            <span className="h-1.5 w-1.5 rounded-full bg-cyber-brand2" />
+            <span className="font-mono text-[10px] sm:text-xs tracking-[0.2em] uppercase text-cyber-accent">
+              Available for 2026 internships
+            </span>
+          </motion.div>
 
-        <motion.div
-          initial="visible"
-          animate="visible"
-          variants={socialVariants}
-          className="flex gap-5 sm:gap-7 justify-center items-center mb-8 sm:mb-12"
-        >
-          <motion.a
-            href="https://github.com/mpgamer75"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="relative p-3 rounded-xl bg-cyber-primary/10 border-2 border-cyber-primary/50 hover:border-cyber-primary hover:bg-cyber-primary/15 smooth-transition group shadow-[0_0_15px_rgba(255,255,255,0.3)]"
-            aria-label="GitHub"
-            whileHover={{ scale: 1.15, y: -3 }}
-            whileTap={{ scale: 0.95 }}
+          <motion.p
+            variants={itemVariants}
+            className="text-cyber-accent text-sm sm:text-base md:text-lg mb-2 sm:mb-3 font-mono"
           >
-            <Github
-              size={28}
-              className="sm:w-8 sm:h-8 text-cyber-primary drop-shadow-[0_0_10px_rgba(255,255,255,1)] group-hover:drop-shadow-[0_0_15px_rgba(255,255,255,1)]"
-              aria-hidden="true"
+            Hi, I&apos;m
+          </motion.p>
+
+          <motion.h1
+            variants={itemVariants}
+            className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-[0.98] mb-4 sm:mb-6"
+          >
+            <DecryptedText
+              text={'Charles\nLantigua Jorge'}
+              animateOn="mount"
+              speed={50}
+              revealDirection="start"
+              className="text-cyber-primary"
+              encryptedClassName="text-cyber-brand/70"
             />
-            <div className="absolute inset-0 rounded-xl bg-cyber-primary/0 group-hover:bg-cyber-primary/10 smooth-transition" />
-          </motion.a>
-          <motion.a
-            href="https://www.linkedin.com/in/charles-lantigua-jorge"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="relative p-3 rounded-xl bg-cyber-primary/10 border-2 border-cyber-primary/50 hover:border-cyber-primary hover:bg-cyber-primary/15 smooth-transition group shadow-[0_0_15px_rgba(255,255,255,0.3)]"
-            aria-label="LinkedIn"
-            whileHover={{ scale: 1.15, y: -3 }}
-            whileTap={{ scale: 0.95 }}
+          </motion.h1>
+
+          <motion.div
+            variants={itemVariants}
+            className="text-lg sm:text-2xl md:text-3xl font-semibold text-cyber-secondary mb-5 sm:mb-7 h-[1.5em] flex items-center justify-center md:justify-start"
           >
-            <Linkedin
-              size={28}
-              className="sm:w-8 sm:h-8 text-cyber-primary drop-shadow-[0_0_10px_rgba(255,255,255,1)] group-hover:drop-shadow-[0_0_15px_rgba(255,255,255,1)]"
-              aria-hidden="true"
+            <span aria-hidden="true" className="text-cyber-brand2 font-mono mr-2">
+              &gt;
+            </span>
+            <AnimatedText
+              phrases={subtitlePhrases}
+              typingSpeed={70}
+              deletingSpeed={40}
+              pauseDuration={2500}
             />
-            <div className="absolute inset-0 rounded-xl bg-cyber-primary/0 group-hover:bg-cyber-primary/10 smooth-transition" />
-          </motion.a>
-          <motion.a
-            href="mailto:charleslantiguajorge@gmail.com"
-            className="relative p-3 rounded-xl bg-cyber-primary/10 border-2 border-cyber-primary/50 hover:border-cyber-primary hover:bg-cyber-primary/15 smooth-transition group shadow-[0_0_15px_rgba(255,255,255,0.3)]"
-            aria-label="Email"
-            whileHover={{ scale: 1.15, y: -3 }}
-            whileTap={{ scale: 0.95 }}
+          </motion.div>
+
+          <motion.p
+            variants={itemVariants}
+            className="text-base sm:text-lg text-cyber-accent max-w-2xl mx-auto md:mx-0 mb-8 sm:mb-10 leading-relaxed"
           >
-            <Mail
-              size={28}
-              className="sm:w-8 sm:h-8 text-cyber-primary drop-shadow-[0_0_10px_rgba(255,255,255,1)] group-hover:drop-shadow-[0_0_15px_rgba(255,255,255,1)]"
-              aria-hidden="true"
-            />
-            <div className="absolute inset-0 rounded-xl bg-cyber-primary/0 group-hover:bg-cyber-primary/10 smooth-transition" />
-          </motion.a>
-        </motion.div>
+            I build offensive-security tooling and SOC automation — from Red Team
+            scanners and crypto utilities to enterprise vulnerability management
+            and threat detection.
+          </motion.p>
+
+          <motion.div
+            variants={itemVariants}
+            className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center md:justify-start items-center mb-8 sm:mb-10"
+          >
+            <a
+              href="/cv.pdf"
+              download
+              className="cyber-button cyber-button--primary w-full sm:w-auto text-center inline-flex items-center justify-center gap-2 min-w-[180px]"
+              aria-label="Download my CV (PDF)"
+            >
+              <FileDown size={18} aria-hidden="true" />
+              Download CV
+            </a>
+            <a
+              href="#projects"
+              className="cyber-button w-full sm:w-auto text-center min-w-[180px]"
+              aria-label="View my projects"
+            >
+              View projects
+            </a>
+            <a
+              href="#contact"
+              className="cyber-button w-full sm:w-auto text-center bg-cyber-primary/5 min-w-[180px]"
+              aria-label="Contact me"
+            >
+              Contact
+            </a>
+          </motion.div>
+
+          <motion.div
+            variants={itemVariants}
+            className="flex gap-4 sm:gap-5 justify-center md:justify-start items-center"
+          >
+            {socialLinks.map(({ href, label, Icon }) => (
+              <motion.a
+                key={label}
+                href={href}
+                target={href.startsWith('http') ? '_blank' : undefined}
+                rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                className="relative p-3 rounded-xl bg-cyber-primary/5 border border-cyber-primary/30 hover:border-cyber-brand hover:bg-cyber-brand/10 smooth-transition"
+                aria-label={label}
+                whileHover={{ scale: 1.12, y: -3 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Icon
+                  size={24}
+                  className="sm:w-7 sm:h-7 text-cyber-primary"
+                  aria-hidden="true"
+                />
+              </motion.a>
+            ))}
+          </motion.div>
+        </div>
       </motion.div>
     </section>
   );

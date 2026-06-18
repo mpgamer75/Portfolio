@@ -8,8 +8,8 @@ const navItems = [
   { label: 'Home', href: '#home' },
   { label: 'About', href: '#about' },
   { label: 'Experience', href: '#experience' },
-  { label: 'Projects', href: '#projects' },
   { label: 'Skills', href: '#skills' },
+  { label: 'Projects', href: '#projects' },
   { label: 'Contact', href: '#contact' },
 ];
 
@@ -91,7 +91,7 @@ export default function Navigation() {
             onMouseLeave={handleMouseLeave}
           >
             <motion.div
-              className="absolute h-full rounded-lg bg-cyber-primary/10 border border-cyber-primary/30 pointer-events-none"
+              className="absolute h-full rounded-lg bg-cyber-brand/15 border border-cyber-brand/40 pointer-events-none"
               initial={false}
               animate={indicatorStyle}
               transition={{ type: 'spring', stiffness: 400, damping: 30 }}
@@ -102,7 +102,7 @@ export default function Navigation() {
                 key={item.href}
                 href={item.href}
                 onMouseEnter={handleMouseEnter}
-                className="relative text-gray-300 hover:text-cyber-primary px-4 py-2 rounded-lg transition-colors duration-200 z-10"
+                className="relative text-cyber-secondary hover:text-cyber-primary px-4 py-2 rounded-lg transition-colors duration-200 z-10"
               >
                 <span className="relative z-10">{item.label}</span>
               </a>
@@ -139,7 +139,7 @@ export default function Navigation() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="block text-gray-300 hover:text-cyber-primary smooth-transition-fast py-2 px-3 -mx-3 rounded-lg hover:bg-cyber-primary/10"
+                  className="block text-cyber-secondary hover:text-cyber-primary smooth-transition-fast py-2 px-3 -mx-3 rounded-lg hover:bg-cyber-brand/10"
                 >
                   {item.label}
                 </motion.a>

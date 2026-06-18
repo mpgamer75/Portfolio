@@ -69,7 +69,7 @@ export default function ExperienceSection() {
           {/* Timeline */}
           <div className="relative">
             {/* Vertical line - hidden on mobile */}
-            <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2 h-full w-0.5 bg-cyber-primary/30" />
+            <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2 h-full w-0.5 bg-cyber-brand/30" />
 
             {jobs.map((job, index) => (
               <motion.div
@@ -82,14 +82,14 @@ export default function ExperienceSection() {
                   }`}
               >
                 {/* Timeline dot - hidden on mobile */}
-                <div className="hidden md:block absolute top-0 left-1/2 transform -translate-x-1/2 w-3 h-3 sm:w-4 sm:h-4 bg-cyber-primary rounded-full border-2 sm:border-4 border-cyber-darker shadow-[0_0_10px_rgba(255,255,255,0.5)]" />
+                <div className="hidden md:block absolute top-0 left-1/2 transform -translate-x-1/2 w-3 h-3 sm:w-4 sm:h-4 bg-cyber-brand rounded-full border-2 sm:border-4 border-cyber-darker shadow-[0_0_10px_rgba(99,102,241,0.7)]" />
 
                 {/* Card */}
                 <div className="cyber-card rounded-lg p-4 sm:p-5 md:p-6">
                   <div className="flex items-start justify-between mb-3 sm:mb-4">
                     <div className="flex items-center space-x-2 sm:space-x-3 flex-1">
-                      <div className="p-1.5 sm:p-2 bg-cyber-primary/10 rounded-lg flex-shrink-0">
-                        <Briefcase className="text-cyber-primary" size={20} />
+                      <div className="p-1.5 sm:p-2 bg-cyber-brand/10 rounded-lg flex-shrink-0">
+                        <Briefcase className="text-cyber-brand2" size={20} />
                       </div>
                       <div className="min-w-0 flex-1">
                         <h3 className="text-lg sm:text-xl font-bold text-white break-words">{job.title}</h3>
@@ -99,11 +99,11 @@ export default function ExperienceSection() {
                   </div>
 
                   <div className="space-y-1.5 sm:space-y-2 mb-3 sm:mb-4">
-                    <div className="flex items-center space-x-2 text-gray-400 text-xs sm:text-sm">
+                    <div className="flex items-center space-x-2 text-cyber-accent text-xs sm:text-sm">
                       <MapPin size={14} className="text-cyber-primary flex-shrink-0" />
                       <span className="break-words">{job.location}</span>
                     </div>
-                    <div className="flex items-center space-x-2 text-gray-400 text-xs sm:text-sm">
+                    <div className="flex items-center space-x-2 text-cyber-accent text-xs sm:text-sm">
                       <Calendar size={14} className="text-cyber-primary flex-shrink-0" />
                       <span>{job.period}</span>
                     </div>
@@ -111,8 +111,8 @@ export default function ExperienceSection() {
 
                   <ul className="space-y-1.5 sm:space-y-2">
                     {job.description.map((item, i) => (
-                      <li key={i} className="text-gray-300 text-xs sm:text-sm flex items-start">
-                        <span className="text-cyber-primary mr-2 mt-0.5 flex-shrink-0">▹</span>
+                      <li key={i} className="text-cyber-secondary text-xs sm:text-sm flex items-start">
+                        <span className="text-cyber-brand2 mr-2 mt-0.5 flex-shrink-0">▹</span>
                         <span>{item}</span>
                       </li>
                     ))}

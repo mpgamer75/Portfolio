@@ -1,6 +1,23 @@
 import type { Metadata, Viewport } from 'next';
+import { JetBrains_Mono, Inter } from 'next/font/google';
 import MotionConfigProvider from '@/components/ui/MotionConfigProvider';
 import './globals.css';
+
+// Mono-forward identity: JetBrains Mono drives display/headings (ties to the
+// DecryptedText motif), Inter carries body copy. Exposed as CSS variables.
+const display = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-display',
+  display: 'swap',
+});
+
+const sans = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-sans',
+  display: 'swap',
+});
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -71,7 +88,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${display.variable} ${sans.variable}`}>
       <body>
         <a href="#main" className="skip-to-content">
           Skip to main content
