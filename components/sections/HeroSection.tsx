@@ -101,6 +101,7 @@ export default function HeroSection() {
             <a
               href="/cv.pdf"
               download
+              data-fx="download"
               className="cyber-button cyber-button--primary w-full sm:w-auto text-center inline-flex items-center justify-center gap-2 min-w-[180px]"
               aria-label="Download my CV (PDF)"
             >

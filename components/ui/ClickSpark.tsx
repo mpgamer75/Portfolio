@@ -96,6 +96,10 @@ export default function ClickSpark({
     };
 
     const onClick = (event: PointerEvent) => {
+      // Buttons get their own dedicated click FX (ButtonFX); skip the ambient
+      // cursor spark there so the two effects don't compete.
+      const el = event.target as HTMLElement | null;
+      if (el?.closest?.('.cyber-button')) return;
       const now = performance.now();
       for (let i = 0; i < sparkCount; i++) {
         sparks.current.push({

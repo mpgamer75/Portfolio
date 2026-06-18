@@ -536,3 +536,122 @@ button:focus-visible,
   background: var(--accent);
   box-shadow: 0 0 12px rgba(52, 211, 153, 0.40);
 }
+
+/* ===== Button click FX (components/ui/ButtonFX.tsx) =====
+   One-shot, pointer-events:none overlays drawn at a button's rect on click.
+   GPU-only (transform/opacity). The component renders nothing under
+   prefers-reduced-motion, so these never animate then. */
+.btnfx-root {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  pointer-events: none;
+}
+
+.btnfx-layer {
+  position: fixed;
+  pointer-events: none;
+}
+
+/* -- standard buttons: emerald scanline sweep + corner reticle -- */
+.btnfx-scan-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+
+.btnfx-scan {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.85);
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: btnfx-scan 360ms ease-out forwards;
+}
+
+@keyframes btnfx-scan {
+  0%   { transform: translateY(-4px); opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { transform: translateY(var(--fxh, 44px)); opacity: 0; }
+}
+
+.btnfx-corner {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: btnfx-corner 360ms ease-out forwards;
+}
+.btnfx-corner--tl { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+.btnfx-corner--tr { top: -1px; right: -1px; border-left: 0; border-bottom: 0; }
+.btnfx-corner--bl { bottom: -1px; left: -1px; border-right: 0; border-top: 0; }
+.btnfx-corner--br { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+@keyframes btnfx-corner {
+  0%   { opacity: 0; transform: scale(0.4); }
+  35%  { opacity: 1; transform: scale(1); }
+  70%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+/* -- Download CV: "DOWNLOADING…" mask + emerald data-stream -- */
+.btnfx-dl-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: var(--cyber-darker);
+  font-family: var(--font-display), ui-monospace, monospace;
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  animation: btnfx-dl-label 820ms ease-out forwards;
+}
+
+@keyframes btnfx-dl-label {
+  0%   { opacity: 0; }
+  18%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.btnfx-stream {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 78px;
+}
+
+.btnfx-glyph {
+  position: absolute;
+  top: 0;
+  font-family: var(--font-display), ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--accent);
+  text-shadow: 0 0 6px rgba(52, 211, 153, 0.7);
+  opacity: 0;
+  will-change: transform, opacity;
+  animation-name: btnfx-glyph;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+}
+
+@keyframes btnfx-glyph {
+  0%   { transform: translateY(-10px); opacity: 0; }
+  25%  { opacity: 1; }
+  100% { transform: translateY(78px); opacity: 0; }
+}

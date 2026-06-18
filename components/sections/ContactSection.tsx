@@ -103,6 +103,7 @@ export default function ContactSection() {
               <a
                 href="/cv.pdf"
                 download
+                data-fx="download"
                 className="cyber-button cyber-button--primary inline-flex items-center justify-center gap-2"
                 aria-label="Download my CV (PDF)"
               >
