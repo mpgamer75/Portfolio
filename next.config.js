@@ -38,6 +38,9 @@ const nextConfig = {
   turbopack: { root: __dirname },
   images: {
     formats: ['image/avif', 'image/webp'],
+    // Allowed next/image quality values (Next 16 requires declaring these):
+    // 50 = mobile project cards, 75 = desktop cards/default, 90 = About photo.
+    qualities: [50, 75, 90],
     remotePatterns: [
       { protocol: 'https', hostname: 'images.credly.com' },
       { protocol: 'https', hostname: 'www.credly.com' },
