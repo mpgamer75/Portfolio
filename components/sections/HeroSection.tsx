@@ -1,9 +1,11 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Github, Linkedin, Mail, FileDown } from 'lucide-react';
+import { FileDown } from 'lucide-react';
 import AnimatedText from '@/components/ui/AnimatedText';
 import DecryptedText from '@/components/ui/DecryptedText';
+import MagneticButton from '@/components/ui/MagneticButton';
+import { socialLinks } from '@/lib/links';
 
 const subtitlePhrases = [
   'Cybersecurity Engineer',
@@ -23,16 +25,6 @@ const itemVariants = {
   hidden: { y: 20, opacity: 0 },
   visible: { y: 0, opacity: 1, transition: { duration: 0.4 } },
 };
-
-const socialLinks = [
-  { href: 'https://github.com/mpgamer75', label: 'GitHub', Icon: Github },
-  {
-    href: 'https://www.linkedin.com/in/charles-lantigua-jorge',
-    label: 'LinkedIn',
-    Icon: Linkedin,
-  },
-  { href: 'mailto:charleslantiguajorge@gmail.com', label: 'Email', Icon: Mail },
-];
 
 export default function HeroSection() {
   return (
@@ -98,16 +90,18 @@ export default function HeroSection() {
             variants={itemVariants}
             className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center md:justify-start items-center mb-8 sm:mb-10"
           >
-            <a
-              href="/cv.pdf"
-              download
-              data-fx="download"
-              className="cyber-button cyber-button--primary w-full sm:w-auto text-center inline-flex items-center justify-center gap-2 min-w-[180px]"
-              aria-label="Download my CV (PDF)"
-            >
-              <FileDown size={18} aria-hidden="true" />
-              Download CV
-            </a>
+            <MagneticButton className="inline-flex w-full sm:w-auto">
+              <a
+                href="/cv.pdf"
+                download
+                data-fx="download"
+                className="cyber-button cyber-button--primary w-full text-center inline-flex items-center justify-center gap-2 min-w-[180px]"
+                aria-label="Download my CV (PDF)"
+              >
+                <FileDown size={18} aria-hidden="true" />
+                Download CV
+              </a>
+            </MagneticButton>
             <a
               href="#projects"
               className="cyber-button w-full sm:w-auto text-center min-w-[180px]"

@@ -7,6 +7,7 @@ import MobileBackground from '@/components/ui/MobileBackground';
 import ScrollProgress from '@/components/ui/ScrollProgress';
 import ClickSpark from '@/components/ui/ClickSpark';
 import ButtonFX from '@/components/ui/ButtonFX';
+import BackToTop from '@/components/ui/BackToTop';
 import HeroSection from '@/components/sections/HeroSection';
 import AboutSection from '@/components/sections/AboutSection';
 import ExperienceSection from '@/components/sections/ExperienceSection';
@@ -81,6 +82,7 @@ export default function HomePage() {
       </main>
 
       <Footer />
+      <BackToTop />
     </div>
   );
 }

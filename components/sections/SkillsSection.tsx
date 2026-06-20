@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { Code2, Shield, Globe, Wrench, Award } from 'lucide-react';
 import CredlyBadge from '@/components/ui/CredlyBadge';
+import SkillsConstellationGate from '@/components/three/SkillsConstellationGate';
 
 export default function SkillsSection() {
   const skillCategories = [
@@ -50,8 +51,14 @@ export default function SkillsSection() {
           </h2>
           <div className="w-20 sm:w-24 h-1 bg-cyber-primary mx-auto mb-8 sm:mb-12 md:mb-16 cyber-neon" />
 
+          {/* 3D constellation — desktop only & render-gated; the grid below is the accessible source of truth */}
+          <SkillsConstellationGate />
+          <p className="hidden md:block text-center text-cyber-accent font-mono text-xs sm:text-sm mt-2 mb-10 md:mb-12">
+            Interactive map of my skill domains — hover a node to light up its cluster
+          </p>
+
           {/* Skills Grid */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
             {skillCategories.map((category, index) => {
               const Icon = category.icon;
               return (

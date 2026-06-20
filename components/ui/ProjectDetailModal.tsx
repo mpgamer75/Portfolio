@@ -1,19 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion, type PanInfo } from 'framer-motion';
 import { Github, ExternalLink, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
-
-type Project = {
-  title: string;
-  description: string;
-  tech: string[];
-  github?: string;
-  demo?: string;
-  featured?: boolean;
-  imagePaths?: string[];
-};
+import type { Project } from '@/components/sections/projectsData';
+import { BLUR_DATA_URL } from '@/lib/images';
 
 interface ProjectDetailModalProps {
   project: Project | null;
@@ -41,6 +33,22 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
         onClose();
         return;
       }
+
+      // Arrow-key carousel navigation (only when there's more than one image).
+      const imgs = project.imagePaths;
+      if (imgs && imgs.length > 1) {
+        if (event.key === 'ArrowRight') {
+          event.preventDefault();
+          setCurrentImage((prev) => (prev === imgs.length - 1 ? 0 : prev + 1));
+          return;
+        }
+        if (event.key === 'ArrowLeft') {
+          event.preventDefault();
+          setCurrentImage((prev) => (prev === 0 ? imgs.length - 1 : prev - 1));
+          return;
+        }
+      }
+
       if (event.key === 'Tab' && dialogRef.current) {
         const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
           FOCUSABLE_SELECTOR,
@@ -75,25 +83,25 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
 
   if (!project) return null;
 
-  const hasImages = project.imagePaths && project.imagePaths.length > 0;
+  const hasImages = !!project.imagePaths && project.imagePaths.length > 0;
   const hasMultipleImages = hasImages && project.imagePaths!.length > 1;
   const validImageIndex =
     currentImage < (project.imagePaths?.length || 0) ? currentImage : 0;
 
-  const nextImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const goNext = () => {
     if (!hasImages) return;
-    setCurrentImage((prev) =>
-      prev === project.imagePaths!.length - 1 ? 0 : prev + 1,
-    );
+    setCurrentImage((prev) => (prev === project.imagePaths!.length - 1 ? 0 : prev + 1));
   };
 
-  const prevImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const goPrev = () => {
     if (!hasImages) return;
-    setCurrentImage((prev) =>
-      prev === 0 ? project.imagePaths!.length - 1 : prev - 1,
-    );
+    setCurrentImage((prev) => (prev === 0 ? project.imagePaths!.length - 1 : prev - 1));
+  };
+
+  const handleDragEnd = (_event: unknown, info: PanInfo) => {
+    if (!hasMultipleImages) return;
+    if (info.offset.x < -60) goNext();
+    else if (info.offset.x > 60) goPrev();
   };
 
   return (
@@ -137,35 +145,51 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
             {hasImages ? (
               <>
                 <div className="w-full h-full flex items-center justify-center p-4 sm:p-6 md:p-8">
-                  <div className="relative w-full h-full max-h-[250px] sm:max-h-[350px] md:max-h-[500px]">
+                  <motion.div
+                    className={`relative w-full h-full max-h-[250px] sm:max-h-[350px] md:max-h-[500px] ${
+                      hasMultipleImages ? 'cursor-grab active:cursor-grabbing' : ''
+                    }`}
+                    drag={hasMultipleImages ? 'x' : false}
+                    dragConstraints={{ left: 0, right: 0 }}
+                    dragElastic={reduced ? 0 : 0.15}
+                    onDragEnd={handleDragEnd}
+                  >
                     <Image
                       src={project.imagePaths![validImageIndex]}
                       alt={`${project.title} screenshot ${validImageIndex + 1}`}
                       fill
-                      className="object-contain"
+                      className="object-contain pointer-events-none select-none"
                       sizes="(max-width: 768px) 90vw, 45vw"
                       priority
+                      placeholder="blur"
+                      blurDataURL={BLUR_DATA_URL}
                     />
-                  </div>
+                  </motion.div>
                 </div>
 
                 {hasMultipleImages && (
                   <>
                     <button
-                      onClick={prevImage}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        goPrev();
+                      }}
                       className="absolute top-1/2 left-2 sm:left-4 -translate-y-1/2 bg-cyber-primary/20 backdrop-blur-sm text-cyber-primary p-3 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 smooth-transition z-10 hover:bg-cyber-primary hover:text-cyber-darker hover:scale-110 border border-cyber-primary/50 scale-on-hover"
                       aria-label="Previous image"
                     >
                       <ChevronLeft size={20} className="sm:w-7 sm:h-7" aria-hidden="true" />
                     </button>
                     <button
-                      onClick={nextImage}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        goNext();
+                      }}
                       className="absolute top-1/2 right-2 sm:right-4 -translate-y-1/2 bg-cyber-primary/20 backdrop-blur-sm text-cyber-primary p-3 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 smooth-transition z-10 hover:bg-cyber-primary hover:text-cyber-darker hover:scale-110 border border-cyber-primary/50 scale-on-hover"
                       aria-label="Next image"
                     >
                       <ChevronRight size={20} className="sm:w-7 sm:h-7" aria-hidden="true" />
                     </button>
-                    <div className="absolute bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5 sm:gap-2 z-10 bg-cyber-darker/50 backdrop-blur-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full">
+                    <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-0.5 sm:gap-1 z-10 bg-cyber-darker/50 backdrop-blur-sm px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full">
                       {(project.imagePaths || []).map((_, i) => (
                         <button
                           key={i}
@@ -173,13 +197,18 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
                             e.stopPropagation();
                             setCurrentImage(i);
                           }}
-                          className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-all duration-300 ${
-                            i === validImageIndex
-                              ? 'bg-cyber-brand scale-125 shadow-[0_0_8px_rgba(52,211,153,0.9)]'
-                              : 'bg-cyber-primary/40 hover:bg-cyber-primary/70'
-                          }`}
+                          className="w-6 h-6 flex items-center justify-center rounded-full"
                           aria-label={`Image ${i + 1}`}
-                        />
+                          aria-current={i === validImageIndex ? 'true' : undefined}
+                        >
+                          <span
+                            className={`block rounded-full transition-all duration-300 ${
+                              i === validImageIndex
+                                ? 'w-2.5 h-2.5 sm:w-3 sm:h-3 bg-cyber-brand scale-110 shadow-[0_0_8px_rgba(52,211,153,0.9)]'
+                                : 'w-2 h-2 sm:w-2.5 sm:h-2.5 bg-cyber-primary/40 hover:bg-cyber-primary/70'
+                            }`}
+                          />
+                        </button>
                       ))}
                     </div>
                   </>
@@ -265,32 +294,37 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-auto pt-4 sm:pt-6 border-t border-cyber-primary/20"
+              className="mt-auto pt-4 sm:pt-6 border-t border-cyber-primary/20"
             >
-              {project.github && (
-                <a
-                  href={project.github}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-fx="scan"
-                  className="flex items-center justify-center space-x-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-cyber-darker text-cyber-primary border border-cyber-primary/50 rounded-lg hover:bg-cyber-brand hover:text-white hover:border-cyber-brand transition-all duration-300 hover:shadow-[0_0_15px_rgba(52,211,153,0.6)] font-semibold text-sm sm:text-base"
-                >
-                  <Github size={18} className="sm:w-5 sm:h-5" aria-hidden="true" />
-                  <span>View Code</span>
-                </a>
-              )}
-              {project.demo && (
-                <a
-                  href={project.demo}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-fx="scan"
-                  className="flex items-center justify-center space-x-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-cyber-brand text-white rounded-lg hover:bg-cyber-brand2 transition-all duration-300 hover:shadow-[0_0_15px_rgba(52,211,153,0.6)] font-semibold text-sm sm:text-base"
-                >
-                  <ExternalLink size={18} className="sm:w-5 sm:h-5" aria-hidden="true" />
-                  <span>Live Demo</span>
-                </a>
-              )}
+              <p className="text-[10px] font-mono text-cyber-accent/60 mb-3" aria-hidden="true">
+                {hasMultipleImages ? 'Swipe or use ←/→ to browse · Esc to close' : 'Esc to close'}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                {project.github && (
+                  <a
+                    href={project.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-fx="scan"
+                    className="flex items-center justify-center space-x-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-cyber-darker text-cyber-primary border border-cyber-primary/50 rounded-lg hover:bg-cyber-brand hover:text-white hover:border-cyber-brand transition-all duration-300 hover:shadow-[0_0_15px_rgba(52,211,153,0.6)] font-semibold text-sm sm:text-base"
+                  >
+                    <Github size={18} className="sm:w-5 sm:h-5" aria-hidden="true" />
+                    <span>View Code</span>
+                  </a>
+                )}
+                {project.demo && (
+                  <a
+                    href={project.demo}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-fx="scan"
+                    className="flex items-center justify-center space-x-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-cyber-brand text-white rounded-lg hover:bg-cyber-brand2 transition-all duration-300 hover:shadow-[0_0_15px_rgba(52,211,153,0.6)] font-semibold text-sm sm:text-base"
+                  >
+                    <ExternalLink size={18} className="sm:w-5 sm:h-5" aria-hidden="true" />
+                    <span>Live Demo</span>
+                  </a>
+                )}
+              </div>
             </motion.div>
           </div>
         </div>

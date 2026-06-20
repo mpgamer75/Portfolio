@@ -3,6 +3,8 @@
 import { motion } from 'framer-motion';
 import { MapPin, GraduationCap } from 'lucide-react';
 import Image from 'next/image';
+import CountUp from '@/components/ui/CountUp';
+import { BLUR_DATA_URL } from '@/lib/images';
 
 export default function AboutSection() {
   return (
@@ -64,6 +66,8 @@ export default function AboutSection() {
                       className="object-cover smooth-transition-slow group-hover:scale-105 sm:group-hover:scale-110"
                       priority
                       quality={90}
+                      placeholder="blur"
+                      blurDataURL={BLUR_DATA_URL}
                       sizes="(max-width: 768px) 90vw, 45vw"
                       style={{
                         transform: 'translateZ(0)',
@@ -96,7 +100,15 @@ export default function AboutSection() {
               className="space-y-4 sm:space-y-6 order-1 md:order-2"
             >
               <p className="text-base sm:text-lg text-white leading-relaxed font-medium">
-                Computer Science and Cybersecurity Engineering student at ECE Paris, I specialize in offensive security, tool development and threat analysis. With hands-on experience in SOC, pentesting and secure application development, I constantly seek to deepen my technical skills.
+                Computer Science &amp; Cybersecurity Engineering student at ECE Paris — I
+                specialize in{' '}
+                <span className="text-cyber-brand font-semibold">offensive security</span>,{' '}
+                <span className="text-cyber-brand font-semibold">tool development</span> and{' '}
+                <span className="text-cyber-brand font-semibold">threat analysis</span>.
+              </p>
+              <p className="text-sm sm:text-base text-cyber-accent leading-relaxed">
+                Hands-on across SOC, pentesting and secure application development, I
+                constantly push to deepen my technical skills.
               </p>
 
               <div className="space-y-3 sm:space-y-4 pt-4 sm:pt-6">
@@ -104,37 +116,44 @@ export default function AboutSection() {
                   <MapPin className="text-cyber-primary flex-shrink-0" size={20} />
                   <span className="font-medium text-sm sm:text-base">Paris, France</span>
                 </div>
-                
+
                 <div className="flex items-center space-x-3 text-white">
                   <GraduationCap className="text-cyber-primary flex-shrink-0" size={20} />
                   <span className="font-medium text-sm sm:text-base">Master&apos;s Student - ECE Paris</span>
                 </div>
-                
               </div>
 
-              {/* Stats */}
+              {/* Stats — the numeric two link to their sections */}
               <div className="grid grid-cols-3 gap-3 sm:gap-4 pt-6 sm:pt-8">
-                <motion.div 
+                <motion.a
+                  href="#projects"
                   whileHover={{ scale: 1.05, y: -5 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                  className="cyber-card rounded-lg p-3 sm:p-4 text-center cursor-default"
+                  transition={{ type: 'spring', stiffness: 300 }}
+                  className="cyber-card rounded-lg p-3 sm:p-4 text-center block"
+                  aria-label="Jump to my projects"
                 >
-                  <div className="text-2xl sm:text-3xl font-bold text-cyber-primary mb-1">10+</div>
+                  <div className="text-2xl sm:text-3xl font-bold text-cyber-primary mb-1">
+                    <CountUp value={10} suffix="+" />
+                  </div>
                   <div className="text-xs sm:text-sm text-white font-medium">Projects</div>
-                </motion.div>
-                
-                <motion.div 
+                </motion.a>
+
+                <motion.a
+                  href="#experience"
                   whileHover={{ scale: 1.05, y: -5 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                  className="cyber-card rounded-lg p-3 sm:p-4 text-center cursor-default"
+                  transition={{ type: 'spring', stiffness: 300 }}
+                  className="cyber-card rounded-lg p-3 sm:p-4 text-center block"
+                  aria-label="Jump to my experience"
                 >
-                  <div className="text-2xl sm:text-3xl font-bold text-cyber-primary mb-1">3</div>
+                  <div className="text-2xl sm:text-3xl font-bold text-cyber-primary mb-1">
+                    <CountUp value={3} />
+                  </div>
                   <div className="text-xs sm:text-sm text-white font-medium">Internships</div>
-                </motion.div>
-                
-                <motion.div 
+                </motion.a>
+
+                <motion.div
                   whileHover={{ scale: 1.05, y: -5 }}
-                  transition={{ type: "spring", stiffness: 300 }}
+                  transition={{ type: 'spring', stiffness: 300 }}
                   className="cyber-card rounded-lg p-3 sm:p-4 text-center cursor-default"
                 >
                   <div className="text-lg sm:text-2xl font-bold text-cyber-primary mb-1">Trilingual</div>

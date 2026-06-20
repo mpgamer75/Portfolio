@@ -45,10 +45,10 @@ export default function CredlyBadge({ badgeId, width = 150, height = 270 }: Cred
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
             whileHover={{ scale: 1.05, y: -5 }}
-            className="relative group cursor-pointer"
+            className="relative group cursor-pointer max-w-full"
         >
-            {/* Glow effect on hover */}
-            <div className="absolute -inset-2 bg-gradient-to-r from-cyber-brand/20 via-cyber-brand2/20 to-cyber-brand/20 rounded-xl opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500" />
+            {/* Glow effect on hover — solid emerald (no gradient) */}
+            <div aria-hidden="true" className="absolute -inset-2 bg-cyber-brand/15 rounded-xl opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500" />
 
             {/* Badge container */}
             <div

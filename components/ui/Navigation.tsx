@@ -1,21 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const navItems = [
-  { label: 'Home', href: '#home' },
-  { label: 'About', href: '#about' },
-  { label: 'Experience', href: '#experience' },
-  { label: 'Skills', href: '#skills' },
-  { label: 'Projects', href: '#projects' },
-  { label: 'Contact', href: '#contact' },
-];
+import { navItems } from '@/lib/links';
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [activeHref, setActiveHref] = useState('#home');
   const [indicatorStyle, setIndicatorStyle] = useState({
     left: 0,
     width: 0,
@@ -23,6 +16,8 @@ export default function Navigation() {
   });
   const navRef = useRef<HTMLDivElement>(null);
   const navRectRef = useRef<DOMRect | null>(null);
+  const linkRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
+  const hoveringRef = useRef(false);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -47,19 +42,49 @@ export default function Navigation() {
     };
   }, []);
 
-  const handleMouseEnter = (event: React.MouseEvent<HTMLAnchorElement>) => {
+  const moveIndicatorTo = useCallback((el: HTMLAnchorElement | null) => {
     const navRect = navRectRef.current;
-    if (!navRect) return;
-    const targetRect = event.currentTarget.getBoundingClientRect();
+    if (!navRect || !el) return;
+    const targetRect = el.getBoundingClientRect();
     setIndicatorStyle({
       left: targetRect.left - navRect.left,
       width: targetRect.width,
       opacity: 1,
     });
+  }, []);
+
+  // Scroll-spy: track the active section and park the indicator under it
+  // (the IntersectionObserver callback is the external-subscription seam).
+  useEffect(() => {
+    const sections = navItems
+      .map((item) => document.getElementById(item.href.slice(1)))
+      .filter((el): el is HTMLElement => el != null);
+    if (!sections.length) return;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        if (!visible[0]) return;
+        const href = `#${visible[0].target.id}`;
+        setActiveHref(href);
+        if (!hoveringRef.current) moveIndicatorTo(linkRefs.current[href]);
+      },
+      { rootMargin: '-45% 0px -45% 0px', threshold: [0, 0.25, 0.5, 1] },
+    );
+    sections.forEach((s) => io.observe(s));
+    return () => io.disconnect();
+  }, [moveIndicatorTo]);
+
+  const handleMouseEnter = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    hoveringRef.current = true;
+    moveIndicatorTo(event.currentTarget);
   };
 
   const handleMouseLeave = () => {
-    setIndicatorStyle((prev) => ({ ...prev, opacity: 0 }));
+    hoveringRef.current = false;
+    moveIndicatorTo(linkRefs.current[activeHref]);
   };
 
   return (
@@ -97,16 +122,27 @@ export default function Navigation() {
               transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             />
 
-            {navItems.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                onMouseEnter={handleMouseEnter}
-                className="relative text-cyber-secondary hover:text-cyber-primary px-4 py-2 rounded-lg transition-colors duration-200 z-10"
-              >
-                <span className="relative z-10">{item.label}</span>
-              </a>
-            ))}
+            {navItems.map((item) => {
+              const isActive = activeHref === item.href;
+              return (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  ref={(el) => {
+                    linkRefs.current[item.href] = el;
+                  }}
+                  onMouseEnter={handleMouseEnter}
+                  aria-current={isActive ? 'true' : undefined}
+                  className={`relative px-4 py-2 rounded-lg transition-colors duration-200 z-10 ${
+                    isActive
+                      ? 'text-cyber-primary'
+                      : 'text-cyber-secondary hover:text-cyber-primary'
+                  }`}
+                >
+                  <span className="relative z-10">{item.label}</span>
+                </a>
+              );
+            })}
           </div>
 
           <div className="md:hidden">
@@ -131,19 +167,27 @@ export default function Navigation() {
             className="md:hidden glass-effect border-t border-cyber-primary/30"
           >
             <nav className="px-4 py-6 space-y-4" aria-label="Mobile">
-              {navItems.map((item, index) => (
-                <motion.a
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsOpen(false)}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="block text-cyber-secondary hover:text-cyber-primary smooth-transition-fast py-2 px-3 -mx-3 rounded-lg hover:bg-cyber-brand/10"
-                >
-                  {item.label}
-                </motion.a>
-              ))}
+              {navItems.map((item, index) => {
+                const isActive = activeHref === item.href;
+                return (
+                  <motion.a
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsOpen(false)}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    aria-current={isActive ? 'true' : undefined}
+                    className={`block smooth-transition-fast py-2 px-3 -mx-3 rounded-lg hover:bg-cyber-brand/10 ${
+                      isActive
+                        ? 'text-cyber-primary bg-cyber-brand/10'
+                        : 'text-cyber-secondary hover:text-cyber-primary'
+                    }`}
+                  >
+                    {item.label}
+                  </motion.a>
+                );
+              })}
             </nav>
           </motion.div>
         )}
