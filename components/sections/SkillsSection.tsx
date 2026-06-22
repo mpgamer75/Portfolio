@@ -67,7 +67,7 @@ export default function SkillsSection() {
           {/* 3D constellation — desktop only & render-gated; the grid below is the accessible source of truth */}
           <SkillsConstellationGate onFocusChange={handleFocusChange} />
           <p className="hidden md:block text-center text-cyber-accent font-mono text-xs sm:text-sm mt-2 mb-10 md:mb-12">
-            Interactive map of my skill domains — hover a node to inspect a skill, click to pin it, or filter by domain
+            Interactive map of my skill domains — hover to inspect, click any node to zoom in and see where I use it
           </p>
           {/* Announces the live selection for assistive tech (the canvas itself is decorative). */}
           <p className="sr-only" aria-live="polite">

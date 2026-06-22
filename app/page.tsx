@@ -15,6 +15,7 @@ import ProjectsSection from '@/components/sections/ProjectsSection';
 import SkillsSection from '@/components/sections/SkillsSection';
 import ContactSection from '@/components/sections/ContactSection';
 import Footer from '@/components/ui/Footer';
+import ProjectModalProvider from '@/components/ui/ProjectModalProvider';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
 export default function HomePage() {
@@ -30,6 +31,7 @@ export default function HomePage() {
   );
 
   return (
+    <ProjectModalProvider>
     <div className="relative min-h-screen">
       {/* Animated background — fixed full-viewport layer */}
       <div
@@ -84,5 +86,6 @@ export default function HomePage() {
       <Footer />
       <BackToTop />
     </div>
+    </ProjectModalProvider>
   );
 }

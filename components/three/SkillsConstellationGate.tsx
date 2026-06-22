@@ -51,7 +51,7 @@ export default function SkillsConstellationGate({ onFocusChange }: SkillsConstel
   if (!enable3D) return null;
 
   return (
-    <div ref={hostRef} className="relative w-full h-[360px] sm:h-[440px] md:h-[520px]">
+    <div ref={hostRef} className="relative w-full h-[440px] sm:h-[560px] md:h-[640px]">
       <SkillsConstellation active={inView} onFocusChange={onFocusChange} />
     </div>
   );

@@ -1,25 +1,24 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { LayoutGrid, FolderOpen } from 'lucide-react';
 import Folder from '@/components/ui/Folder';
-import ProjectDetailModal from '@/components/ui/ProjectDetailModal';
 import ProjectsGrid from '@/components/ui/ProjectsGrid';
 import ProjectPreview from '@/components/ui/ProjectPreview';
-import { projects, type Project } from '@/components/sections/projectsData';
+import { useProjectModal } from '@/components/ui/ProjectModalProvider';
+import { projects } from '@/components/sections/projectsData';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
 type ProjectView = 'folder' | 'grid';
 
 export default function ProjectsSection() {
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [view, setView] = useState<ProjectView>('folder');
   const isMobile = useIsMobile();
   const reduced = useReducedMotion();
-  // Stable identity so the modal's focus/keydown effect isn't re-run (and focus
-  // yanked) when this section re-renders mid-interaction (e.g. a breakpoint change).
-  const handleCloseProject = useCallback(() => setSelectedProject(null), []);
+  // The project modal is hoisted to page scope (ProjectModalProvider) so the
+  // Skills constellation's detail card can open it too.
+  const { openProject } = useProjectModal();
 
   // Memoize the folder cards so the Folder doesn't reset its transitions on re-render.
   const folderItems = useMemo(
@@ -31,7 +30,7 @@ export default function ProjectsSection() {
           className="w-full h-full rounded-lg overflow-hidden relative cursor-pointer group block text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyber-brand"
           onClick={(e) => {
             e.stopPropagation();
-            setSelectedProject(project);
+            openProject(project);
           }}
           aria-label={`Open ${project.title} details`}
         >
@@ -76,13 +75,12 @@ export default function ProjectsSection() {
           <div className="absolute inset-0 bg-cyber-brand/0 group-hover:bg-cyber-brand/10 transition-colors duration-300 rounded-lg pointer-events-none" />
         </button>
       )),
-    [isMobile],
+    [isMobile, openProject],
   );
 
   return (
-    <>
-      <section
-        id="projects"
+    <section
+      id="projects"
         className="relative py-12 sm:py-16 md:py-20 min-h-screen flex flex-col items-center justify-center px-4"
       >
         <motion.div
@@ -163,7 +161,7 @@ export default function ProjectsSection() {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.25 }}
               >
-                <ProjectsGrid projects={projects} isMobile={isMobile} onOpen={setSelectedProject} />
+                <ProjectsGrid projects={projects} isMobile={isMobile} onOpen={openProject} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -187,16 +185,5 @@ export default function ProjectsSection() {
           </motion.div>
         </motion.div>
       </section>
-
-      <AnimatePresence>
-        {selectedProject && (
-          <ProjectDetailModal
-            key={selectedProject.title}
-            project={selectedProject}
-            onClose={handleCloseProject}
-          />
-        )}
-      </AnimatePresence>
-    </>
   );
 }
