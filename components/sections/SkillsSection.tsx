@@ -1,11 +1,24 @@
 'use client';
 
+import { useCallback, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Code2, Shield, Globe, Wrench, Award } from 'lucide-react';
 import CredlyBadge from '@/components/ui/CredlyBadge';
 import SkillsConstellationGate from '@/components/three/SkillsConstellationGate';
 
 export default function SkillsSection() {
+  // Mirrors the 3D constellation's selection: the focused domain lights its card,
+  // the hovered/pinned skill lights its chip. `cluster` index matches the order
+  // of `skillCategories` (and CATEGORIES in skillsGraph.ts) — keep them aligned.
+  const [focus, setFocus] = useState<{ cluster: number | null; skill: string | null }>({
+    cluster: null,
+    skill: null,
+  });
+  const handleFocusChange = useCallback(
+    (cluster: number | null, skill: string | null) => setFocus({ cluster, skill }),
+    [],
+  );
+
   const skillCategories = [
     {
       icon: Shield,
@@ -52,15 +65,24 @@ export default function SkillsSection() {
           <div className="w-20 sm:w-24 h-1 bg-cyber-primary mx-auto mb-8 sm:mb-12 md:mb-16 cyber-neon" />
 
           {/* 3D constellation — desktop only & render-gated; the grid below is the accessible source of truth */}
-          <SkillsConstellationGate />
+          <SkillsConstellationGate onFocusChange={handleFocusChange} />
           <p className="hidden md:block text-center text-cyber-accent font-mono text-xs sm:text-sm mt-2 mb-10 md:mb-12">
-            Interactive map of my skill domains — hover a node to light up its cluster
+            Interactive map of my skill domains — hover a node to inspect a skill, click to pin it, or filter by domain
+          </p>
+          {/* Announces the live selection for assistive tech (the canvas itself is decorative). */}
+          <p className="sr-only" aria-live="polite">
+            {focus.skill
+              ? `Selected skill: ${focus.skill}`
+              : focus.cluster !== null
+                ? `Focused domain: ${skillCategories[focus.cluster].title}`
+                : ''}
           </p>
 
           {/* Skills Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
             {skillCategories.map((category, index) => {
               const Icon = category.icon;
+              const isFocused = focus.cluster === index;
               return (
                 <motion.div
                   key={index}
@@ -68,10 +90,16 @@ export default function SkillsSection() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.6, delay: index * 0.1 }}
-                  className="cyber-card rounded-lg p-4 sm:p-5 md:p-6"
+                  className={`cyber-card rounded-lg p-4 sm:p-5 md:p-6 ${
+                    isFocused ? '!border-cyber-brand shadow-glow' : ''
+                  }`}
                 >
                   <div className="flex items-center space-x-2 sm:space-x-3 mb-4 sm:mb-6">
-                    <div className="p-2 sm:p-3 bg-cyber-brand/10 rounded-lg flex-shrink-0">
+                    <div
+                      className={`p-2 sm:p-3 rounded-lg flex-shrink-0 transition-colors duration-300 ${
+                        isFocused ? 'bg-cyber-brand/20' : 'bg-cyber-brand/10'
+                      }`}
+                    >
                       <Icon className={category.color} size={24} />
                     </div>
                     <div className="min-w-0">
@@ -81,19 +109,26 @@ export default function SkillsSection() {
                   </div>
 
                   <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                    {category.items.map((skill, i) => (
-                      <motion.span
-                        key={i}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.3, delay: index * 0.1 + i * 0.05 }}
-                        whileHover={{ scale: 1.1 }}
-                        className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-mono bg-cyber-darker text-cyber-secondary border border-cyber-primary/20 rounded-lg hover:border-cyber-brand hover:text-cyber-primary transition-all duration-300 cursor-default"
-                      >
-                        {skill}
-                      </motion.span>
-                    ))}
+                    {category.items.map((skill, i) => {
+                      const isSkillActive = isFocused && focus.skill === skill;
+                      return (
+                        <motion.span
+                          key={i}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          whileInView={{ opacity: 1, scale: 1 }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.3, delay: index * 0.1 + i * 0.05 }}
+                          whileHover={{ scale: 1.05 }}
+                          className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-mono rounded-lg border transition-colors duration-300 cursor-default ${
+                            isSkillActive
+                              ? 'bg-cyber-brand text-cyber-darker border-cyber-brand font-semibold'
+                              : 'bg-cyber-darker text-cyber-secondary border-cyber-primary/20 hover:border-cyber-brand hover:text-cyber-primary'
+                          }`}
+                        >
+                          {skill}
+                        </motion.span>
+                      );
+                    })}
                   </div>
                 </motion.div>
               );

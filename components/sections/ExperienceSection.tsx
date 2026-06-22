@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Briefcase, MapPin, Calendar } from 'lucide-react';
 
 export default function ExperienceSection() {
@@ -52,8 +52,6 @@ export default function ExperienceSection() {
     },
   ];
 
-  const reduced = useReducedMotion();
-
   return (
     <section id="experience" className="relative py-12 sm:py-16 md:py-20 bg-cyber-dark/20">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -88,7 +86,7 @@ export default function ExperienceSection() {
                 >
                   {/* Timeline node - hidden on mobile; a 'live' pulse marks the current role */}
                   <div className="hidden md:flex absolute top-0 left-1/2 -translate-x-1/2 items-center justify-center w-4 h-4 sm:w-5 sm:h-5">
-                    {isCurrent && !reduced && (
+                    {isCurrent && (
                       <span
                         aria-hidden="true"
                         className="absolute inline-flex h-full w-full rounded-full bg-cyber-brand/50 animate-ping"
@@ -104,7 +102,7 @@ export default function ExperienceSection() {
                   </div>
 
                   {/* Card */}
-                  <div className="cyber-card rounded-lg p-4 sm:p-5 md:p-6">
+                  <div className={`cyber-card rounded-lg p-4 sm:p-5 md:p-6 ${isCurrent ? 'border-l-2 border-l-cyber-brand' : ''}`}>
                     <div className="flex items-start justify-between gap-2 mb-3 sm:mb-4">
                       <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
                         <div className="p-1.5 sm:p-2 bg-cyber-brand/10 rounded-lg flex-shrink-0">
@@ -116,7 +114,7 @@ export default function ExperienceSection() {
                         </div>
                       </div>
                       {isCurrent && (
-                        <span className="flex-shrink-0 mt-0.5 text-[10px] font-mono uppercase tracking-wider bg-cyber-brand/15 text-cyber-brand border border-cyber-brand/40 rounded-full px-2 py-0.5">
+                        <span className="flex-shrink-0 mt-0.5 text-[10px] font-mono uppercase tracking-wider bg-cyber-brand/20 text-cyber-brand border border-cyber-brand/60 rounded-full px-2 py-0.5">
                           Current
                         </span>
                       )}

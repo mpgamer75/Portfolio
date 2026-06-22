@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { LayoutGrid, FolderOpen } from 'lucide-react';
 import Folder from '@/components/ui/Folder';
@@ -17,6 +17,9 @@ export default function ProjectsSection() {
   const [view, setView] = useState<ProjectView>('folder');
   const isMobile = useIsMobile();
   const reduced = useReducedMotion();
+  // Stable identity so the modal's focus/keydown effect isn't re-run (and focus
+  // yanked) when this section re-renders mid-interaction (e.g. a breakpoint change).
+  const handleCloseProject = useCallback(() => setSelectedProject(null), []);
 
   // Memoize the folder cards so the Folder doesn't reset its transitions on re-render.
   const folderItems = useMemo(
@@ -25,7 +28,7 @@ export default function ProjectsSection() {
         <button
           key={project.title}
           type="button"
-          className="w-full h-full rounded-lg overflow-hidden relative cursor-pointer group block text-left"
+          className="w-full h-full rounded-lg overflow-hidden relative cursor-pointer group block text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyber-brand"
           onClick={(e) => {
             e.stopPropagation();
             setSelectedProject(project);
@@ -60,7 +63,10 @@ export default function ProjectsSection() {
                   </span>
                 ))}
                 {project.tech.length > 2 && (
-                  <span className="text-[7px] sm:text-[8px] font-mono text-cyber-secondary bg-cyber-primary/10 border border-cyber-primary/20 px-1 py-0.5 rounded">
+                  <span
+                    className="text-[7px] sm:text-[8px] font-mono text-cyber-brand bg-cyber-brand/15 border border-cyber-brand/40 px-1 py-0.5 rounded"
+                    title={project.tech.slice(2).join(', ')}
+                  >
                     +{project.tech.length - 2}
                   </span>
                 )}
@@ -187,7 +193,7 @@ export default function ProjectsSection() {
           <ProjectDetailModal
             key={selectedProject.title}
             project={selectedProject}
-            onClose={() => setSelectedProject(null)}
+            onClose={handleCloseProject}
           />
         )}
       </AnimatePresence>

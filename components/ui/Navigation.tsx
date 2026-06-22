@@ -18,6 +18,7 @@ export default function Navigation() {
   const navRectRef = useRef<DOMRect | null>(null);
   const linkRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
   const hoveringRef = useRef(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -77,6 +78,40 @@ export default function Navigation() {
     return () => io.disconnect();
   }, [moveIndicatorTo]);
 
+  // Close the mobile menu on Escape while it is open.
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
+  // Restore focus to the toggle button when the mobile menu closes
+  // (skip the initial mount so we don't steal focus on first paint).
+  const wasOpenRef = useRef(false);
+  useEffect(() => {
+    if (!isOpen && wasOpenRef.current) menuButtonRef.current?.focus();
+    wasOpenRef.current = isOpen;
+  }, [isOpen]);
+
+  // Seed the indicator under the active link on mount so it doesn't pop in.
+  useEffect(() => {
+    moveIndicatorTo(linkRefs.current[activeHref]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moveIndicatorTo]);
+
+  const handleFocus = (event: React.FocusEvent<HTMLAnchorElement>) => {
+    hoveringRef.current = true;
+    moveIndicatorTo(event.currentTarget);
+  };
+
+  const handleBlur = () => {
+    hoveringRef.current = false;
+    moveIndicatorTo(linkRefs.current[activeHref]);
+  };
+
   const handleMouseEnter = (event: React.MouseEvent<HTMLAnchorElement>) => {
     hoveringRef.current = true;
     moveIndicatorTo(event.currentTarget);
@@ -119,7 +154,7 @@ export default function Navigation() {
               className="absolute h-full rounded-lg bg-cyber-brand/15 border border-cyber-brand/40 pointer-events-none"
               initial={false}
               animate={indicatorStyle}
-              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 35, mass: 0.8 }}
             />
 
             {navItems.map((item) => {
@@ -132,6 +167,8 @@ export default function Navigation() {
                     linkRefs.current[item.href] = el;
                   }}
                   onMouseEnter={handleMouseEnter}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
                   aria-current={isActive ? 'true' : undefined}
                   className={`relative px-4 py-2 rounded-lg transition-colors duration-200 z-10 ${
                     isActive
@@ -147,6 +184,7 @@ export default function Navigation() {
 
           <div className="md:hidden">
             <button
+              ref={menuButtonRef}
               onClick={() => setIsOpen(!isOpen)}
               className="text-cyber-primary hover:text-cyber-secondary smooth-transition-fast p-2 -m-2 rounded-lg scale-on-hover"
               aria-label={isOpen ? 'Close menu' : 'Open menu'}
@@ -164,6 +202,8 @@ export default function Navigation() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
+            role="dialog"
+            aria-modal="true"
             className="md:hidden glass-effect border-t border-cyber-primary/30"
           >
             <nav className="px-4 py-6 space-y-4" aria-label="Mobile">

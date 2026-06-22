@@ -77,6 +77,10 @@ h2,
   html {
     scroll-behavior: auto;
   }
+  /* Keep the timeline "current" ping ring present but static (no pulse). */
+  .animate-ping {
+    animation: none;
+  }
 }
 
 /* Skip-to-content (a11y) */

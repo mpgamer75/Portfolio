@@ -38,7 +38,7 @@ export default function ProjectCard({ project, index, isMobile, onOpen }: Projec
 
       {/* Body */}
       <div className="p-3 sm:p-4">
-        <h3 className="text-sm sm:text-base font-bold text-white mb-1.5 truncate">{project.title}</h3>
+        <h3 title={project.title} className="text-sm sm:text-base font-bold text-white mb-1.5 line-clamp-2 sm:truncate">{project.title}</h3>
         <div className="flex flex-wrap gap-1 mb-3">
           {project.tech.slice(0, 3).map((t) => (
             <span
@@ -49,7 +49,10 @@ export default function ProjectCard({ project, index, isMobile, onOpen }: Projec
             </span>
           ))}
           {project.tech.length > 3 && (
-            <span className="text-[9px] sm:text-[10px] font-mono text-cyber-accent px-1 py-0.5">
+            <span
+              title={project.tech.slice(3).join(', ')}
+              className="text-[9px] sm:text-[10px] font-mono text-cyber-brand bg-cyber-brand/15 border border-cyber-brand/40 px-1 py-0.5"
+            >
               +{project.tech.length - 3}
             </span>
           )}
@@ -91,7 +94,7 @@ export default function ProjectCard({ project, index, isMobile, onOpen }: Projec
       <button
         type="button"
         onClick={() => onOpen(project)}
-        className="absolute inset-0 z-10"
+        className="absolute inset-0 z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyber-brand"
         aria-label={`Open ${project.title} details`}
       />
     </motion.div>

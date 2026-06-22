@@ -11,12 +11,17 @@ const SkillsConstellation = dynamic(() => import('./SkillsConstellation'), {
   loading: () => null,
 });
 
+interface SkillsConstellationGateProps {
+  /** Forwarded from the scene so the Skills grid below can mirror the focused domain/skill. */
+  onFocusChange?: (cluster: number | null, skill: string | null) => void;
+}
+
 /**
  * Gates the WebGL constellation: desktop + motion-OK only, and only render-loops
  * while the Skills section is in view. The Skills grid below is the accessible,
  * always-present source of truth — this layer is purely visual.
  */
-export default function SkillsConstellationGate() {
+export default function SkillsConstellationGate({ onFocusChange }: SkillsConstellationGateProps) {
   const isMobile = useIsMobile();
   const reduced = useReducedMotion();
   const mounted = useSyncExternalStore(
@@ -46,13 +51,8 @@ export default function SkillsConstellationGate() {
   if (!enable3D) return null;
 
   return (
-    <div
-      ref={hostRef}
-      role="img"
-      aria-label="Animated 3D constellation of skills grouped by domain"
-      className="relative w-full h-[360px] sm:h-[440px] md:h-[520px]"
-    >
-      <SkillsConstellation active={inView} />
+    <div ref={hostRef} className="relative w-full h-[360px] sm:h-[440px] md:h-[520px]">
+      <SkillsConstellation active={inView} onFocusChange={onFocusChange} />
     </div>
   );
 }

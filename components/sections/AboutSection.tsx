@@ -129,8 +129,8 @@ export default function AboutSection() {
                   href="#projects"
                   whileHover={{ scale: 1.05, y: -5 }}
                   transition={{ type: 'spring', stiffness: 300 }}
-                  className="cyber-card rounded-lg p-3 sm:p-4 text-center block"
-                  aria-label="Jump to my projects"
+                  className="cyber-card rounded-lg p-3 sm:p-4 text-center block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand focus-visible:ring-offset-2 focus-visible:ring-offset-cyber-darker"
+                  aria-label="10+ projects — jump to my projects"
                 >
                   <div className="text-2xl sm:text-3xl font-bold text-cyber-primary mb-1">
                     <CountUp value={10} suffix="+" />
@@ -142,8 +142,8 @@ export default function AboutSection() {
                   href="#experience"
                   whileHover={{ scale: 1.05, y: -5 }}
                   transition={{ type: 'spring', stiffness: 300 }}
-                  className="cyber-card rounded-lg p-3 sm:p-4 text-center block"
-                  aria-label="Jump to my experience"
+                  className="cyber-card rounded-lg p-3 sm:p-4 text-center block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand focus-visible:ring-offset-2 focus-visible:ring-offset-cyber-darker"
+                  aria-label="3 internships — jump to my experience"
                 >
                   <div className="text-2xl sm:text-3xl font-bold text-cyber-primary mb-1">
                     <CountUp value={3} />

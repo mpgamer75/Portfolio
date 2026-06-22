@@ -174,7 +174,7 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
                         e.stopPropagation();
                         goPrev();
                       }}
-                      className="absolute top-1/2 left-2 sm:left-4 -translate-y-1/2 bg-cyber-primary/20 backdrop-blur-sm text-cyber-primary p-3 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 smooth-transition z-10 hover:bg-cyber-primary hover:text-cyber-darker hover:scale-110 border border-cyber-primary/50 scale-on-hover"
+                      className="absolute top-1/2 left-2 sm:left-4 -translate-y-1/2 bg-cyber-primary/20 backdrop-blur-sm text-cyber-primary p-4 sm:p-3 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 smooth-transition z-10 hover:bg-cyber-primary hover:text-cyber-darker hover:scale-110 border border-cyber-primary/50 scale-on-hover"
                       aria-label="Previous image"
                     >
                       <ChevronLeft size={20} className="sm:w-7 sm:h-7" aria-hidden="true" />
@@ -184,7 +184,7 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
                         e.stopPropagation();
                         goNext();
                       }}
-                      className="absolute top-1/2 right-2 sm:right-4 -translate-y-1/2 bg-cyber-primary/20 backdrop-blur-sm text-cyber-primary p-3 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 smooth-transition z-10 hover:bg-cyber-primary hover:text-cyber-darker hover:scale-110 border border-cyber-primary/50 scale-on-hover"
+                      className="absolute top-1/2 right-2 sm:right-4 -translate-y-1/2 bg-cyber-primary/20 backdrop-blur-sm text-cyber-primary p-4 sm:p-3 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 smooth-transition z-10 hover:bg-cyber-primary hover:text-cyber-darker hover:scale-110 border border-cyber-primary/50 scale-on-hover"
                       aria-label="Next image"
                     >
                       <ChevronRight size={20} className="sm:w-7 sm:h-7" aria-hidden="true" />
@@ -197,8 +197,8 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
                             e.stopPropagation();
                             setCurrentImage(i);
                           }}
-                          className="w-6 h-6 flex items-center justify-center rounded-full"
-                          aria-label={`Image ${i + 1}`}
+                          className="w-9 h-9 sm:w-6 sm:h-6 flex items-center justify-center rounded-full"
+                          aria-label={`Go to image ${i + 1} of ${project.imagePaths!.length}`}
                           aria-current={i === validImageIndex ? 'true' : undefined}
                         >
                           <span
@@ -211,6 +211,9 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
                         </button>
                       ))}
                     </div>
+                    <span className="md:hidden absolute bottom-10 sm:bottom-14 left-1/2 -translate-x-1/2 z-10 font-mono text-[10px] text-cyber-accent/70 select-none pointer-events-none">
+                      ‹ swipe ›
+                    </span>
                   </>
                 )}
               </>

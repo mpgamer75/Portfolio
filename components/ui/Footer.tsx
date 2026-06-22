@@ -23,13 +23,13 @@ export default function Footer() {
           {/* Section nav */}
           <nav
             aria-label="Footer"
-            className="flex flex-wrap justify-center gap-x-4 gap-y-2"
+            className="flex flex-wrap justify-center gap-x-4 gap-y-1 sm:gap-x-6"
           >
             {navItems.map((item) => (
               <a
                 key={item.href}
                 href={item.href}
-                className="font-mono text-xs sm:text-sm text-cyber-accent hover:text-cyber-primary transition-colors"
+                className="px-2 py-2 sm:py-1 inline-block font-mono text-xs sm:text-sm text-cyber-accent hover:text-cyber-primary transition-colors"
               >
                 {item.label}
               </a>
@@ -45,9 +45,9 @@ export default function Footer() {
                 target={href.startsWith('http') ? '_blank' : undefined}
                 rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
                 aria-label={label}
-                className="p-2 rounded-lg border border-cyber-primary/25 text-cyber-secondary hover:text-cyber-primary hover:border-cyber-brand hover:bg-cyber-brand/10 transition-colors"
+                className="p-2 rounded-lg border border-cyber-primary/40 text-cyber-secondary hover:text-cyber-primary hover:border-cyber-brand hover:bg-cyber-brand/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-cyber-darker focus-visible:ring-cyber-brand"
               >
-                <Icon size={18} aria-hidden="true" />
+                <Icon size={20} aria-hidden="true" />
               </a>
             ))}
           </div>

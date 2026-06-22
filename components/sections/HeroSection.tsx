@@ -88,14 +88,14 @@ export default function HeroSection() {
 
           <motion.div
             variants={itemVariants}
-            className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center md:justify-start items-center mb-8 sm:mb-10"
+            className="flex flex-col sm:flex-row gap-2.5 sm:gap-4 justify-center md:justify-start items-center mb-8 sm:mb-10"
           >
             <MagneticButton className="inline-flex w-full sm:w-auto">
               <a
                 href="/cv.pdf"
                 download
                 data-fx="download"
-                className="cyber-button cyber-button--primary w-full text-center inline-flex items-center justify-center gap-2 min-w-[180px]"
+                className="cyber-button cyber-button--primary w-full text-center inline-flex items-center justify-center gap-2 sm:min-w-[180px]"
                 aria-label="Download my CV (PDF)"
               >
                 <FileDown size={18} aria-hidden="true" />
@@ -104,14 +104,14 @@ export default function HeroSection() {
             </MagneticButton>
             <a
               href="#projects"
-              className="cyber-button w-full sm:w-auto text-center min-w-[180px]"
+              className="cyber-button w-full sm:w-auto text-center sm:min-w-[180px]"
               aria-label="View my projects"
             >
               View projects
             </a>
             <a
               href="#contact"
-              className="cyber-button w-full sm:w-auto text-center bg-cyber-primary/5 min-w-[180px]"
+              className="cyber-button w-full sm:w-auto text-center bg-cyber-primary/5 sm:min-w-[180px]"
               aria-label="Contact me"
             >
               Contact
@@ -128,7 +128,7 @@ export default function HeroSection() {
                 href={href}
                 target={href.startsWith('http') ? '_blank' : undefined}
                 rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                className="relative p-3 rounded-xl bg-cyber-primary/5 border border-cyber-primary/30 hover:border-cyber-brand hover:bg-cyber-brand/10 smooth-transition"
+                className="relative p-3 rounded-xl bg-cyber-primary/5 border border-cyber-primary/30 hover:border-cyber-brand hover:bg-cyber-brand/10 smooth-transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-cyber-darker focus-visible:ring-cyber-brand active:bg-cyber-brand/20"
                 aria-label={label}
                 whileHover={{ scale: 1.12, y: -3 }}
                 whileTap={{ scale: 0.95 }}

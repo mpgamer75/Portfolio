@@ -114,7 +114,7 @@ export default function Folder({
   return (
     <div style={{ transform: `scale(${size})` }} className={className}>
       <div
-        className="relative cursor-pointer select-none group"
+        className="relative cursor-pointer select-none group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyber-brand"
         role="button"
         aria-label={open ? 'Close folder' : 'Open folder to view projects'}
         aria-expanded={open}

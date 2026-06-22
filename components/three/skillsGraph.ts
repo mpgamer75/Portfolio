@@ -35,33 +35,40 @@ export interface GraphData {
   clusters: Cluster[];
 }
 
-/** Four domains, each a discrete emerald swatch (stepped, not a gradient). */
+/**
+ * Four domains. Each gets a distinct swatch from the emerald/teal family —
+ * stepped (not a gradient) and kept on-brand, but spread enough in hue+lightness
+ * that the clusters are tellable apart (the legend keys them, the hover/focus
+ * interaction confirms them). The signature emerald (#34D399) leads.
+ */
 const CATEGORIES: { title: string; color: string; items: string[] }[] = [
   {
     title: 'Security & Systems',
-    color: '#34D399',
+    color: '#34D399', // signature emerald
     items: ['Kali Linux', 'Linux', 'Nmap', 'Wireshark', 'Metasploit', 'Fortinet', 'Trellix EDR', 'OSINT'],
   },
   {
     title: 'Programming',
-    color: '#25C998',
+    color: '#6EE7B7', // light mint
     items: ['C', 'C#', 'Java', 'JavaScript', 'TypeScript', 'PowerShell', 'Python', 'SQL', 'Bash'],
   },
   {
     title: 'Web Development',
-    color: '#1BBE8D',
+    color: '#2DD4BF', // teal
     items: ['Next.js', 'React', 'Node.js', 'Vercel', 'REST API'],
   },
   {
     title: 'Tools & Platforms',
-    color: '#10B981',
+    color: '#10B981', // deep emerald
     items: ['Git', 'GitHub', 'Docker', 'TryHackMe', 'Active Directory'],
   },
 ];
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5)); // ~2.39996 rad
-const HUB_RADIUS = 3.2;
-const LEAF_RADIUS = 1.9;
+// Push hubs further apart and tighten the leaf spiral so the four domains read
+// as distinct clouds rather than one central blob; alternate depth for parallax.
+const HUB_RADIUS = 3.7;
+const LEAF_RADIUS = 1.55;
 
 export function buildSkillsGraph(): GraphData {
   const nodes: SkillNode[] = [];
@@ -72,7 +79,7 @@ export function buildSkillsGraph(): GraphData {
 
   CATEGORIES.forEach((cat, ci) => {
     const angle = (ci / n) * Math.PI * 2;
-    const z = (ci % 2 === 0 ? 1 : -1) * 0.7; // alternate depth for parallax
+    const z = (ci % 2 === 0 ? 1 : -1) * 1.0; // alternate depth for parallax separation
     const center: [number, number, number] = [
       Math.cos(angle) * HUB_RADIUS,
       Math.sin(angle) * HUB_RADIUS,
@@ -91,7 +98,7 @@ export function buildSkillsGraph(): GraphData {
       const pos: [number, number, number] = [
         center[0] + Math.cos(a) * r,
         center[1] + Math.sin(a) * r,
-        center[2] + Math.cos(a * 1.3) * 0.45,
+        center[2] + Math.cos(a * 1.3) * 0.55,
       ];
       const leafIdx = nodes.length;
       nodes.push({ id: `${ci}-${li}`, label: item, cluster: ci, position: pos, isHub: false });
