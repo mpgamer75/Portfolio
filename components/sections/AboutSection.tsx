@@ -130,12 +130,12 @@ export default function AboutSection() {
                   whileHover={{ scale: 1.05, y: -5 }}
                   transition={{ type: 'spring', stiffness: 300 }}
                   className="cyber-card rounded-lg p-3 sm:p-4 text-center block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand focus-visible:ring-offset-2 focus-visible:ring-offset-cyber-darker"
-                  aria-label="10+ projects — jump to my projects"
+                  aria-label="10+ projects on GitHub — jump to my highlighted projects"
                 >
                   <div className="text-2xl sm:text-3xl font-bold text-cyber-primary mb-1">
                     <CountUp value={10} suffix="+" />
                   </div>
-                  <div className="text-xs sm:text-sm text-white font-medium">Projects</div>
+                  <div className="text-xs sm:text-sm text-white font-medium">Projects on GitHub</div>
                 </motion.a>
 
                 <motion.a

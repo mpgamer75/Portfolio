@@ -126,8 +126,9 @@ export default function ClickSpark({
     };
   }, [duration, reduced, sparkColor, sparkCount, sparkRadius, sparkSize]);
 
-  if (reduced) return null;
-
+  // Always render the (inert) canvas: the server can't know the user's motion
+  // preference, so returning null here under reduced motion produced a
+  // hydration mismatch. The effect above simply never draws in that case.
   return (
     <canvas
       ref={canvasRef}

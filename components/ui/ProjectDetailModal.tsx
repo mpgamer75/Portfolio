@@ -197,7 +197,7 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
                             e.stopPropagation();
                             setCurrentImage(i);
                           }}
-                          className="w-9 h-9 sm:w-6 sm:h-6 flex items-center justify-center rounded-full"
+                          className="w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center rounded-full"
                           aria-label={`Go to image ${i + 1} of ${project.imagePaths!.length}`}
                           aria-current={i === validImageIndex ? 'true' : undefined}
                         >

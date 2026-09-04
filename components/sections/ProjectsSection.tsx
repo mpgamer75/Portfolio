@@ -13,7 +13,8 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 type ProjectView = 'folder' | 'grid';
 
 export default function ProjectsSection() {
-  const [view, setView] = useState<ProjectView>('folder');
+  // Grid is the default so every project is visible on arrival; the folder is the toy.
+  const [view, setView] = useState<ProjectView>('grid');
   const isMobile = useIsMobile();
   const reduced = useReducedMotion();
   // The project modal is hoisted to page scope (ProjectModalProvider) so the
@@ -103,8 +104,8 @@ export default function ProjectsSection() {
               aria-label="Projects view"
             >
               {([
-                { id: 'folder' as const, label: 'Folder', Icon: FolderOpen },
                 { id: 'grid' as const, label: 'Grid', Icon: LayoutGrid },
+                { id: 'folder' as const, label: 'Folder', Icon: FolderOpen },
               ]).map(({ id, label, Icon }) => {
                 const active = view === id;
                 return (
@@ -114,7 +115,7 @@ export default function ProjectsSection() {
                     role="tab"
                     aria-selected={active}
                     onClick={() => setView(id)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-mono transition-colors ${
+                    className={`inline-flex min-h-[44px] items-center gap-1.5 px-4 py-2 rounded-md text-xs sm:text-sm font-mono transition-colors ${
                       active
                         ? 'bg-cyber-brand/15 border border-cyber-brand/40 text-cyber-primary'
                         : 'border border-transparent text-cyber-accent hover:text-cyber-primary'
@@ -150,7 +151,7 @@ export default function ProjectsSection() {
 
                 <p className="text-center text-cyber-accent text-readable font-mono mt-10 sm:mt-14 text-sm sm:text-base">
                   <span className="text-cyber-brand">&gt;</span> click the folder to open ·{' '}
-                  {projects.length} projects
+                  {projects.length} highlighted projects · more on GitHub
                 </p>
               </motion.div>
             ) : (

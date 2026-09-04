@@ -59,14 +59,14 @@ export default function ProjectCard({ project, index, isMobile, onOpen }: Projec
         </div>
 
         {/* Quick links float above the overlay button */}
-        <div className="relative z-20 flex items-center gap-3">
+        <div className="relative z-20 flex items-center gap-6">
           {project.github && (
             <a
               href={project.github}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="text-cyber-secondary hover:text-cyber-brand transition-colors"
+              className="-m-3 flex h-11 w-11 items-center justify-center rounded-md text-cyber-secondary hover:text-cyber-brand transition-colors"
               aria-label={`${project.title} source on GitHub`}
             >
               <Github size={16} aria-hidden="true" />
@@ -78,7 +78,7 @@ export default function ProjectCard({ project, index, isMobile, onOpen }: Projec
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="text-cyber-secondary hover:text-cyber-brand transition-colors"
+              className="-m-3 flex h-11 w-11 items-center justify-center rounded-md text-cyber-secondary hover:text-cyber-brand transition-colors"
               aria-label={`${project.title} live demo`}
             >
               <ExternalLink size={16} aria-hidden="true" />

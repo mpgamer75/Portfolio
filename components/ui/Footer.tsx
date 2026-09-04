@@ -29,7 +29,7 @@ export default function Footer() {
               <a
                 key={item.href}
                 href={item.href}
-                className="px-2 py-2 sm:py-1 inline-block font-mono text-xs sm:text-sm text-cyber-accent hover:text-cyber-primary transition-colors"
+                className="inline-flex min-h-[44px] items-center px-2 font-mono text-xs sm:text-sm text-cyber-accent hover:text-cyber-primary transition-colors"
               >
                 {item.label}
               </a>
@@ -45,7 +45,7 @@ export default function Footer() {
                 target={href.startsWith('http') ? '_blank' : undefined}
                 rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
                 aria-label={label}
-                className="p-2 rounded-lg border border-cyber-primary/40 text-cyber-secondary hover:text-cyber-primary hover:border-cyber-brand hover:bg-cyber-brand/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-cyber-darker focus-visible:ring-cyber-brand"
+                className="flex h-11 w-11 items-center justify-center rounded-lg border border-cyber-primary/40 text-cyber-secondary hover:text-cyber-primary hover:border-cyber-brand hover:bg-cyber-brand/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-cyber-darker focus-visible:ring-cyber-brand"
               >
                 <Icon size={20} aria-hidden="true" />
               </a>

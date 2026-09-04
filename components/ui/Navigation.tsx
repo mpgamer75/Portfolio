@@ -88,12 +88,40 @@ export default function Navigation() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
-  // Restore focus to the toggle button when the mobile menu closes
+  // Mobile menu is a modal dialog: move focus to its first link on open, keep Tab
+  // cycling inside it, and restore focus to the toggle when it closes
   // (skip the initial mount so we don't steal focus on first paint).
   const wasOpenRef = useRef(false);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!isOpen && wasOpenRef.current) menuButtonRef.current?.focus();
     wasOpenRef.current = isOpen;
+    if (!isOpen) return;
+
+    const raf = requestAnimationFrame(() => {
+      mobileMenuRef.current?.querySelector<HTMLElement>('a[href]')?.focus();
+    });
+    const trapTab = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return;
+      const menu = mobileMenuRef.current;
+      const toggle = menuButtonRef.current;
+      if (!menu || !toggle) return;
+      const links = Array.from(menu.querySelectorAll<HTMLElement>('a[href]'));
+      // Tab order inside the dialog: toggle button → links → back to the toggle.
+      const cycle = [toggle, ...links];
+      const idx = cycle.indexOf(document.activeElement as HTMLElement);
+      if (idx === -1) return;
+      const next = event.shiftKey
+        ? cycle[(idx - 1 + cycle.length) % cycle.length]
+        : cycle[(idx + 1) % cycle.length];
+      event.preventDefault();
+      next.focus();
+    };
+    document.addEventListener('keydown', trapTab);
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener('keydown', trapTab);
+    };
   }, [isOpen]);
 
   // Seed the indicator under the active link on mount so it doesn't pop in.
@@ -196,17 +224,23 @@ export default function Navigation() {
         </div>
       </div>
 
+      {/* Mobile menu: fade + slide only. Animating `height: auto` made framer-motion
+          measure the element with a scrollTo(0,0) round-trip, which cancelled the
+          in-flight smooth scroll of the anchor link that closed the menu. */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
+            ref={mobileMenuRef}
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18 }}
             role="dialog"
             aria-modal="true"
+            aria-label="Site menu"
             className="md:hidden glass-effect border-t border-cyber-primary/30"
           >
-            <nav className="px-4 py-6 space-y-4" aria-label="Mobile">
+            <nav className="px-4 py-4 space-y-1" aria-label="Mobile">
               {navItems.map((item, index) => {
                 const isActive = activeHref === item.href;
                 return (
@@ -218,7 +252,7 @@ export default function Navigation() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
                     aria-current={isActive ? 'true' : undefined}
-                    className={`block smooth-transition-fast py-2 px-3 -mx-3 rounded-lg hover:bg-cyber-brand/10 ${
+                    className={`flex min-h-[48px] items-center smooth-transition-fast py-2 px-3 rounded-lg hover:bg-cyber-brand/10 ${
                       isActive
                         ? 'text-cyber-primary bg-cyber-brand/10'
                         : 'text-cyber-secondary hover:text-cyber-primary'

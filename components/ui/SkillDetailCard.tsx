@@ -52,12 +52,12 @@ export default function SkillDetailCard({ data, onClose, onOpenProject }: SkillD
       animate={{ opacity: 1, x: 0, scale: 1 }}
       exit={{ opacity: 0, x: 28, scale: 0.97 }}
       transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-      className="pointer-events-auto absolute right-2 top-1/2 z-20 w-[min(330px,82%)] max-h-[90%] -translate-y-1/2 sm:right-4"
+      className="pointer-events-auto absolute right-3 top-1/2 z-20 w-[min(440px,38%)] max-h-[78%] -translate-y-1/2 sm:right-6 lg:right-10"
     >
       <div
         ref={cardRef}
         onMouseMove={handleMove}
-        className="relative overflow-hidden rounded-xl border bg-cyber-darker/92 p-5 font-mono shadow-[0_0_40px_rgba(16,185,129,0.14)]"
+        className="relative overflow-hidden rounded-xl border bg-cyber-darker/92 p-6 font-mono shadow-[0_0_40px_rgba(16,185,129,0.14)] lg:p-7"
         style={{ borderColor: `${data.color}66` }}
       >
         {/* Cursor-tracked spotlight (reactbits SpotlightCard) */}
@@ -92,7 +92,7 @@ export default function SkillDetailCard({ data, onClose, onOpenProject }: SkillD
           </div>
 
           {/* Title (decrypt reveal) */}
-          <h3 className="mb-3 text-2xl font-bold leading-tight text-white">
+          <h3 className="mb-3 text-2xl font-bold leading-tight text-white lg:text-3xl">
             <DecryptedText
               key={data.title}
               text={data.title}
@@ -105,7 +105,7 @@ export default function SkillDetailCard({ data, onClose, onOpenProject }: SkillD
           </h3>
 
           {/* Blurb */}
-          <p className="mb-4 text-[13px] leading-relaxed text-cyber-secondary">{data.blurb}</p>
+          <p className="mb-5 text-sm leading-relaxed text-cyber-secondary">{data.blurb}</p>
 
           {data.kind === 'skill' ? (
             <>

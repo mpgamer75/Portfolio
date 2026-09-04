@@ -4,7 +4,9 @@ import { useCallback, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Code2, Shield, Globe, Wrench, Award } from 'lucide-react';
 import CredlyBadge from '@/components/ui/CredlyBadge';
-import SkillsConstellationGate from '@/components/three/SkillsConstellationGate';
+import SkillsConstellationGate, {
+  type SkillsDisplayMode,
+} from '@/components/three/SkillsConstellationGate';
 
 export default function SkillsSection() {
   // Mirrors the 3D constellation's selection for the assistive-tech live readout.
@@ -16,6 +18,12 @@ export default function SkillsSection() {
     (cluster: number | null, skill: string | null) => setFocus({ cluster, skill }),
     [],
   );
+  // 'pending' until the gate reports; cards are hidden on desktop only while the
+  // 3D scene is (or may be) showing, so reduced-motion / no-WebGL desktops still
+  // get a visible skills list instead of an empty section.
+  const [mode, setMode] = useState<SkillsDisplayMode | 'pending'>('pending');
+  const handleModeChange = useCallback((next: SkillsDisplayMode) => setMode(next), []);
+  const show3D = mode === '3d';
 
   const skillCategories = [
     {
@@ -68,23 +76,32 @@ export default function SkillsSection() {
 
       {/* 3D constellation — full-width and unboxed; desktop-only & render-gated.
           On mobile / reduced-motion the gate renders nothing and the cards below take over. */}
-      <SkillsConstellationGate onFocusChange={handleFocusChange} />
-      <p className="hidden md:block text-center text-cyber-accent font-mono text-xs sm:text-sm mt-3 mb-12 md:mb-16 px-4">
-        Interactive map of my skill domains — hover to inspect, click any node to zoom in and see where I use it
-      </p>
+      <SkillsConstellationGate onFocusChange={handleFocusChange} onModeChange={handleModeChange} />
+      {show3D && (
+        <p className="text-center text-cyber-accent font-mono text-xs sm:text-sm mt-3 mb-12 md:mb-16 px-4">
+          Interactive map of my skill domains — hover to inspect, click any node or label to zoom in and see where I use it
+        </p>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Live region announcing the current constellation selection (canvas is decorative). */}
-        <p className="sr-only" aria-live="polite">
-          {focus.skill
-            ? `Selected skill: ${focus.skill}`
-            : focus.cluster !== null
-              ? `Focused domain: ${skillCategories[focus.cluster].title}`
-              : ''}
-        </p>
+        {show3D && (
+          <p className="sr-only" aria-live="polite">
+            {focus.skill
+              ? `Selected skill: ${focus.skill}`
+              : focus.cluster !== null
+                ? `Focused domain: ${skillCategories[focus.cluster].title}`
+                : ''}
+          </p>
+        )}
 
-        {/* Skill cards — MOBILE ONLY. On desktop the constellation above is the display. */}
-        <div className="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+        {/* Skill cards — the always-accessible display. Hidden on desktop only while
+            the constellation is showing (reduced motion / no WebGL keep them). */}
+        <div
+          className={`grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 ${
+            mode === 'cards' ? '' : 'md:hidden'
+          }`}
+        >
           {skillCategories.map((category, index) => {
             const Icon = category.icon;
             return (
@@ -121,16 +138,16 @@ export default function SkillsSection() {
           })}
         </div>
 
-        {/* Desktop screen-reader fallback (the constellation canvas is decorative). */}
-        <div className="hidden md:block sr-only" aria-label="Skills by domain">
-          <ul>
+        {/* Screen-reader fallback while the (decorative) constellation replaces the cards. */}
+        {show3D && (
+          <ul className="sr-only" aria-label="Skills by domain">
             {skillCategories.map((category) => (
               <li key={category.title}>
                 {category.title}: {category.items.join(', ')}
               </li>
             ))}
           </ul>
-        </div>
+        )}
 
         {/* Certifications Section */}
         <motion.div
@@ -153,7 +170,7 @@ export default function SkillsSection() {
                 href="https://www.credly.com/badges/606eed2a-e969-489e-8f0f-049aa12e36ad/public_url"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-3 text-sm text-cyber-secondary hover:text-cyber-primary transition-colors"
+                className="mt-2 inline-flex min-h-[44px] items-center px-2 text-sm text-cyber-secondary hover:text-cyber-primary transition-colors"
               >
                 Cisco Introduction to Cybersecurity →
               </a>
@@ -166,7 +183,7 @@ export default function SkillsSection() {
                 href="https://www.credly.com/badges/892d3bff-6d4f-4b21-bdf7-2a14d28c5985/public_url"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-3 text-sm text-cyber-secondary hover:text-cyber-primary transition-colors"
+                className="mt-2 inline-flex min-h-[44px] items-center px-2 text-sm text-cyber-secondary hover:text-cyber-primary transition-colors"
               >
                 CompTIA Security+ →
               </a>
@@ -189,7 +206,7 @@ export default function SkillsSection() {
               href="https://tryhackme.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block mt-3 sm:mt-4 text-cyber-secondary hover:text-cyber-primary transition-colors text-xs sm:text-sm"
+              className="inline-flex min-h-[44px] items-center px-3 mt-1 sm:mt-2 text-cyber-secondary hover:text-cyber-primary transition-colors text-xs sm:text-sm"
             >
               View profile →
             </a>
@@ -202,7 +219,7 @@ export default function SkillsSection() {
               href="https://github.com/mpgamer75"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block mt-3 sm:mt-4 text-cyber-secondary hover:text-cyber-primary transition-colors text-xs sm:text-sm"
+              className="inline-flex min-h-[44px] items-center px-3 mt-1 sm:mt-2 text-cyber-secondary hover:text-cyber-primary transition-colors text-xs sm:text-sm"
             >
               View profile →
             </a>

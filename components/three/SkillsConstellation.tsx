@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { AnimatePresence } from 'framer-motion';
 import * as THREE from 'three';
 import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js';
@@ -60,6 +60,19 @@ NODES.forEach((node, i) => {
 const restIntensity = (i: number) => (IS_HUB[i] ? 0.95 : 0.55);
 const GLOW = new Float32Array(NODE_COUNT);
 for (let i = 0; i < NODE_COUNT; i++) GLOW[i] = restIntensity(i);
+
+/**
+ * Screen-space projection of every node, refreshed each frame by the scene:
+ * [x px, y px, in-front-of-camera 0|1]. Read by the pointer picker and the label
+ * layer — both live in CSS pixels, so hit-testing here is exact regardless of
+ * DPR, zoom or the parallax/spin transforms.
+ */
+const SCREEN = new Float32Array(NODE_COUNT * 3);
+/** Label DOM nodes, one per skill node; filled by ref callbacks, positioned by useFrame. */
+const LABEL_ELS: (HTMLElement | null)[] = new Array(NODE_COUNT).fill(null);
+/** Pick radius in CSS px — hubs get a bigger, higher-priority target. */
+const PICK_RADIUS_HUB = 26;
+const PICK_RADIUS_LEAF = 15;
 
 // ── Link buffers (positions + per-link animated intensity) ──
 const LINE_POSITIONS = new Float32Array(LINK_COUNT * 6);
@@ -249,25 +262,6 @@ const CAM_TARGET = new THREE.Vector3(0, 0, HOME_Z);
 
 type Sel = { kind: 'node'; i: number } | { kind: 'cluster'; i: number };
 
-interface LabelData {
-  text: string;
-  color: string;
-  isHub: boolean;
-  cluster: string;
-  count: number;
-}
-
-function buildLabel(i: number): LabelData {
-  const n = NODES[i];
-  return {
-    text: n.label,
-    color: CLUSTERS[n.cluster].color,
-    isHub: n.isHub,
-    cluster: CLUSTERS[n.cluster].title,
-    count: CLUSTER_COUNTS[n.cluster],
-  };
-}
-
 function buildDomainCard(c: number): SkillCardData {
   return {
     kind: 'domain',
@@ -279,30 +273,44 @@ function buildDomainCard(c: number): SkillCardData {
   };
 }
 
+/**
+ * Nearest node to a CSS-pixel point inside the stage, using the per-frame
+ * screen projections. Distance is normalised by each node's pick radius, so a
+ * hub (bigger radius) wins over a leaf that happens to sit on top of it.
+ */
+function pickNode(px: number, py: number): number {
+  let best = -1;
+  let bestScore = 1;
+  for (let i = 0; i < NODE_COUNT; i++) {
+    if (SCREEN[i * 3 + 2] < 0.5) continue;
+    const dx = px - SCREEN[i * 3];
+    const dy = py - SCREEN[i * 3 + 1];
+    const r = IS_HUB[i] ? PICK_RADIUS_HUB : PICK_RADIUS_LEAF;
+    const score = Math.sqrt(dx * dx + dy * dy) / r;
+    if (score < bestScore) {
+      bestScore = score;
+      best = i;
+    }
+  }
+  return best;
+}
+
 interface SceneProps {
   focusCluster: number | null;
   activeNode: number | null;
-  labelNode: number | null;
   zoomTarget: number | null;
   zoomDist: number;
   pinned: boolean;
   pinnedNode: number | null;
-  labelRef: React.RefObject<HTMLDivElement | null>;
-  onHoverNode: (i: number | null) => void;
-  onClickNode: (i: number) => void;
 }
 
 function Scene({
   focusCluster,
   activeNode,
-  labelNode,
   zoomTarget,
   zoomDist,
   pinned,
   pinnedNode,
-  labelRef,
-  onHoverNode,
-  onClickNode,
 }: SceneProps) {
   const { gl, size } = useThree();
   const parallax = useRef<THREE.Group>(null);
@@ -314,16 +322,18 @@ function Scene({
   const pulseMat = useRef<THREE.PointsMaterial>(null);
   const ring = useRef<THREE.Sprite>(null);
   const ringMat = useRef<THREE.SpriteMaterial>(null);
-  const lastHover = useRef<number>(-1);
 
   useEffect(() => {
     UNIFORMS.uPixelRatio.value = gl.getPixelRatio();
   }, [gl]);
 
+  useEffect(() => {
+    LINE_MAT.resolution.set(size.width, size.height);
+  }, [size.width, size.height]);
+
   useFrame((state, delta) => {
     const dt = Math.min(delta, 0.05);
     UNIFORMS.uTime.value += dt;
-    LINE_MAT.resolution.set(size.width, size.height);
 
     // Settle the field while focused so the zoom target is stable.
     if (spin.current && !pinned) spin.current.rotation.y += dt * 0.03;
@@ -417,16 +427,25 @@ function Scene({
       }
     }
 
-    // Camera: zoom the pinned target forward + to the left; otherwise return home.
+    // Camera: frame the pinned target in the left-centre third (the detail card
+    // docks on the right); otherwise return home.
     const cam = state.camera;
     if (zoomTarget !== null && points.current) {
       const i = zoomTarget;
-      PROJ_VEC.set(NODE_POSITIONS[i * 3], NODE_POSITIONS[i * 3 + 1], NODE_POSITIONS[i * 3 + 2]);
+      // Frame a leaf halfway between it and its hub so the whole cluster stays in
+      // shot (a leaf at the cluster's edge would otherwise push the rest off-stage).
+      const h = CLUSTER_HUB[CLUSTER_OF[i]];
+      const w = IS_HUB[i] ? 1 : 0.5;
+      PROJ_VEC.set(
+        NODE_POSITIONS[i * 3] * w + NODE_POSITIONS[h * 3] * (1 - w),
+        NODE_POSITIONS[i * 3 + 1] * w + NODE_POSITIONS[h * 3 + 1] * (1 - w),
+        NODE_POSITIONS[i * 3 + 2] * w + NODE_POSITIONS[h * 3 + 2] * (1 - w),
+      );
       points.current.updateWorldMatrix(true, false);
       points.current.localToWorld(PROJ_VEC);
       const aspect = size.width / size.height;
-      const nx = -0.42;
-      const ny = 0.05;
+      const nx = -0.28;
+      const ny = 0.04;
       CAM_TARGET.set(
         PROJ_VEC.x - (nx * zoomDist * aspect) / FOCAL_F,
         PROJ_VEC.y - (ny * zoomDist) / FOCAL_F,
@@ -437,40 +456,62 @@ function Scene({
     }
     cam.position.lerp(CAM_TARGET, 1 - Math.exp(-dt * 4.5));
 
-    // Floating preview label (hover only — the card replaces it when pinned).
-    const label = labelRef.current;
-    if (label) {
-      if (labelNode !== null && points.current) {
-        const i = labelNode;
+    // Project every node to CSS px (feeds the picker + the label layer), then
+    // place the labels. Hubs are always on; leaves only while their cluster is
+    // focused (or the leaf itself is active), so the field stays legible.
+    if (points.current) {
+      points.current.updateWorldMatrix(true, false);
+      for (let i = 0; i < NODE_COUNT; i++) {
         PROJ_VEC.set(NODE_POSITIONS[i * 3], NODE_POSITIONS[i * 3 + 1], NODE_POSITIONS[i * 3 + 2]);
-        points.current.updateWorldMatrix(true, false);
         points.current.localToWorld(PROJ_VEC);
         PROJ_VEC.project(cam);
+        const inFront = PROJ_VEC.z < 1;
         const sx = (PROJ_VEC.x * 0.5 + 0.5) * size.width;
         const sy = (-PROJ_VEC.y * 0.5 + 0.5) * size.height;
-        label.style.transform = `translate(-50%, -150%) translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px)`;
-        label.style.opacity = PROJ_VEC.z < 1 ? '1' : '0';
-      } else {
-        label.style.opacity = '0';
+        SCREEN[i * 3] = sx;
+        SCREEN[i * 3 + 1] = sy;
+        SCREEN[i * 3 + 2] = inFront ? 1 : 0;
+
+        const el = LABEL_ELS[i];
+        if (!el) continue;
+        const isHub = IS_HUB[i] === 1;
+        const inFocus = focusCluster === null || CLUSTER_OF[i] === focusCluster;
+        let opacity: number;
+        if (!inFront) opacity = 0;
+        else if (i === activeNode) opacity = 1;
+        else if (isHub) opacity = inFocus ? 0.95 : 0.3;
+        else opacity = focusCluster !== null && inFocus ? 0.9 : 0;
+        el.style.opacity = opacity.toFixed(2);
+        if (opacity === 0) {
+          el.style.pointerEvents = 'none';
+          continue;
+        }
+        el.style.pointerEvents = 'auto';
+        if (isHub) {
+          // Hubs sit above their node.
+          el.style.transform = `translate(-50%, -100%) translate(${sx.toFixed(1)}px, ${(sy - 16).toFixed(1)}px)`;
+          continue;
+        }
+        // Leaves hang on their outward side (away from the hub), so labels fan
+        // out around the cluster instead of piling up on top of each other.
+        // Hubs precede their leaves in NODES, so the hub's projection is fresh.
+        const h = CLUSTER_HUB[CLUSTER_OF[i]] * 3;
+        const dx = sx - SCREEN[h];
+        const dy = sy - SCREEN[h + 1];
+        if (Math.abs(dx) >= Math.abs(dy)) {
+          el.style.transform =
+            dx >= 0
+              ? `translate(0, -50%) translate(${(sx + 11).toFixed(1)}px, ${sy.toFixed(1)}px)`
+              : `translate(-100%, -50%) translate(${(sx - 11).toFixed(1)}px, ${sy.toFixed(1)}px)`;
+        } else {
+          el.style.transform =
+            dy >= 0
+              ? `translate(-50%, 0) translate(${sx.toFixed(1)}px, ${(sy + 10).toFixed(1)}px)`
+              : `translate(-50%, -100%) translate(${sx.toFixed(1)}px, ${(sy - 10).toFixed(1)}px)`;
+        }
       }
     }
   });
-
-  const handleMove = (e: ThreeEvent<PointerEvent>) => {
-    e.stopPropagation();
-    if (e.index != null && e.index !== lastHover.current) {
-      lastHover.current = e.index;
-      onHoverNode(e.index);
-    }
-  };
-  const handleOut = () => {
-    lastHover.current = -1;
-    onHoverNode(null);
-  };
-  const handleClick = (e: ThreeEvent<MouseEvent>) => {
-    e.stopPropagation();
-    if (e.index != null) onClickNode(e.index);
-  };
 
   return (
     <group ref={parallax}>
@@ -525,7 +566,9 @@ function Scene({
           />
         </points>
 
-        <points ref={points} onPointerMove={handleMove} onPointerOut={handleOut} onClick={handleClick}>
+        {/* Skill nodes — picking is done in screen space by the stage (see pickNode),
+            not by the R3F raycaster, so overlapping leaves can't steal a hub. */}
+        <points ref={points}>
           <bufferGeometry>
             <bufferAttribute attach="attributes-position" args={[NODE_POSITIONS, 3]} />
             <bufferAttribute attach="attributes-aColor" args={[A_COLOR, 3]} />
@@ -569,11 +612,12 @@ export default function SkillsConstellation({ active, onFocusChange }: SkillsCon
   const [hover, setHover] = useState<Sel | null>(null);
   const [pin, setPin] = useState<Sel | null>(null);
   const { openProject } = useProjectModal();
+  const stageRef = useRef<HTMLDivElement>(null);
+  const lastHover = useRef<number>(-1);
 
   const sel = hover ?? pin;
   const focusCluster = sel ? (sel.kind === 'cluster' ? sel.i : CLUSTER_OF[sel.i]) : null;
   const activeNode = sel && sel.kind === 'node' ? sel.i : null;
-  const labelNode = pin === null && hover?.kind === 'node' ? hover.i : null;
   const pinned = pin !== null;
   const pinnedNode = pin?.kind === 'node' ? pin.i : null;
 
@@ -582,10 +626,10 @@ export default function SkillsConstellation({ active, onFocusChange }: SkillsCon
   if (pin) {
     if (pin.kind === 'node') {
       zoomTarget = pin.i;
-      zoomDist = IS_HUB[pin.i] ? 8 : 6.5;
+      zoomDist = IS_HUB[pin.i] ? 9 : 8.5;
     } else {
       zoomTarget = CLUSTER_HUB[pin.i];
-      zoomDist = 8.5;
+      zoomDist = 9.5;
     }
   }
 
@@ -610,9 +654,6 @@ export default function SkillsConstellation({ active, onFocusChange }: SkillsCon
     }
   }
 
-  const labelRef = useRef<HTMLDivElement>(null);
-  const [labelData, setLabelData] = useState<LabelData | null>(null);
-
   const activeSkill = activeNode !== null && !NODES[activeNode].isHub ? NODES[activeNode].label : null;
   useEffect(() => {
     onFocusChange?.(focusCluster, activeSkill);
@@ -631,11 +672,9 @@ export default function SkillsConstellation({ active, onFocusChange }: SkillsCon
 
   const onHoverNode = useCallback((i: number | null) => {
     setHover(i == null ? null : { kind: 'node', i });
-    if (i != null) setLabelData(buildLabel(i));
   }, []);
   const onClickNode = useCallback((i: number) => {
     setPin((p) => (p && p.kind === 'node' && p.i === i ? null : { kind: 'node', i }));
-    setLabelData(buildLabel(i));
   }, []);
   const onLegendEnter = useCallback((i: number) => setHover({ kind: 'cluster', i }), []);
   const onLegendLeave = useCallback(() => setHover(null), []);
@@ -643,6 +682,36 @@ export default function SkillsConstellation({ active, onFocusChange }: SkillsCon
     (i: number) =>
       setPin((p) => (p && p.kind === 'cluster' && p.i === i ? null : { kind: 'cluster', i })),
     [],
+  );
+
+  // Screen-space picking on the stage (mouse only — touch devices never mount this).
+  const pickAt = useCallback((clientX: number, clientY: number) => {
+    const el = stageRef.current;
+    if (!el) return -1;
+    const r = el.getBoundingClientRect();
+    return pickNode(clientX - r.left, clientY - r.top);
+  }, []);
+  const onStageMove = useCallback(
+    (e: React.PointerEvent) => {
+      const i = pickAt(e.clientX, e.clientY);
+      if (i !== lastHover.current) {
+        lastHover.current = i;
+        onHoverNode(i === -1 ? null : i);
+      }
+    },
+    [pickAt, onHoverNode],
+  );
+  const onStageLeave = useCallback(() => {
+    lastHover.current = -1;
+    onHoverNode(null);
+  }, [onHoverNode]);
+  const onStageClick = useCallback(
+    (e: React.MouseEvent) => {
+      const i = pickAt(e.clientX, e.clientY);
+      if (i === -1) setPin(null);
+      else onClickNode(i);
+    },
+    [pickAt, onClickNode],
   );
 
   const handleOpenProject = useCallback(
@@ -658,9 +727,13 @@ export default function SkillsConstellation({ active, onFocusChange }: SkillsCon
   return (
     <div className="relative w-full h-full">
       <div
+        ref={stageRef}
         role="img"
         aria-label="3D constellation of skills grouped by domain"
         className={`absolute inset-0 ${hover?.kind === 'node' ? 'cursor-pointer' : ''}`}
+        onPointerMove={onStageMove}
+        onPointerLeave={onStageLeave}
+        onClick={onStageClick}
       >
         <Canvas
           frameloop={active ? 'always' : 'never'}
@@ -673,98 +746,124 @@ export default function SkillsConstellation({ active, onFocusChange }: SkillsCon
             stencil: false,
             powerPreference: 'high-performance',
           }}
-          onCreated={({ gl, raycaster }) => {
+          onCreated={({ gl }) => {
             gl.toneMapping = THREE.NoToneMapping;
-            raycaster.params.Points.threshold = 0.55;
           }}
-          onPointerMissed={() => setPin(null)}
           style={{ width: '100%', height: '100%' }}
         >
           <Scene
             focusCluster={focusCluster}
             activeNode={activeNode}
-            labelNode={labelNode}
             zoomTarget={zoomTarget}
             zoomDist={zoomDist}
             pinned={pinned}
             pinnedNode={pinnedNode}
-            labelRef={labelRef}
-            onHoverNode={onHoverNode}
-            onClickNode={onClickNode}
           />
         </Canvas>
       </div>
 
-      {/* Floating hover-preview label */}
-      <div
-        ref={labelRef}
-        aria-hidden="true"
-        className="pointer-events-none absolute left-0 top-0 z-10 will-change-transform"
-        style={{ opacity: 0, transition: 'opacity 160ms ease' }}
-      >
-        {labelData && (
-          <div
-            className="inline-flex items-center gap-2 rounded-md border bg-cyber-darker/90 px-2.5 py-1.5 font-mono text-xs sm:text-sm text-white shadow-glow"
-            style={{ borderColor: labelData.color }}
-          >
-            <span
-              className="h-2 w-2 flex-shrink-0 rounded-full"
-              style={{ background: labelData.color, boxShadow: `0 0 8px ${labelData.color}` }}
-            />
-            <span className="whitespace-nowrap font-medium">{labelData.text}</span>
-            {labelData.isHub && (
-              <span className="ml-0.5 rounded-sm bg-white/10 px-1.5 py-0.5 text-[10px] text-cyber-accent">
-                {labelData.count} skills
-              </span>
-            )}
-          </div>
-        )}
+      {/* Node labels — positioned per frame by the scene (transform + opacity only).
+          Hubs are always readable; leaves appear when their domain is in focus.
+          Decorative for AT (the section keeps an sr-only list), but clickable. */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
+        {NODES.map((n, i) => {
+          const isHub = n.isHub;
+          const isPinned = pinnedNode === i;
+          const isActive = activeNode === i;
+          const color = CLUSTERS[n.cluster].color;
+          return (
+            <button
+              key={n.id}
+              ref={(el) => {
+                LABEL_ELS[i] = el;
+              }}
+              type="button"
+              tabIndex={-1}
+              onPointerEnter={() => onHoverNode(i)}
+              onPointerLeave={() => onHoverNode(null)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClickNode(i);
+              }}
+              style={{ opacity: 0, borderColor: isPinned || isActive ? color : undefined }}
+              className={`absolute left-0 top-0 inline-flex select-none items-center gap-1.5 whitespace-nowrap rounded-md border font-mono leading-none transition-[opacity,background-color,border-color] duration-200 will-change-transform ${
+                isHub
+                  ? 'px-2.5 py-1.5 text-xs font-semibold text-white'
+                  : 'px-2 py-1 text-[11px] text-cyber-secondary'
+              } ${
+                isPinned
+                  ? 'bg-cyber-darker/95 text-white shadow-glow'
+                  : isActive
+                    ? 'bg-cyber-darker/90 text-white'
+                    : isHub
+                      ? 'border-cyber-primary/15 bg-cyber-darker/70'
+                      : 'border-transparent bg-cyber-darker/60'
+              }`}
+            >
+              {isHub && (
+                <span
+                  className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                  style={{ background: color, boxShadow: `0 0 6px ${color}` }}
+                />
+              )}
+              {n.label}
+              {isHub && (
+                <span className="rounded-sm bg-white/10 px-1 py-0.5 text-[10px] font-normal tabular-nums text-cyber-accent">
+                  {CLUSTER_COUNTS[n.cluster]}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Detail card (slides in from the right when a node/domain is pinned) */}
+      {/* Detail card (docks on the right when a node/domain is pinned) */}
       <AnimatePresence>
         {cardData && (
           <SkillDetailCard data={cardData} onClose={() => setPin(null)} onOpenProject={handleOpenProject} />
         )}
       </AnimatePresence>
 
-      {/* Domain legend — hidden while a detail card is open */}
-      {pin === null && (
-        <div className="absolute inset-x-0 bottom-1.5 sm:bottom-2.5 flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 px-3">
-          {CLUSTERS.map((c, i) => {
-            const isActive = focusCluster === i;
-            return (
-              <button
-                key={c.index}
-                type="button"
-                onMouseEnter={() => onLegendEnter(i)}
-                onMouseLeave={onLegendLeave}
-                onFocus={() => onLegendEnter(i)}
-                onBlur={onLegendLeave}
-                onClick={() => onLegendClick(i)}
-                className={`inline-flex min-h-[44px] items-center gap-2 rounded-full border px-3 py-2 font-mono text-[11px] sm:text-xs transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand focus-visible:ring-offset-2 focus-visible:ring-offset-cyber-darker ${
-                  isActive
-                    ? 'border-cyber-brand bg-cyber-brand/10 text-white'
-                    : 'border-cyber-primary/15 bg-cyber-darker/60 text-cyber-accent hover:border-cyber-primary/40 hover:text-cyber-primary'
+      {/* Domain legend — stays available while pinned, tucked left of the card */}
+      <div
+        className={`absolute inset-x-0 bottom-1.5 sm:bottom-2.5 z-10 flex flex-wrap items-center gap-1.5 sm:gap-2 px-3 sm:px-4 transition-[justify-content] ${
+          pinned ? 'justify-start' : 'justify-center'
+        }`}
+      >
+        {CLUSTERS.map((c, i) => {
+          const isActive = focusCluster === i;
+          return (
+            <button
+              key={c.index}
+              type="button"
+              onMouseEnter={() => onLegendEnter(i)}
+              onMouseLeave={onLegendLeave}
+              onFocus={() => onLegendEnter(i)}
+              onBlur={onLegendLeave}
+              onClick={() => onLegendClick(i)}
+              aria-pressed={pin?.kind === 'cluster' && pin.i === i}
+              className={`inline-flex min-h-[44px] items-center gap-2 rounded-full border px-3 py-2 font-mono text-[11px] sm:text-xs transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand focus-visible:ring-offset-2 focus-visible:ring-offset-cyber-darker ${
+                isActive
+                  ? 'border-cyber-brand bg-cyber-brand/10 text-white'
+                  : 'border-cyber-primary/15 bg-cyber-darker/60 text-cyber-accent hover:border-cyber-primary/40 hover:text-cyber-primary'
+              }`}
+            >
+              <span
+                className="h-2.5 w-2.5 flex-shrink-0 rounded-full transition-[box-shadow] duration-200"
+                style={{ background: c.color, boxShadow: isActive ? `0 0 10px ${c.color}` : 'none' }}
+              />
+              <span className="whitespace-nowrap">{c.title}</span>
+              <span
+                className={`rounded-sm px-1.5 py-0.5 text-[10px] tabular-nums ${
+                  isActive ? 'bg-cyber-brand/20 text-cyber-brand' : 'bg-white/5 text-cyber-accent/70'
                 }`}
               >
-                <span
-                  className="h-2.5 w-2.5 flex-shrink-0 rounded-full transition-[box-shadow] duration-200"
-                  style={{ background: c.color, boxShadow: isActive ? `0 0 10px ${c.color}` : 'none' }}
-                />
-                <span className="whitespace-nowrap">{c.title}</span>
-                <span
-                  className={`rounded-sm px-1.5 py-0.5 text-[10px] tabular-nums ${
-                    isActive ? 'bg-cyber-brand/20 text-cyber-brand' : 'bg-white/5 text-cyber-accent/70'
-                  }`}
-                >
-                  {CLUSTER_COUNTS[i]}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+                {CLUSTER_COUNTS[i]}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

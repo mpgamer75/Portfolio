@@ -68,7 +68,10 @@ const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5)); // ~2.39996 rad
 // Push hubs further apart and tighten the leaf spiral so the four domains read
 // as distinct clouds rather than one central blob; alternate depth for parallax.
 const HUB_RADIUS = 3.7;
-const LEAF_RADIUS = 1.55;
+const LEAF_RADIUS = 1.7;
+// Innermost leaf offset — keeps every leaf clear of its hub so the hub's label
+// and hit-target never get buried under a skill node.
+const LEAF_MIN_RADIUS = 0.85;
 
 export function buildSkillsGraph(): GraphData {
   const nodes: SkillNode[] = [];
@@ -94,7 +97,8 @@ export function buildSkillsGraph(): GraphData {
     // Leaves spread around the hub via a golden-angle spiral (even, deterministic).
     cat.items.forEach((item, li) => {
       const a = li * GOLDEN_ANGLE;
-      const r = LEAF_RADIUS * Math.sqrt((li + 1) / cat.items.length);
+      const spread = cat.items.length > 1 ? li / (cat.items.length - 1) : 1;
+      const r = LEAF_MIN_RADIUS + (LEAF_RADIUS - LEAF_MIN_RADIUS) * Math.sqrt(spread);
       const pos: [number, number, number] = [
         center[0] + Math.cos(a) * r,
         center[1] + Math.sin(a) * r,

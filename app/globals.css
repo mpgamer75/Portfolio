@@ -228,7 +228,8 @@ h2,
 
 @media (max-width: 768px) {
   .cyber-button {
-    @apply px-4 py-2 text-sm;
+    /* 44px minimum touch target (Apple HIG / WCAG 2.5.8). */
+    @apply px-4 py-2 text-sm min-h-[44px] inline-flex items-center justify-center;
     transition: all var(--transition-fast) ease;
   }
 }
@@ -344,6 +345,8 @@ h2,
 section {
   @apply min-h-screen flex items-center justify-center;
   contain: layout style;
+  /* Anchor jumps land below the fixed 64px nav instead of under it. */
+  scroll-margin-top: 5rem;
 }
 
 @media (max-width: 768px) {
