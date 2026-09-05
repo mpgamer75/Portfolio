@@ -22,10 +22,14 @@ export interface SkillLink {
   b: number;
 }
 
+/** Hub emblem — each domain gets its own outline shape as well as its own tint. */
+export type ClusterGlyph = 'circle' | 'diamond' | 'hexagon' | 'triangle';
+
 export interface Cluster {
   index: number;
   title: string;
   color: string;
+  glyph: ClusterGlyph;
   center: [number, number, number];
 }
 
@@ -36,30 +40,34 @@ export interface GraphData {
 }
 
 /**
- * Four domains. Each gets a distinct swatch from the emerald/teal family —
- * stepped (not a gradient) and kept on-brand, but spread enough in hue+lightness
- * that the clusters are tellable apart (the legend keys them, the hover/focus
- * interaction confirms them). The signature emerald (#34D399) leads.
+ * Four domains. Each is keyed two ways so they're tellable apart at a glance:
+ * a distinct luminance step within the emerald/teal family (light mint → deep
+ * green, signature emerald leading), and a distinct hub glyph shape that repeats
+ * in the legend, hub labels and detail card.
  */
-const CATEGORIES: { title: string; color: string; items: string[] }[] = [
+const CATEGORIES: { title: string; color: string; glyph: ClusterGlyph; items: string[] }[] = [
   {
     title: 'Security & Systems',
     color: '#34D399', // signature emerald
+    glyph: 'circle',
     items: ['Kali Linux', 'Linux', 'Nmap', 'Wireshark', 'Metasploit', 'Fortinet', 'Trellix EDR', 'OSINT'],
   },
   {
     title: 'Programming',
-    color: '#6EE7B7', // light mint
+    color: '#A7F3D0', // light mint
+    glyph: 'diamond',
     items: ['C', 'C#', 'Java', 'JavaScript', 'TypeScript', 'PowerShell', 'Python', 'SQL', 'Bash'],
   },
   {
     title: 'Web Development',
     color: '#2DD4BF', // teal
+    glyph: 'hexagon',
     items: ['Next.js', 'React', 'Node.js', 'Vercel', 'REST API'],
   },
   {
     title: 'Tools & Platforms',
-    color: '#10B981', // deep emerald
+    color: '#059669', // deep emerald
+    glyph: 'triangle',
     items: ['Git', 'GitHub', 'Docker', 'TryHackMe', 'Active Directory'],
   },
 ];
@@ -88,7 +96,7 @@ export function buildSkillsGraph(): GraphData {
       Math.sin(angle) * HUB_RADIUS,
       z,
     ];
-    clusters.push({ index: ci, title: cat.title, color: cat.color, center });
+    clusters.push({ index: ci, title: cat.title, color: cat.color, glyph: cat.glyph, center });
 
     const hubIdx = nodes.length;
     hubIndices.push(hubIdx);

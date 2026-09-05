@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { MapPin, GraduationCap } from 'lucide-react';
 import Image from 'next/image';
 import CountUp from '@/components/ui/CountUp';
+import DecryptedText from '@/components/ui/DecryptedText';
 import { BLUR_DATA_URL } from '@/lib/images';
 
 export default function AboutSection() {
@@ -16,8 +17,8 @@ export default function AboutSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 cyber-scan">
-            <span className="text-cyber-primary">About Me</span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 cyber-scan text-cyber-primary">
+            <DecryptedText text="About Me" animateOn="view" speed={45} encryptedClassName="text-cyber-brand/70" />
           </h2>
           <div className="w-20 sm:w-24 h-1 bg-cyber-primary mx-auto mb-8 sm:mb-12 md:mb-16 cyber-neon" />
 
@@ -123,43 +124,47 @@ export default function AboutSection() {
                 </div>
               </div>
 
-              {/* Stats — the numeric two link to their sections */}
-              <div className="grid grid-cols-3 gap-3 sm:gap-4 pt-6 sm:pt-8">
-                <motion.a
-                  href="#projects"
-                  whileHover={{ scale: 1.05, y: -5 }}
-                  transition={{ type: 'spring', stiffness: 300 }}
-                  className="cyber-card rounded-lg p-3 sm:p-4 text-center block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand focus-visible:ring-offset-2 focus-visible:ring-offset-cyber-darker"
-                  aria-label="10+ projects on GitHub — jump to my highlighted projects"
-                >
-                  <div className="text-2xl sm:text-3xl font-bold text-cyber-primary mb-1">
-                    <CountUp value={10} suffix="+" />
-                  </div>
-                  <div className="text-xs sm:text-sm text-white font-medium">Projects on GitHub</div>
-                </motion.a>
-
-                <motion.a
-                  href="#experience"
-                  whileHover={{ scale: 1.05, y: -5 }}
-                  transition={{ type: 'spring', stiffness: 300 }}
-                  className="cyber-card rounded-lg p-3 sm:p-4 text-center block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand focus-visible:ring-offset-2 focus-visible:ring-offset-cyber-darker"
-                  aria-label="3 internships — jump to my experience"
-                >
-                  <div className="text-2xl sm:text-3xl font-bold text-cyber-primary mb-1">
-                    <CountUp value={3} />
-                  </div>
-                  <div className="text-xs sm:text-sm text-white font-medium">Internships</div>
-                </motion.a>
-
-                <motion.div
-                  whileHover={{ scale: 1.05, y: -5 }}
-                  transition={{ type: 'spring', stiffness: 300 }}
-                  className="cyber-card rounded-lg p-3 sm:p-4 text-center cursor-default"
-                >
-                  <div className="text-lg sm:text-2xl font-bold text-cyber-primary mb-1">Trilingual</div>
-                  <div className="text-[10px] sm:text-xs text-white font-medium leading-tight">French, Spanish, English</div>
-                </motion.div>
-              </div>
+              {/* Facts — a terminal-style readout instead of the stat-card trio.
+                  The two numeric lines link to their sections. */}
+              <ul className="pt-6 sm:pt-8 space-y-2.5 font-mono text-sm sm:text-base">
+                <li>
+                  <a
+                    href="#projects"
+                    className="group inline-flex min-h-[44px] items-baseline gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand focus-visible:ring-offset-2 focus-visible:ring-offset-cyber-darker"
+                    aria-label="10+ projects on GitHub — jump to my highlighted projects"
+                  >
+                    <span aria-hidden="true" className="text-cyber-brand">&gt;</span>
+                    <span className="text-2xl sm:text-3xl font-bold text-cyber-primary tabular-nums">
+                      <CountUp value={10} suffix="+" />
+                    </span>
+                    <span className="text-cyber-accent transition-colors group-hover:text-cyber-primary">
+                      projects on GitHub <span aria-hidden="true">→</span>
+                    </span>
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#experience"
+                    className="group inline-flex min-h-[44px] items-baseline gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand focus-visible:ring-offset-2 focus-visible:ring-offset-cyber-darker"
+                    aria-label="3 internships — jump to my experience"
+                  >
+                    <span aria-hidden="true" className="text-cyber-brand">&gt;</span>
+                    <span className="text-2xl sm:text-3xl font-bold text-cyber-primary tabular-nums">
+                      <CountUp value={3} />
+                    </span>
+                    <span className="text-cyber-accent transition-colors group-hover:text-cyber-primary">
+                      internships <span aria-hidden="true">→</span>
+                    </span>
+                  </a>
+                </li>
+                <li className="inline-flex min-h-[44px] items-baseline gap-2.5">
+                  <span aria-hidden="true" className="text-cyber-brand">&gt;</span>
+                  <span className="text-2xl sm:text-3xl font-bold text-cyber-primary">3</span>
+                  <span className="text-cyber-accent">
+                    languages <span className="text-cyber-secondary">· French, Spanish, English</span>
+                  </span>
+                </li>
+              </ul>
             </motion.div>
           </div>
         </motion.div>

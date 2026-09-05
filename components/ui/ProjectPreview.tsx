@@ -25,6 +25,11 @@ interface ProjectPreviewProps {
   project: Project;
   isMobile?: boolean;
   priority?: boolean;
+  /**
+   * Layout-px sizing for hosts that are CSS-scaled up (the Folder's papers render
+   * at 2-3×), so the fallback glyph + tags read at a sane size on screen.
+   */
+  dense?: boolean;
 }
 
 /**
@@ -32,7 +37,7 @@ interface ProjectPreviewProps {
  * otherwise an on-brand generated card (solid emerald tint + lead tech). Must sit in
  * a `relative`, sized parent.
  */
-export default function ProjectPreview({ project, isMobile, priority }: ProjectPreviewProps) {
+export default function ProjectPreview({ project, isMobile, priority, dense }: ProjectPreviewProps) {
   const hasImage = !!project.imagePaths && project.imagePaths.length > 0;
 
   if (hasImage) {
@@ -52,12 +57,17 @@ export default function ProjectPreview({ project, isMobile, priority }: ProjectP
   }
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-cyber-darker cyber-grid" aria-hidden="true">
+    <div
+      className={`absolute inset-0 flex flex-col items-center justify-center bg-cyber-darker cyber-grid ${
+        dense ? 'gap-0.5' : 'gap-2'
+      }`}
+      aria-hidden="true"
+    >
       <div className="absolute inset-0 bg-cyber-brand/5" />
-      <GlyphIcon tech={project.tech[0] || ''} size={isMobile ? 26 : 34} />
-      <div className="relative flex flex-wrap justify-center gap-1 px-2">
-        {project.tech.slice(0, 2).map((t) => (
-          <span key={t} className="text-[8px] sm:text-[10px] font-mono text-cyber-brand/90">
+      <GlyphIcon tech={project.tech[0] || ''} size={dense ? 12 : isMobile ? 26 : 34} />
+      <div className={`relative flex flex-wrap justify-center ${dense ? 'gap-0.5 px-1' : 'gap-1 px-2'}`}>
+        {project.tech.slice(0, dense ? 1 : 2).map((t) => (
+          <span key={t} className={`font-mono leading-none text-cyber-brand/90 ${dense ? 'text-[6px]' : 'text-xs'}`}>
             {t}
           </span>
         ))}

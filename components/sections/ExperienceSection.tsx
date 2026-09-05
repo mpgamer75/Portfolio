@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Briefcase, MapPin, Calendar } from 'lucide-react';
+import DecryptedText from '@/components/ui/DecryptedText';
 
 export default function ExperienceSection() {
   const jobs = [
@@ -61,8 +62,8 @@ export default function ExperienceSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 cyber-scan">
-            <span className="text-cyber-primary">Professional Experience</span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 cyber-scan text-cyber-primary">
+            <DecryptedText text="Professional Experience" animateOn="view" speed={35} encryptedClassName="text-cyber-brand/70" />
           </h2>
           <div className="w-20 sm:w-24 h-1 bg-cyber-primary mx-auto mb-8 sm:mb-12 md:mb-16 cyber-neon" />
 
@@ -102,7 +103,9 @@ export default function ExperienceSection() {
                   </div>
 
                   {/* Card */}
-                  <div className={`cyber-card rounded-lg p-4 sm:p-5 md:p-6 ${isCurrent ? 'border-l-2 border-l-cyber-brand' : ''}`}>
+                  {/* The current role is marked by the pill + live timeline node, plus a
+                      full emerald border tint (not a side stripe). */}
+                  <div className={`cyber-card rounded-lg p-4 sm:p-5 md:p-6 ${isCurrent ? 'border-cyber-brand/50' : ''}`}>
                     <div className="flex items-start justify-between gap-2 mb-3 sm:mb-4">
                       <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
                         <div className="p-1.5 sm:p-2 bg-cyber-brand/10 rounded-lg flex-shrink-0">
@@ -114,7 +117,7 @@ export default function ExperienceSection() {
                         </div>
                       </div>
                       {isCurrent && (
-                        <span className="flex-shrink-0 mt-0.5 text-[10px] font-mono uppercase tracking-wider bg-cyber-brand/20 text-cyber-brand border border-cyber-brand/60 rounded-full px-2 py-0.5">
+                        <span className="flex-shrink-0 mt-0.5 text-xs font-mono bg-cyber-brand/20 text-cyber-brand border border-cyber-brand/60 rounded-full px-2 py-0.5">
                           Current
                         </span>
                       )}

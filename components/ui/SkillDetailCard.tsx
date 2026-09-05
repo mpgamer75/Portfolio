@@ -4,7 +4,9 @@ import { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { X, FolderGit2, Briefcase } from 'lucide-react';
 import DecryptedText from '@/components/ui/DecryptedText';
+import ClusterGlyph from '@/components/three/ClusterGlyph';
 import type { SkillUsage } from '@/components/three/skillsMeta';
+import type { ClusterGlyph as GlyphShape } from '@/components/three/skillsGraph';
 
 export interface SkillCardData {
   kind: 'skill' | 'domain';
@@ -12,8 +14,10 @@ export interface SkillCardData {
   title: string;
   /** Small label above the title — the domain name. */
   domainLabel: string;
-  /** Cluster colour (hex) used for the dot, spotlight tint and border accent. */
+  /** Cluster colour (hex) used for the glyph, spotlight tint and border accent. */
   color: string;
+  /** Cluster emblem shape — mirrors the hub glyph in the scene and legend. */
+  glyph: GlyphShape;
   blurb: string;
   /** skill variant: where the skill is used. */
   usedIn?: SkillUsage[];
@@ -80,13 +84,10 @@ export default function SkillDetailCard({ data, onClose, onOpenProject }: SkillD
             <X size={18} aria-hidden="true" />
           </button>
 
-          {/* Domain label + dot */}
-          <div className="mb-2 flex items-center gap-2 pr-10">
-            <span
-              className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-              style={{ background: data.color, boxShadow: `0 0 10px ${data.color}` }}
-            />
-            <span className="text-[10px] uppercase tracking-[0.18em] text-cyber-accent">
+          {/* Domain chip — the same emblem + tint as the hub in the scene */}
+          <div className="mb-3 pr-10">
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-cyber-primary/15 bg-white/5 px-2 py-1 text-xs text-cyber-secondary">
+              <ClusterGlyph shape={data.glyph} color={data.color} size={11} />
               {data.kind === 'domain' ? 'Domain' : data.domainLabel}
             </span>
           </div>
@@ -109,9 +110,7 @@ export default function SkillDetailCard({ data, onClose, onOpenProject }: SkillD
 
           {data.kind === 'skill' ? (
             <>
-              <h4 className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-cyber-brand">
-                Where I use it
-              </h4>
+              <h4 className="mb-2 text-xs text-cyber-accent">Where I use it</h4>
               <div className="flex flex-wrap gap-1.5">
                 {(data.usedIn ?? []).map((u) =>
                   u.kind === 'project' ? (
@@ -139,7 +138,7 @@ export default function SkillDetailCard({ data, onClose, onOpenProject }: SkillD
             </>
           ) : (
             <>
-              <h4 className="mb-2 text-[10px] uppercase tracking-[0.18em] text-cyber-brand">
+              <h4 className="mb-2 text-xs text-cyber-accent">
                 {(data.domainSkills?.length ?? 0)} skills in this domain
               </h4>
               <div className="flex flex-wrap gap-1.5">

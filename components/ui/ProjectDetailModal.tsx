@@ -211,7 +211,7 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
                         </button>
                       ))}
                     </div>
-                    <span className="md:hidden absolute bottom-10 sm:bottom-14 left-1/2 -translate-x-1/2 z-10 font-mono text-[10px] text-cyber-accent/70 select-none pointer-events-none">
+                    <span className="md:hidden absolute bottom-10 sm:bottom-14 left-1/2 -translate-x-1/2 z-10 font-mono text-xs text-cyber-accent/80 select-none pointer-events-none">
                       ‹ swipe ›
                     </span>
                   </>
@@ -299,7 +299,7 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
               transition={{ delay: 0.5 }}
               className="mt-auto pt-4 sm:pt-6 border-t border-cyber-primary/20"
             >
-              <p className="text-[10px] font-mono text-cyber-accent/60 mb-3" aria-hidden="true">
+              <p className="text-xs font-mono text-cyber-accent/80 mb-3" aria-hidden="true">
                 {hasMultipleImages ? 'Swipe or use ←/→ to browse · Esc to close' : 'Esc to close'}
               </p>
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">

@@ -341,9 +341,11 @@ h2,
           drop-shadow(0 0 8px rgba(0, 0, 0, 0.6));
 }
 
-/* Section base — no longer enforces py-20; sections set their own padding. */
+/* Section base — sections set their own padding and height. The hero opts
+   into min-h-screen itself; forcing it globally padded the shorter sections
+   (Skills, Projects, Contact) with a viewport's worth of dead space. */
 section {
-  @apply min-h-screen flex items-center justify-center;
+  @apply flex items-center justify-center;
   contain: layout style;
   /* Anchor jumps land below the fixed 64px nav instead of under it. */
   scroll-margin-top: 5rem;

@@ -30,8 +30,8 @@ export default function ProjectCard({ project, index, isMobile, onOpen }: Projec
       <div className="relative w-full h-32 sm:h-36 bg-cyber-darker/60 border-b border-cyber-primary/15 overflow-hidden">
         <ProjectPreview project={project} isMobile={isMobile} priority={index < 3} />
         {project.featured && (
-          <span className="absolute top-2 left-2 z-10 inline-flex items-center gap-1 bg-cyber-brand text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-[0_0_12px_rgba(52,211,153,0.5)]">
-            <Star size={9} aria-hidden="true" /> FEATURED
+          <span className="absolute top-2 left-2 z-10 inline-flex items-center gap-1 bg-cyber-brand text-white text-xs font-bold px-1.5 py-0.5 rounded shadow-[0_0_12px_rgba(52,211,153,0.5)]">
+            <Star size={11} aria-hidden="true" /> Featured
           </span>
         )}
       </div>
@@ -43,7 +43,7 @@ export default function ProjectCard({ project, index, isMobile, onOpen }: Projec
           {project.tech.slice(0, 3).map((t) => (
             <span
               key={t}
-              className="text-[9px] sm:text-[10px] font-mono text-cyber-secondary bg-cyber-primary/10 border border-cyber-primary/20 px-1.5 py-0.5 rounded"
+              className="text-xs font-mono text-cyber-secondary bg-cyber-primary/10 border border-cyber-primary/20 px-1.5 py-0.5 rounded"
             >
               {t}
             </span>
@@ -51,7 +51,7 @@ export default function ProjectCard({ project, index, isMobile, onOpen }: Projec
           {project.tech.length > 3 && (
             <span
               title={project.tech.slice(3).join(', ')}
-              className="text-[9px] sm:text-[10px] font-mono text-cyber-brand bg-cyber-brand/15 border border-cyber-brand/40 px-1 py-0.5"
+              className="text-xs font-mono text-cyber-brand bg-cyber-brand/15 border border-cyber-brand/40 px-1.5 py-0.5 rounded"
             >
               +{project.tech.length - 3}
             </span>
@@ -84,7 +84,7 @@ export default function ProjectCard({ project, index, isMobile, onOpen }: Projec
               <ExternalLink size={16} aria-hidden="true" />
             </a>
           )}
-          <span className="ml-auto text-[10px] font-mono text-cyber-accent group-hover:text-cyber-brand transition-colors">
+          <span className="ml-auto text-xs font-mono text-cyber-accent group-hover:text-cyber-brand transition-colors">
             details →
           </span>
         </div>

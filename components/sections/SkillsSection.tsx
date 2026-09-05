@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Code2, Shield, Globe, Wrench, Award } from 'lucide-react';
 import CredlyBadge from '@/components/ui/CredlyBadge';
+import DecryptedText from '@/components/ui/DecryptedText';
 import SkillsConstellationGate, {
   type SkillsDisplayMode,
 } from '@/components/three/SkillsConstellationGate';
@@ -68,8 +69,8 @@ export default function SkillsSection() {
         transition={{ duration: 0.6 }}
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
       >
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 cyber-scan">
-          <span className="text-cyber-primary">Skills</span>
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 cyber-scan text-cyber-primary">
+          <DecryptedText text="Skills" animateOn="view" speed={60} encryptedClassName="text-cyber-brand/70" />
         </h2>
         <div className="w-20 sm:w-24 h-1 bg-cyber-primary mx-auto mb-6 sm:mb-8 cyber-neon" />
       </motion.div>
@@ -79,7 +80,7 @@ export default function SkillsSection() {
       <SkillsConstellationGate onFocusChange={handleFocusChange} onModeChange={handleModeChange} />
       {show3D && (
         <p className="text-center text-cyber-accent font-mono text-xs sm:text-sm mt-3 mb-12 md:mb-16 px-4">
-          Interactive map of my skill domains — hover to inspect, click any node or label to zoom in and see where I use it
+          Interactive map of my skill domains — drag to rotate, hover to inspect, click any node or label to zoom in and see where I use it
         </p>
       )}
 

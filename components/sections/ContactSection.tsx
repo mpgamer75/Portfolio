@@ -1,7 +1,8 @@
 'use client';
 
-import { Mail, Linkedin, Github, Phone, FileDown } from 'lucide-react';
+import { Mail, Linkedin, Github, Phone, FileDown, ArrowUpRight } from 'lucide-react';
 import { Reveal, RevealItem } from '@/components/ui/Reveal';
+import DecryptedText from '@/components/ui/DecryptedText';
 
 export default function ContactSection() {
   const contactMethods = [
@@ -10,72 +11,76 @@ export default function ContactSection() {
       label: 'Email',
       value: 'charleslantiguajorge@gmail.com',
       href: 'mailto:charleslantiguajorge@gmail.com',
-      color: 'text-cyber-primary',
     },
     {
       icon: Linkedin,
       label: 'LinkedIn',
-      value: 'Charles Lantigua Jorge',
+      value: 'charles-lantigua-jorge',
       href: 'https://www.linkedin.com/in/charles-lantigua-jorge',
-      color: 'text-cyber-secondary',
     },
     {
       icon: Github,
       label: 'GitHub',
       value: '@mpgamer75',
       href: 'https://github.com/mpgamer75',
-      color: 'text-cyber-primary',
     },
     {
       icon: Phone,
       label: 'Phone',
       value: '+33 7 67 80 40 34',
       href: 'tel:+33767804034',
-      color: 'text-cyber-secondary',
     },
   ];
 
   return (
     <section id="contact" className="relative py-12 sm:py-16 md:py-20">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* w-full: the section is a flex container, so without an explicit width this
+          block would size to its content — and the no-wrap email row would push it
+          wider than a phone screen instead of truncating. */}
+      <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <Reveal>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 cyber-scan">
-            <span className="text-cyber-primary">Contact Me</span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 cyber-scan text-cyber-primary">
+            <DecryptedText text="Contact Me" animateOn="view" speed={50} encryptedClassName="text-cyber-brand/70" />
           </h2>
           <div className="w-20 sm:w-24 h-1 bg-cyber-primary mx-auto mb-6 sm:mb-8 cyber-neon" />
-          <p className="text-lg sm:text-xl text-cyber-secondary text-center max-w-2xl mx-auto mb-8 sm:mb-12 md:mb-16">
+          <p className="text-lg sm:text-xl text-cyber-secondary text-center max-w-2xl mx-auto mb-8 sm:mb-10 md:mb-12">
             Interested in working together? Feel free to reach out!
           </p>
         </Reveal>
 
-        {/* Contact cards */}
-        <Reveal
-          stagger
-          className="grid sm:grid-cols-2 gap-4 sm:gap-5 md:gap-6 mb-8 sm:mb-10 md:mb-12"
-        >
-          {contactMethods.map((method) => {
-            const Icon = method.icon;
-            return (
-              <RevealItem key={method.label} className="h-full">
-                <a
-                  href={method.href}
-                  target={method.href.startsWith('http') ? '_blank' : undefined}
-                  rel={method.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                  className="cyber-card rounded-lg p-4 sm:p-5 md:p-6 flex items-center space-x-3 sm:space-x-4 group h-full"
-                >
-                  <div className="p-3 sm:p-4 bg-cyber-primary/10 rounded-lg flex-shrink-0 group-hover:bg-cyber-primary/20 transition-colors">
-                    <Icon className={`${method.color} group-hover:scale-110 transition-transform`} size={28} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-base sm:text-lg font-semibold text-white mb-0.5 sm:mb-1">{method.label}</h3>
-                    <p className="text-cyber-accent group-hover:text-cyber-primary transition-colors text-sm sm:text-base break-words">
-                      {method.value}
-                    </p>
-                  </div>
-                </a>
-              </RevealItem>
-            );
-          })}
+        {/* Contact channels — one readout list, not four identical cards. */}
+        <Reveal stagger className="mb-8 sm:mb-10 md:mb-12">
+          <ul className="divide-y divide-cyber-primary/10 border-y border-cyber-primary/10">
+            {contactMethods.map((method) => {
+              const Icon = method.icon;
+              const external = method.href.startsWith('http');
+              return (
+                <li key={method.label}>
+                  <RevealItem>
+                    <a
+                      href={method.href}
+                      target={external ? '_blank' : undefined}
+                      rel={external ? 'noopener noreferrer' : undefined}
+                      className="group flex min-h-[64px] items-center gap-4 sm:gap-6 px-2 py-3 -mx-2 rounded-md transition-colors hover:bg-cyber-brand/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand"
+                    >
+                      <Icon className="flex-shrink-0 text-cyber-brand" size={22} aria-hidden="true" />
+                      <span className="w-20 sm:w-24 flex-shrink-0 font-mono text-sm text-cyber-accent">
+                        {method.label}
+                      </span>
+                      <span className="flex-1 min-w-0 truncate text-base sm:text-lg text-white transition-colors group-hover:text-cyber-brand">
+                        {method.value}
+                      </span>
+                      <ArrowUpRight
+                        className="flex-shrink-0 text-cyber-accent transition-all group-hover:text-cyber-brand group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                        size={18}
+                        aria-hidden="true"
+                      />
+                    </a>
+                  </RevealItem>
+                </li>
+              );
+            })}
+          </ul>
         </Reveal>
 
         {/* CTA */}

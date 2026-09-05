@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { LayoutGrid, FolderOpen } from 'lucide-react';
+import { LayoutGrid, FolderOpen, Star } from 'lucide-react';
+import DecryptedText from '@/components/ui/DecryptedText';
 import Folder from '@/components/ui/Folder';
 import ProjectsGrid from '@/components/ui/ProjectsGrid';
 import ProjectPreview from '@/components/ui/ProjectPreview';
@@ -24,7 +25,7 @@ export default function ProjectsSection() {
   // Memoize the folder cards so the Folder doesn't reset its transitions on re-render.
   const folderItems = useMemo(
     () =>
-      projects.map((project, index) => (
+      projects.map((project) => (
         <button
           key={project.title}
           type="button"
@@ -36,38 +37,39 @@ export default function ProjectsSection() {
           aria-label={`Open ${project.title} details`}
         >
           <div className="w-full h-full bg-cyber-darker/90 rounded-lg flex flex-col items-center justify-between p-2 sm:p-3 transition-all duration-300 group-hover:scale-[1.02] active:scale-[0.98] group-hover:shadow-[0_0_20px_rgba(52,211,153,0.3)] border border-cyber-primary/30 group-hover:border-cyber-brand/70">
-            {/* Image slot — screenshot (blur-up) or an on-brand generated preview */}
-            <div className="w-full h-[80px] sm:h-[110px] relative rounded-md overflow-hidden bg-cyber-dark/60 border border-cyber-primary/15 flex items-center justify-center mb-1.5 sm:mb-2">
-              <ProjectPreview project={project} isMobile={isMobile} priority={index < 3} />
+            {/* Image slot — screenshot (blur-up) or an on-brand generated preview.
+                NOTE: the Folder scales its papers 2-3× with a CSS transform, so every
+                size here is in *layout* px (a 64px-tall paper renders ~190px tall).
+                That's why the type below is 7-10px: it reads at 20-30px on screen.
+                The slot gets a fixed layout height that leaves room for the caption,
+                so next/image `fill` never sees a zero-height parent. The Folder view
+                is opt-in, so nothing here is fetched at priority. */}
+            <div className="w-full h-[34px] flex-shrink-0 relative rounded-md overflow-hidden bg-cyber-dark/60 border border-cyber-primary/15 flex items-center justify-center mb-1">
+              <ProjectPreview project={project} isMobile={isMobile} priority={false} dense />
               {project.featured && (
                 <span
-                  className="absolute top-1 left-1 z-10 bg-cyber-brand text-white text-[7px] font-bold leading-none px-1 py-0.5 rounded shadow-[0_0_8px_rgba(52,211,153,0.5)]"
+                  className="absolute top-0.5 left-0.5 z-10 flex h-2 w-2 items-center justify-center rounded-sm bg-cyber-brand text-white shadow-[0_0_6px_rgba(52,211,153,0.5)]"
                   aria-hidden="true"
                 >
-                  ★
+                  <Star size={5} strokeWidth={3} />
                 </span>
               )}
             </div>
             {/* Title + tech badges */}
-            <div className="w-full bg-cyber-darker/70 rounded-md px-1.5 sm:px-2 py-1 sm:py-1.5 border-t border-cyber-primary/15">
-              <h4 className="text-cyber-primary text-[10px] sm:text-xs font-bold text-center truncate mb-0.5 sm:mb-1 tracking-wide">
+            <div className="w-full flex-shrink-0 bg-cyber-darker/70 rounded-md px-1 py-0.5 border-t border-cyber-primary/15">
+              <h4 className="text-cyber-primary text-[9px] font-bold text-center truncate leading-tight mb-0.5 tracking-wide">
                 {project.title}
               </h4>
-              <div className="flex justify-center gap-1 flex-wrap">
-                {project.tech.slice(0, 2).map((tech, i) => (
+              <div className="flex justify-center gap-0.5 whitespace-nowrap">
+                <span className="text-[7px] font-mono leading-none text-cyber-secondary bg-cyber-primary/10 border border-cyber-primary/20 px-1 py-0.5 rounded">
+                  {project.tech[0]}
+                </span>
+                {project.tech.length > 1 && (
                   <span
-                    key={i}
-                    className="text-[7px] sm:text-[8px] font-mono text-cyber-secondary bg-cyber-primary/10 border border-cyber-primary/20 px-1 py-0.5 rounded"
+                    className="text-[7px] font-mono leading-none text-cyber-brand bg-cyber-brand/15 border border-cyber-brand/40 px-1 py-0.5 rounded"
+                    title={project.tech.slice(1).join(', ')}
                   >
-                    {tech}
-                  </span>
-                ))}
-                {project.tech.length > 2 && (
-                  <span
-                    className="text-[7px] sm:text-[8px] font-mono text-cyber-brand bg-cyber-brand/15 border border-cyber-brand/40 px-1 py-0.5 rounded"
-                    title={project.tech.slice(2).join(', ')}
-                  >
-                    +{project.tech.length - 2}
+                    +{project.tech.length - 1}
                   </span>
                 )}
               </div>
@@ -76,13 +78,14 @@ export default function ProjectsSection() {
           <div className="absolute inset-0 bg-cyber-brand/0 group-hover:bg-cyber-brand/10 transition-colors duration-300 rounded-lg pointer-events-none" />
         </button>
       )),
+    // `index` is unused now that Folder previews never load at priority.
     [isMobile, openProject],
   );
 
   return (
     <section
       id="projects"
-        className="relative py-12 sm:py-16 md:py-20 min-h-screen flex flex-col items-center justify-center px-4"
+        className="relative py-12 sm:py-16 md:py-20 flex flex-col items-center justify-center px-4"
       >
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -91,8 +94,8 @@ export default function ProjectsSection() {
           transition={{ duration: 0.6 }}
           className="w-full"
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 cyber-scan">
-            <span className="text-cyber-primary">Projects</span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 cyber-scan text-cyber-primary">
+            <DecryptedText text="Projects" animateOn="view" speed={55} encryptedClassName="text-cyber-brand/70" />
           </h2>
           <div className="w-20 sm:w-24 h-1 bg-cyber-primary mx-auto mb-6 sm:mb-8 cyber-neon" />
 

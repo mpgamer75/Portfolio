@@ -165,7 +165,7 @@ export default function Navigation() {
         <div className="flex items-center justify-between h-16">
           <motion.a
             href="#home"
-            className="text-2xl font-bold text-cyber-primary"
+            className="text-2xl font-bold text-cyber-primary font-mono"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             aria-label="Home"

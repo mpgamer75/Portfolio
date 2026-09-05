@@ -77,6 +77,11 @@ export default function Folder({
   const isMobile = useIsMobile();
   const reduced = useReducedMotion();
   const [open, setOpen] = useState(false);
+  // Paper contents mount on the first open. Closed papers sit fully behind the
+  // cover (and the shortest are only 40% tall), so rendering next/image `fill`
+  // previews inside them upfront produced zero-height image warnings and
+  // fetched screenshots nobody could see yet.
+  const [everOpened, setEverOpened] = useState(false);
 
   const papers = useMemo(() => {
     const padded: Array<React.ReactNode | null> = items.slice(0, MAX_ITEMS);
@@ -109,7 +114,10 @@ export default function Folder({
 
   const staggerStep = isMobile ? 0.025 : 0.035;
 
-  const handleToggle = () => setOpen((prev) => !prev);
+  const handleToggle = () => {
+    setEverOpened(true);
+    setOpen((prev) => !prev);
+  };
 
   return (
     <div style={{ transform: `scale(${size})` }} className={className}>
@@ -196,7 +204,7 @@ export default function Folder({
                     : 'none',
                 }}
               >
-                {item}
+                {everOpened ? item : null}
               </motion.div>
             );
           })}
