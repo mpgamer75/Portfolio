@@ -29,6 +29,15 @@
   /* Glows carry the emerald accent hue, kept subtle */
   --glow-primary: 0 0 18px rgba(52, 211, 153, 0.30);
   --glow-strong: 0 0 28px rgba(52, 211, 153, 0.42);
+
+  /* Stacking scale — keep in sync with theme.extend.zIndex in tailwind.config.ts */
+  --z-floating: 40;
+  --z-nav: 50;
+  --z-progress: 60;
+  --z-modal: 100;
+  --z-fx: 150;
+  --z-spark: 200;
+  --z-skip: 300;
 }
 
 * {
@@ -88,7 +97,7 @@ h2,
   position: absolute;
   top: -200px;
   left: 16px;
-  z-index: 9999;
+  z-index: var(--z-skip);
   background: var(--cyber-darker);
   color: var(--cyber-primary);
   padding: 12px 16px;
@@ -381,7 +390,7 @@ a:focus-visible {
 
 /* Project modal */
 .project-modal-backdrop {
-  @apply fixed inset-0 bg-cyber-darker/95 backdrop-blur-md z-[100] flex items-center justify-center p-4;
+  @apply fixed inset-0 bg-cyber-darker/95 backdrop-blur-md z-modal flex items-center justify-center p-4;
   cursor: zoom-out;
 }
 
@@ -576,7 +585,7 @@ button:focus-visible,
 .btnfx-root {
   position: fixed;
   inset: 0;
-  z-index: 150;
+  z-index: var(--z-fx);
   pointer-events: none;
 }
 

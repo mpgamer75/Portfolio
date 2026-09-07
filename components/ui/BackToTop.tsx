@@ -30,7 +30,7 @@ export default function BackToTop() {
           transition={{ duration: 0.2 }}
           whileHover={{ y: -2 }}
           whileTap={{ scale: 0.92 }}
-          className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-40 p-3 rounded-full bg-cyber-darker/90 border border-cyber-brand/50 text-cyber-brand hover:bg-cyber-brand hover:text-cyber-darker shadow-[0_0_16px_rgba(52,211,153,0.35)] transition-colors"
+          className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-floating p-3 rounded-full bg-cyber-darker/90 border border-cyber-brand/50 text-cyber-brand hover:bg-cyber-brand hover:text-cyber-darker shadow-[0_0_16px_rgba(52,211,153,0.35)] transition-colors"
           aria-label="Back to top"
         >
           <ArrowUp size={20} aria-hidden="true" />

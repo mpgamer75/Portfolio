@@ -65,8 +65,10 @@ export default function AboutSection() {
                       alt="Charles Lantigua Jorge"
                       fill
                       className="object-cover smooth-transition-slow group-hover:scale-105 sm:group-hover:scale-110"
-                      priority
-                      quality={90}
+                      // Below the fold on every viewport: let it lazy-load instead of
+                      // competing with the hero for bandwidth at `priority`.
+                      loading="lazy"
+                      quality={75}
                       placeholder="blur"
                       blurDataURL={BLUR_DATA_URL}
                       sizes="(max-width: 768px) 90vw, 45vw"
@@ -131,14 +133,14 @@ export default function AboutSection() {
                   <a
                     href="#projects"
                     className="group inline-flex min-h-[44px] items-baseline gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand focus-visible:ring-offset-2 focus-visible:ring-offset-cyber-darker"
-                    aria-label="10+ projects on GitHub — jump to my highlighted projects"
+                    aria-label="20 public repos on GitHub — jump to my highlighted projects"
                   >
                     <span aria-hidden="true" className="text-cyber-brand">&gt;</span>
                     <span className="text-2xl sm:text-3xl font-bold text-cyber-primary tabular-nums">
-                      <CountUp value={10} suffix="+" />
+                      <CountUp value={20} />
                     </span>
                     <span className="text-cyber-accent transition-colors group-hover:text-cyber-primary">
-                      projects on GitHub <span aria-hidden="true">→</span>
+                      public repos on GitHub <span aria-hidden="true">→</span>
                     </span>
                   </a>
                 </li>

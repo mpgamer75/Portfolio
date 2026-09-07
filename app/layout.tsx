@@ -5,9 +5,11 @@ import './globals.css';
 
 // Mono-forward identity: JetBrains Mono drives display/headings (ties to the
 // DecryptedText motif), Inter carries body copy. Exposed as CSS variables.
+// Only the weights actually set on mono text: 400 body/labels, 600 the hero
+// subtitle, 700 headings + logo. (500 was downloaded but never used.)
 const display = JetBrains_Mono({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '600', '700'],
   variable: '--font-display',
   display: 'swap',
 });
@@ -56,15 +58,9 @@ export const metadata: Metadata = {
     description:
       'Cybersecurity engineer and software developer specializing in offensive security, pentesting, and tool development.',
     siteName: 'Charles Lantigua Jorge',
-    images: [
-      {
-        url: '/images/hero/photo_hero.jpg',
-        width: 1200,
-        height: 630,
-        alt: 'Charles Lantigua Jorge — Cybersecurity Engineer',
-      },
-    ],
+    // og:image / twitter:image come from app/opengraph-image.tsx (file convention).
   },
+  alternates: { canonical: '/' },
   twitter: {
     card: 'summary_large_image',
     title: 'Charles Lantigua Jorge | Portfolio',
@@ -82,6 +78,23 @@ export const viewport: Viewport = {
   maximumScale: 5,
 };
 
+// Structured data so search engines can attach the name, role and profiles to a
+// single Person entity (rich results / knowledge panel signals).
+const personJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: 'Charles Lantigua Jorge',
+  url: siteUrl,
+  jobTitle: 'Cybersecurity Engineer',
+  description:
+    'Cybersecurity engineer and software developer specializing in offensive security, pentesting, and tool development.',
+  email: 'mailto:charleslantiguajorge@gmail.com',
+  address: { '@type': 'PostalAddress', addressLocality: 'Paris', addressCountry: 'FR' },
+  alumniOf: { '@type': 'CollegeOrUniversity', name: 'ECE Paris' },
+  knowsAbout: ['Cybersecurity', 'Penetration testing', 'SOC', 'OSINT', 'Python', 'Next.js'],
+  sameAs: ['https://github.com/mpgamer75', 'https://www.linkedin.com/in/charles-lantigua-jorge'],
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -90,6 +103,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${display.variable} ${sans.variable}`}>
       <body>
+        <script
+          type="application/ld+json"
+          // Static, trusted object — no user input reaches it.
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}
+        />
         <a href="#main" className="skip-to-content">
           Skip to main content
         </a>

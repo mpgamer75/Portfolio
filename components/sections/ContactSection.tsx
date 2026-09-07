@@ -64,10 +64,14 @@ export default function ContactSection() {
                       className="group flex min-h-[64px] items-center gap-4 sm:gap-6 px-2 py-3 -mx-2 rounded-md transition-colors hover:bg-cyber-brand/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand"
                     >
                       <Icon className="flex-shrink-0 text-cyber-brand" size={22} aria-hidden="true" />
-                      <span className="w-20 sm:w-24 flex-shrink-0 font-mono text-sm text-cyber-accent">
+                      {/* On phones the label column is dropped so the full email /
+                          handle fits; the icon still identifies the channel and the
+                          label stays in the accessible name via sr-only. */}
+                      <span className="hidden sm:block w-24 flex-shrink-0 font-mono text-sm text-cyber-accent">
                         {method.label}
                       </span>
-                      <span className="flex-1 min-w-0 truncate text-base sm:text-lg text-white transition-colors group-hover:text-cyber-brand">
+                      <span className="sr-only sm:hidden">{method.label}: </span>
+                      <span className="flex-1 min-w-0 break-all sm:break-normal sm:truncate text-[15px] sm:text-lg text-white transition-colors group-hover:text-cyber-brand">
                         {method.value}
                       </span>
                       <ArrowUpRight

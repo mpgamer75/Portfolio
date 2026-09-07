@@ -154,7 +154,7 @@ export default function Navigation() {
     <motion.nav
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-nav transition-all duration-300 ${
         scrolled
           ? 'bg-cyber-darker/95 border-b border-cyber-primary/10 shadow-lg'
           : 'bg-transparent'
@@ -197,7 +197,7 @@ export default function Navigation() {
                   onMouseEnter={handleMouseEnter}
                   onFocus={handleFocus}
                   onBlur={handleBlur}
-                  aria-current={isActive ? 'true' : undefined}
+                  aria-current={isActive ? 'location' : undefined}
                   className={`relative px-4 py-2 rounded-lg transition-colors duration-200 z-10 ${
                     isActive
                       ? 'text-cyber-primary'
@@ -251,7 +251,7 @@ export default function Navigation() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    aria-current={isActive ? 'true' : undefined}
+                    aria-current={isActive ? 'location' : undefined}
                     className={`flex min-h-[48px] items-center smooth-transition-fast py-2 px-3 rounded-lg hover:bg-cyber-brand/10 ${
                       isActive
                         ? 'text-cyber-primary bg-cyber-brand/10'

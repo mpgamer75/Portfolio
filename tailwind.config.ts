@@ -29,7 +29,19 @@ const config: Config = {
         "5xl": ["3rem", { lineHeight: "1.05", letterSpacing: "-0.03em" }],
         "6xl": ["3.75rem", { lineHeight: "1.02", letterSpacing: "-0.035em" }],
         "7xl": ["4.5rem", { lineHeight: "1", letterSpacing: "-0.04em" }],
-        "8xl": ["6rem", { lineHeight: "0.98", letterSpacing: "-0.045em" }],
+        // -0.04em is the floor: tighter and mono glyphs start touching.
+        "8xl": ["6rem", { lineHeight: "0.98", letterSpacing: "-0.04em" }],
+      },
+      // Semantic stacking scale - one place to reason about what sits over what.
+      // Mirrors the --z-* custom properties in globals.css (used by plain CSS).
+      zIndex: {
+        floating: "40", // back-to-top and similar floating controls
+        nav: "50",
+        progress: "60", // reading-progress bar (above the nav)
+        modal: "100",
+        fx: "150", // one-shot button click overlays
+        spark: "200", // ambient click sparks (topmost visual)
+        skip: "300", // skip-to-content link, must beat everything when focused
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
@@ -38,7 +50,6 @@ const config: Config = {
       animation: {
         "fade-in": "fadeIn 0.5s ease-in-out",
         "slide-up": "slideUp 0.5s ease-out",
-        "glow": "glow 2s ease-in-out infinite alternate",
       },
       keyframes: {
         fadeIn: {
@@ -48,11 +59,6 @@ const config: Config = {
         slideUp: {
           "0%": { transform: "translateY(20px)", opacity: "0" },
           "100%": { transform: "translateY(0)", opacity: "1" },
-        },
-        glow: {
-          // CHANGÉ pour la nouvelle couleur primaire (blanc)
-          "0%": { boxShadow: "0 0 5px #FFFFFF, 0 0 10px #FFFFFF" },
-          "100%": { boxShadow: "0 0 10px #FFFFFF, 0 0 20px #FFFFFF, 0 0 30px #FFFFFF" },
         },
       },
     },

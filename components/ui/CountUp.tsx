@@ -13,8 +13,13 @@ interface CountUpProps {
 
 /**
  * Counts 0 → value once, the first time it scrolls into view. One short rAF
- * burst, then it stops. Reduced-motion users get the final value immediately
- * (derived in render — no state churn).
+ * burst, then it stops. Reduced-motion users get the final value on the first
+ * frame after mount instead.
+ *
+ * The rendered number is always `display` — never a `reduced ? value : display`
+ * branch. The server can't know the motion preference (it renders 0), so a
+ * reduced-motion client that rendered `value` immediately produced a text
+ * hydration mismatch (React #418) on first paint.
  */
 export default function CountUp({ value, suffix = '', duration = 1200, className }: CountUpProps) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -23,7 +28,11 @@ export default function CountUp({ value, suffix = '', duration = 1200, className
   const [display, setDisplay] = useState(0);
 
   useEffect(() => {
-    if (reduced || !inView) return;
+    if (reduced) {
+      const raf = requestAnimationFrame(() => setDisplay(value));
+      return () => cancelAnimationFrame(raf);
+    }
+    if (!inView) return;
     let raf = 0;
     const start = performance.now();
     const tick = (now: number) => {
@@ -38,7 +47,7 @@ export default function CountUp({ value, suffix = '', duration = 1200, className
 
   return (
     <span ref={ref} className={className}>
-      {reduced ? value : display}
+      {display}
       {suffix}
     </span>
   );

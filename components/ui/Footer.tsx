@@ -6,10 +6,15 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="relative border-t border-cyber-primary/20 glass-effect">
+    // Solid (not glass): a full-width backdrop-filter over the WebGL background
+    // re-blurred on every scroll frame — the same jank source the cards dropped.
+    // Extra bottom padding on phones keeps the copyright clear of the floating
+    // back-to-top button.
+    <footer className="relative border-t border-cyber-primary/20 bg-cyber-darker/90 pb-16 md:pb-0">
       <h2 className="sr-only">Site footer</h2>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
-        <div className="grid gap-8 md:grid-cols-3 items-start">
+        {/* Middle column is auto-sized so the six links stay on one line at 1440. */}
+        <div className="grid gap-8 md:grid-cols-[1fr_auto_1fr] items-start">
           {/* Brand + tagline */}
           <div className="text-center md:text-left">
             <a href="#home" className="text-xl font-bold text-cyber-primary font-mono">
@@ -23,7 +28,7 @@ export default function Footer() {
           {/* Section nav */}
           <nav
             aria-label="Footer"
-            className="flex flex-wrap justify-center gap-x-4 gap-y-1 sm:gap-x-6"
+            className="flex flex-wrap justify-center gap-x-2 gap-y-1 sm:gap-x-3"
           >
             {navItems.map((item) => (
               <a

@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Code2, Shield, Globe, Wrench, Award } from 'lucide-react';
+import { Code2, Shield, Globe, Wrench, Award, Github, Terminal, GraduationCap } from 'lucide-react';
 import CredlyBadge from '@/components/ui/CredlyBadge';
 import DecryptedText from '@/components/ui/DecryptedText';
 import SkillsConstellationGate, {
@@ -192,45 +192,50 @@ export default function SkillsSection() {
           </div>
         </motion.div>
 
-        {/* Additional Info */}
+        {/* Profiles & study — one readout row (was three identical stat cards
+            with a "5+ repos" line that contradicted About's count). */}
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          className="mt-8 sm:mt-12 md:mt-16 grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6"
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="mt-10 sm:mt-14 md:mt-16"
         >
-          <div className="cyber-card rounded-lg p-4 sm:p-5 md:p-6 text-center">
-            <div className="text-3xl sm:text-4xl font-bold text-cyber-primary mb-2">TryHackMe</div>
-            <p className="text-cyber-accent text-sm sm:text-base">Active on the platform</p>
-            <a
-              href="https://tryhackme.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex min-h-[44px] items-center px-3 mt-1 sm:mt-2 text-cyber-secondary hover:text-cyber-primary transition-colors text-xs sm:text-sm"
-            >
-              View profile →
-            </a>
-          </div>
-
-          <div className="cyber-card rounded-lg p-4 sm:p-5 md:p-6 text-center">
-            <div className="text-3xl sm:text-4xl font-bold text-cyber-primary mb-2">GitHub</div>
-            <p className="text-cyber-accent text-sm sm:text-base">Active profile with 5+ public repos</p>
-            <a
-              href="https://github.com/mpgamer75"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex min-h-[44px] items-center px-3 mt-1 sm:mt-2 text-cyber-secondary hover:text-cyber-primary transition-colors text-xs sm:text-sm"
-            >
-              View profile →
-            </a>
-          </div>
-
-          <div className="cyber-card rounded-lg p-4 sm:p-5 md:p-6 text-center sm:col-span-2 md:col-span-1">
-            <div className="text-3xl sm:text-4xl font-bold text-cyber-primary mb-2">ECE Paris</div>
-            <p className="text-cyber-accent text-sm sm:text-base">Cybersecurity and Computer Science degree</p>
-            <p className="text-cyber-secondary mt-3 sm:mt-4 text-xs sm:text-sm">2023 - 2026</p>
-          </div>
+          <ul className="mx-auto flex max-w-4xl flex-col items-start gap-1 border-y border-cyber-primary/10 py-3 font-mono text-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-x-10 sm:gap-y-2 sm:text-base">
+            <li>
+              <a
+                href="https://github.com/mpgamer75"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex min-h-[44px] items-center gap-2 rounded-md px-1 text-cyber-secondary transition-colors hover:text-cyber-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand"
+              >
+                <Github size={16} className="text-cyber-brand" aria-hidden="true" />
+                GitHub
+                <span className="text-cyber-accent">· 20 public repos</span>
+                <span aria-hidden="true" className="text-cyber-accent transition-transform group-hover:translate-x-0.5">→</span>
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://tryhackme.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex min-h-[44px] items-center gap-2 rounded-md px-1 text-cyber-secondary transition-colors hover:text-cyber-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand"
+              >
+                <Terminal size={16} className="text-cyber-brand" aria-hidden="true" />
+                TryHackMe
+                <span className="text-cyber-accent">· ongoing labs</span>
+                <span aria-hidden="true" className="text-cyber-accent transition-transform group-hover:translate-x-0.5">→</span>
+              </a>
+            </li>
+            <li className="inline-flex min-h-[44px] items-center gap-2 px-1 text-cyber-secondary">
+              <GraduationCap size={16} className="flex-shrink-0 text-cyber-brand" aria-hidden="true" />
+              <span>
+                <span className="whitespace-nowrap">ECE Paris</span>{' '}
+                <span className="text-cyber-accent">· Cybersecurity &amp; CS engineering · 2023 – 2026</span>
+              </span>
+            </li>
+          </ul>
         </motion.div>
       </div>
       </div>

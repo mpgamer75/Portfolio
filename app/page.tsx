@@ -1,8 +1,8 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import dynamic from 'next/dynamic';
 import Navigation from '@/components/ui/Navigation';
-import Prism from '@/components/ui/Prism';
 import MobileBackground from '@/components/ui/MobileBackground';
 import ScrollProgress from '@/components/ui/ScrollProgress';
 import ClickSpark from '@/components/ui/ClickSpark';
@@ -18,6 +18,10 @@ import Footer from '@/components/ui/Footer';
 import ProjectModalProvider from '@/components/ui/ProjectModalProvider';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
+// Desktop-only WebGL backdrop (ogl). Code-split so phones — which render the
+// CSS/canvas MobileBackground instead — never download the shader bundle.
+const Prism = dynamic(() => import('@/components/ui/Prism'), { ssr: false });
+
 export default function HomePage() {
   const isMobile = useIsMobile();
   // Gate the background until after mount: render the plain dark layer first
@@ -29,6 +33,22 @@ export default function HomePage() {
     () => true,
     () => false,
   );
+
+  // The prism is the hero's backdrop; once the hero scrolls away it freezes
+  // (Prism `activeSelector`) but its bright band would still cut through every
+  // section's text. Dim the whole background layer past the hero — one opacity
+  // transition on an already-composited layer, no per-frame work.
+  const [pastHero, setPastHero] = useState(false);
+  useEffect(() => {
+    const hero = document.getElementById('home');
+    if (!hero) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setPastHero(!entry.isIntersecting),
+      { threshold: 0.12 },
+    );
+    io.observe(hero);
+    return () => io.disconnect();
+  }, []);
 
   return (
     <ProjectModalProvider>
@@ -42,6 +62,8 @@ export default function HomePage() {
           transform: 'translateZ(0)',
           backfaceVisibility: 'hidden',
           perspective: '1000px',
+          opacity: pastHero && !isMobile ? 0.55 : 1,
+          transition: 'opacity 900ms ease',
         }}
       >
         {mounted && !isMobile && (

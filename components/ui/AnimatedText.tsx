@@ -12,10 +12,14 @@ interface AnimatedTextProps {
 }
 
 /**
- * Typewriter that cycles through `phrases`. Cursor blink is now CSS-driven
+ * Typewriter that cycles through `phrases`. Cursor blink is CSS-driven
  * (`.animate-blink` in globals.css) so there is no per-second JS interval.
  * The phrase-advance setState is wrapped in setTimeout so it doesn't trip
  * react-hooks/set-state-in-effect.
+ *
+ * Assistive tech gets the full phrase list once, statically; the animated
+ * span is hidden from it. (It used to be `aria-live`, which read every
+ * keystroke of every phrase aloud, forever.)
  */
 export default function AnimatedText({
   phrases,
@@ -65,19 +69,20 @@ export default function AnimatedText({
   }, [currentText, isDeleting, currentPhraseIndex, phrases, typingSpeed, deletingSpeed, pauseDuration]);
 
   return (
-    <span className={`inline-flex items-center ${className}`} aria-live="polite">
-      <AnimatePresence mode="wait">
-        <motion.span
-          key={currentPhraseIndex}
-          initial={{ opacity: 0.8 }}
-          animate={{ opacity: 1 }}
-          className="font-mono"
-        >
-          {currentText}
-        </motion.span>
-      </AnimatePresence>
-      <span className="ml-0.5 font-mono text-cyber-primary animate-blink" aria-hidden="true">
-        |
+    <span className={`inline-flex items-center ${className}`}>
+      <span className="sr-only">{phrases.join(' · ')}</span>
+      <span aria-hidden="true" className="inline-flex items-center">
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={currentPhraseIndex}
+            initial={{ opacity: 0.8 }}
+            animate={{ opacity: 1 }}
+            className="font-mono"
+          >
+            {currentText}
+          </motion.span>
+        </AnimatePresence>
+        <span className="ml-0.5 font-mono text-cyber-primary animate-blink">|</span>
       </span>
     </span>
   );

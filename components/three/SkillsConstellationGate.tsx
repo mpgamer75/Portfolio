@@ -75,6 +75,10 @@ export default function SkillsConstellationGate({
     () => false,
   );
   const [inView, setInView] = useState(false);
+  // Flips once, when Skills is within ~a viewport of the fold. The three.js
+  // chunk (≈235 KB gzipped) is only fetched then, instead of on first paint
+  // while the hero is still loading.
+  const [near, setNear] = useState(false);
   const [failed, setFailed] = useState(false);
   const hostRef = useRef<HTMLDivElement>(null);
 
@@ -95,16 +99,30 @@ export default function SkillsConstellationGate({
       { threshold: 0.15, rootMargin: '0px 0px -10% 0px' },
     );
     io.observe(el);
-    return () => io.disconnect();
+    const approach = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setNear(true);
+        approach.disconnect();
+      },
+      { rootMargin: '900px 0px' },
+    );
+    approach.observe(el);
+    return () => {
+      io.disconnect();
+      approach.disconnect();
+    };
   }, [enable3D]);
 
   if (!enable3D) return null;
 
   return (
     <div ref={hostRef} className="relative w-full h-[460px] sm:h-[560px] md:h-[660px] lg:h-[720px]">
-      <ConstellationBoundary onError={() => setFailed(true)}>
-        <SkillsConstellation active={inView} onFocusChange={onFocusChange} />
-      </ConstellationBoundary>
+      {near && (
+        <ConstellationBoundary onError={() => setFailed(true)}>
+          <SkillsConstellation active={inView} onFocusChange={onFocusChange} />
+        </ConstellationBoundary>
+      )}
     </div>
   );
 }
