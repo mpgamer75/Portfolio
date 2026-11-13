@@ -26,7 +26,7 @@ export const SKILL_META: Record<string, SkillMeta> = {
   // ── Security & Systems ──
   'Kali Linux': {
     blurb: "My offensive Linux distro — the toolset behind pentest labs and the Security Scanner's recon and exploitation modules.",
-    usedIn: [P('Security Scanner'), R('Pentest labs · TryHackMe')],
+    usedIn: [P('Security Scanner'), R('Pentest labs · TryHackMe & Hack The Box')],
   },
   Linux: {
     blurb: 'The base for everything I build and break: SOC tooling, servers, and every Bash project.',
@@ -133,6 +133,10 @@ export const SKILL_META: Record<string, SkillMeta> = {
   TryHackMe: {
     blurb: 'Continuous hands-on offensive-security practice and challenges.',
     usedIn: [R('Ongoing practice')],
+  },
+  'Hack The Box': {
+    blurb: 'Penetration-testing labs and the HTB Academy path — currently preparing for the CPTS certification.',
+    usedIn: [R('CPTS preparation')],
   },
   'Active Directory': {
     blurb: 'Automated AD audit reporting and hardening during my AlticeDo SOC internship.',

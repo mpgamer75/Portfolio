@@ -68,7 +68,7 @@ const CATEGORIES: { title: string; color: string; glyph: ClusterGlyph; items: st
     title: 'Tools & Platforms',
     color: '#059669', // deep emerald
     glyph: 'triangle',
-    items: ['Git', 'GitHub', 'Docker', 'TryHackMe', 'Active Directory'],
+    items: ['Git', 'GitHub', 'Docker', 'TryHackMe', 'Hack The Box', 'Active Directory'],
   },
 ];
 

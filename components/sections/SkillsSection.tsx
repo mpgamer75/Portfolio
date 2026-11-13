@@ -56,7 +56,7 @@ const skillCategories: SkillCategory[] = [
     context: 'Daily drivers for builds, labs and AD',
     glyph: 'triangle',
     color: '#059669',
-    items: ['Git', 'GitHub', 'Docker', 'TryHackMe', 'Active Directory'],
+    items: ['Git', 'GitHub', 'Docker', 'TryHackMe', 'Hack The Box', 'Active Directory'],
   },
 ];
 
@@ -256,6 +256,19 @@ export default function SkillsSection() {
                   <Terminal size={16} className="text-cyber-brand" aria-hidden="true" />
                   TryHackMe
                   <span className="text-cyber-accent">· ongoing labs</span>
+                  <span aria-hidden="true" className="text-cyber-accent transition-transform group-hover:translate-x-0.5">→</span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://www.hackthebox.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex min-h-[44px] items-center gap-2 rounded-md px-1 text-cyber-secondary transition-colors hover:text-cyber-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand"
+                >
+                  <Terminal size={16} className="text-cyber-brand" aria-hidden="true" />
+                  Hack The Box
+                  <span className="text-cyber-accent">· preparing for the CPTS</span>
                   <span aria-hidden="true" className="text-cyber-accent transition-transform group-hover:translate-x-0.5">→</span>
                 </a>
               </li>
