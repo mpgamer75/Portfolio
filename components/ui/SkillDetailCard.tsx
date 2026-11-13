@@ -72,7 +72,7 @@ export default function SkillDetailCard({ data, onClose, onOpenProject }: SkillD
         ref={cardRef}
         onPointerEnter={handleEnter}
         onPointerMove={handleMove}
-        className="relative flex min-h-0 flex-col overflow-hidden rounded-xl border bg-cyber-darker/92 font-mono shadow-[0_0_40px_rgba(16,185,129,0.14)]"
+        className="relative flex min-h-0 flex-col overflow-hidden rounded-xl border bg-cyber-darker/95 font-mono shadow-[0_0_40px_rgba(16,185,129,0.14)]"
         style={{ borderColor: `${data.color}66` }}
       >
         {/* Cursor-tracked spotlight (reactbits SpotlightCard) */}
