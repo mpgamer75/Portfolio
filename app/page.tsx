@@ -19,7 +19,7 @@ import ProjectModalProvider from '@/components/ui/ProjectModalProvider';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
 // Desktop-only WebGL backdrop (ogl). Code-split so phones — which render the
-// CSS/canvas MobileBackground instead — never download the shader bundle.
+// 2D-canvas MobileBackground instead — never download the shader bundle.
 const Prism = dynamic(() => import('@/components/ui/Prism'), { ssr: false });
 
 export default function HomePage() {
@@ -36,8 +36,10 @@ export default function HomePage() {
 
   // The prism is the hero's backdrop; once the hero scrolls away it freezes
   // (Prism `activeSelector`) but its bright band would still cut through every
-  // section's text. Dim the whole background layer past the hero — one opacity
-  // transition on an already-composited layer, no per-frame work.
+  // section's text. Past the hero the animated background is dimmed and a
+  // faint static emerald wash fades in — two opacity transitions, no per-frame
+  // work. The dim goes on an inner wrapper, never on the fixed layer itself:
+  // that layer carries the page's dark fill and must stay fully opaque.
   const [pastHero, setPastHero] = useState(false);
   useEffect(() => {
     const hero = document.getElementById('home');
@@ -62,27 +64,45 @@ export default function HomePage() {
           transform: 'translateZ(0)',
           backfaceVisibility: 'hidden',
           perspective: '1000px',
-          opacity: pastHero && !isMobile ? 0.55 : 1,
-          transition: 'opacity 900ms ease',
         }}
       >
-        {mounted && !isMobile && (
-          <Prism
-            height={3.5}
-            baseWidth={5.5}
-            animationType="rotate"
-            glow={0.6}
-            noise={0}
-            scale={3.6}
-            hueShift={0}
-            colorFrequency={1}
-            timeScale={0.4}
-            bloom={0.5}
-            suspendWhenOffscreen
-            activeSelector="#home"
-          />
-        )}
-        {mounted && isMobile && <MobileBackground />}
+        <div
+          className="absolute inset-0"
+          style={{
+            opacity: pastHero ? (isMobile ? 0.4 : 0.25) : 1,
+            transition: 'opacity 900ms ease',
+          }}
+        >
+          {mounted && !isMobile && (
+            <Prism
+              height={3.5}
+              baseWidth={5.5}
+              animationType="rotate"
+              glow={0.6}
+              noise={0}
+              scale={3.6}
+              hueShift={0}
+              colorFrequency={1}
+              timeScale={0.4}
+              bloom={0.5}
+              parallax={0.12}
+              suspendWhenOffscreen
+              activeSelector="#home"
+            />
+          )}
+          {mounted && isMobile && <MobileBackground active={!pastHero} />}
+        </div>
+        {/* Static top wash that replaces the dimmed animation as ambient colour
+            behind the content sections. */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(120% 60% at 50% 0%, rgba(52,211,153,0.06), transparent 60%)',
+            opacity: pastHero ? 1 : 0,
+            transition: 'opacity 900ms ease',
+          }}
+        />
       </div>
 
       <Navigation />

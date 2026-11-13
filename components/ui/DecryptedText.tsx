@@ -16,6 +16,9 @@ interface DecryptedTextProps {
 
 const DEFAULT_CHARS = '!@#$%^&*()_+-=[]{}|;:,.<>?/\\01ABCDEF';
 
+// Scrambled glyph pairs (e.g. "->", "!=") must not fuse into mono ligatures.
+const VISUAL_STYLE = { fontVariantLigatures: 'none' } as const;
+
 /**
  * Reveals `text` one character at a time after picking random glyphs as
  * placeholders. Cheap on render: one setState per tick, ~N ticks total
@@ -123,39 +126,48 @@ export default function DecryptedText({
     };
   }, []);
 
+  // The accessible name is a real text node (aria-label on a role-less span is
+  // not reliably announced); the animated glyphs are hidden as one block.
+  const srText = text.replace(/\n/g, ' ');
+
   if (reduced) {
     return (
-      <span className={parentClassName} aria-label={text}>
-        {text.split('').map((char, idx) =>
-          char === '\n' ? (
-            <br key={idx} aria-hidden="true" />
-          ) : (
-            <span key={idx} className={className} aria-hidden="true">
-              {char}
-            </span>
-          ),
-        )}
+      <span className={parentClassName}>
+        <span className="sr-only">{srText}</span>
+        <span aria-hidden="true" style={VISUAL_STYLE}>
+          {text.split('').map((char, idx) =>
+            char === '\n' ? (
+              <br key={idx} />
+            ) : (
+              <span key={idx} className={className}>
+                {char}
+              </span>
+            ),
+          )}
+        </span>
       </span>
     );
   }
 
   return (
-    <span ref={containerRef} className={parentClassName} aria-label={text}>
-      {displayText.split('').map((char, idx) => {
-        if (char === '\n') return <br key={idx} aria-hidden="true" />;
-        const revealed = char === text[idx] || char === ' ';
-        return (
-          <span
-            key={idx}
-            aria-hidden="true"
-            className={
-              revealed ? className : `${className} ${encryptedClassName}`.trim()
-            }
-          >
-            {char}
-          </span>
-        );
-      })}
+    <span ref={containerRef} className={parentClassName}>
+      <span className="sr-only">{srText}</span>
+      <span aria-hidden="true" style={VISUAL_STYLE}>
+        {displayText.split('').map((char, idx) => {
+          if (char === '\n') return <br key={idx} />;
+          const revealed = char === text[idx] || char === ' ';
+          return (
+            <span
+              key={idx}
+              className={
+                revealed ? className : `${className} ${encryptedClassName}`.trim()
+              }
+            >
+              {char}
+            </span>
+          );
+        })}
+      </span>
     </span>
   );
 }

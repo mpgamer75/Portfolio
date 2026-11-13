@@ -179,6 +179,9 @@ export default function Folder({
             return (
               <motion.div
                 key={i}
+                // Closed papers sit behind the cover: keep their project
+                // buttons out of the tab order and the accessibility tree.
+                inert={!open}
                 animate={{
                   transform: open ? openTransform : closedTransform,
                 }}

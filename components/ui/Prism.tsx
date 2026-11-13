@@ -1,9 +1,19 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { Renderer, Triangle, Program, Mesh } from 'ogl';
-import { useIsMobile } from '@/hooks/useIsMobile';
+
+// Fragment budget for the 60-step raymarch. The prism is a soft, bloomed shape,
+// so it is rendered at no more than this many pixels and upscaled by the
+// browser; a 4K window costs the same as a 1536x864 one.
+const MAX_PIXELS = 1536 * 864;
+// One-way fallback budget when the first second of frames is slow.
+const LOW_PIXELS = 1280 * 720;
+const GUARD_SKIP_FRAMES = 20; // ignore load/shader-compile jank
+const GUARD_SAMPLE_FRAMES = 40;
+const GUARD_MAX_DELTA_MS = 100; // tab switches / long tasks are not GPU cost
+const GUARD_SLOW_MEDIAN_MS = 20;
 
 interface PrismProps {
   height?: number;
@@ -25,6 +35,9 @@ interface PrismProps {
    *  offscreen. Pointed at the hero, the GPU idles once you scroll into
    *  content. Falls back to the container when omitted. */
   activeSelector?: string;
+  /** Pointer parallax for the 'rotate' animation, in radians at the viewport
+   *  edge. 0 (default) disables it and adds no listener. */
+  parallax?: number;
 }
 
 const Prism = ({
@@ -44,62 +57,61 @@ const Prism = ({
   suspendWhenOffscreen = false,
   timeScale = 0.5,
   activeSelector,
+  parallax = 0,
 }: PrismProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const isMobile = useIsMobile();
   const reduced = useReducedMotion();
+  // Bumped after a restored WebGL context: every GL resource is gone at that
+  // point, so the effect below is simply re-run to rebuild the renderer.
+  const [generation, setGeneration] = useState(0);
 
   useEffect(() => {
     const container = containerRef.current;
     // Honor prefers-reduced-motion: skip the WebGL animation entirely.
     if (!container || reduced) return;
 
-    // Adjust parameters for mobile
-    const mobileScale = isMobile ? scale * 0.6 : scale;
-    const mobileGlow = isMobile ? glow * 0.7 : glow;
-    const mobileBloom = isMobile ? bloom * 0.8 : bloom;
-
     const H = Math.max(0.001, height);
     const BW = Math.max(0.001, baseWidth);
     const BASE_HALF = BW * 0.5;
-    const GLOW = Math.max(0.0, mobileGlow);
+    const GLOW = Math.max(0.0, glow);
     const NOISE = Math.max(0.0, noise);
     const offX = offset?.x ?? 0;
     const offY = offset?.y ?? 0;
     const SAT = transparent ? 1.5 : 1;
-    const SCALE = Math.max(0.001, mobileScale);
+    const SCALE = Math.max(0.001, scale);
     const HUE = hueShift || 0;
     const CFREQ = Math.max(0.0, colorFrequency || 1);
-    const BLOOM = Math.max(0.0, mobileBloom);
+    const BLOOM = Math.max(0.0, bloom);
     const RSX = 1;
     const RSY = 1;
     const RSZ = 1;
     const TS = Math.max(0, timeScale || 1);
     const HOVSTR = Math.max(0, hoverStrength || 1);
     const INERT = Math.max(0, Math.min(1, inertia || 0.12));
+    const PARALLAX = Math.max(0, Math.min(0.5, parallax || 0));
 
-    // Render at 1× even on hi-DPI desktops: the prism is a soft, bloomed shape
-    // where extra device pixels aren't perceptible but roughly double the
-    // fragment-shader cost. A large, near-invisible performance win.
-    const dpr = 1;
+    // Render at 1x at most (never device pixels) and without MSAA: the scene is
+    // one fullscreen triangle, so antialiasing buys nothing. resize() lowers the
+    // ratio further on large windows to stay inside the pixel budget.
     const renderer = new Renderer({
-      dpr,
+      dpr: 1,
       alpha: transparent,
-      antialias: !isMobile,
+      antialias: false,
     });
     const gl = renderer.gl;
+    const canvas = gl.canvas;
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.CULL_FACE);
     gl.disable(gl.BLEND);
 
-    Object.assign(gl.canvas.style, {
+    Object.assign(canvas.style, {
       position: 'absolute',
       inset: '0',
       width: '100%',
       height: '100%',
       display: 'block',
     });
-    container.appendChild(gl.canvas);
+    container.appendChild(canvas);
 
     const vertex = /* glsl */ `
       attribute vec2 position;
@@ -263,18 +275,24 @@ const Prism = ({
     });
     const mesh = new Mesh(gl, { geometry, program });
 
+    let maxPixels = MAX_PIXELS;
+    let contextLost = false;
     const resize = () => {
       const w = container.clientWidth || 1;
       const h = container.clientHeight || 1;
+      // Cap the backing store: ogl's setSize multiplies by renderer.dpr, so a
+      // ratio below 1 renders fewer pixels and CSS stretches the canvas back.
+      renderer.dpr = Math.min(1, Math.sqrt(maxPixels / (w * h)));
       renderer.setSize(w, h);
       iResBuf[0] = gl.drawingBufferWidth;
       iResBuf[1] = gl.drawingBufferHeight;
-      offsetPxBuf[0] = offX * dpr;
-      offsetPxBuf[1] = offY * dpr;
+      offsetPxBuf[0] = offX * renderer.dpr;
+      offsetPxBuf[1] = offY * renderer.dpr;
       program.uniforms.uPxScale.value =
         1 / ((gl.drawingBufferHeight || 1) * 0.1 * SCALE);
     };
     const ro = new ResizeObserver(() => {
+      if (contextLost) return;
       resize();
       // If we're frozen (RAF stopped while scrolled past the hero), repaint a
       // single frame so a resize doesn't leave the canvas stretched/blank.
@@ -322,9 +340,17 @@ const Prism = ({
 
     const NOISE_IS_ZERO = NOISE < 1e-6;
     let raf = 0;
-    const t0 = performance.now();
+    // Shader time only advances while the loop runs, so freezing off the hero
+    // and resuming later continues from the same phase instead of jumping by
+    // however long the page sat scrolled away.
+    let elapsed = 0;
+    let last = 0;
+    // Whether the watched element is on screen; nothing may start the loop
+    // while it is not.
+    let visible = false;
     const startRAF = () => {
-      if (raf) return;
+      if (raf || contextLost || !visible) return;
+      last = 0;
       raf = requestAnimationFrame(render);
     };
     const stopRAF = () => {
@@ -367,7 +393,7 @@ const Prism = ({
     };
 
     let onPointerMove: ((e: PointerEvent) => void) | null = null;
-    if (animationType === 'hover' && !isMobile) {
+    if (animationType === 'hover') {
       onPointerMove = (e) => {
         onMove(e);
         startRAF();
@@ -380,15 +406,50 @@ const Prism = ({
       program.uniforms.uUseBaseWobble.value = 0;
     } else {
       program.uniforms.uUseBaseWobble.value = 1;
+      if (PARALLAX > 0) {
+        // Parallax only writes two numbers; it never starts the loop, so a
+        // frozen prism stays frozen however much the pointer moves.
+        onPointerMove = (e) => {
+          if (e.pointerType === 'mouse') onMove(e);
+        };
+        window.addEventListener('pointermove', onPointerMove, { passive: true });
+      }
     }
 
+    // One-shot adaptive guard: median frame time over the first frames.
+    let guardSkip = GUARD_SKIP_FRAMES;
+    let guardDone = false;
+    const guardSamples: number[] = [];
+
     const render = (t: number) => {
-      const time = (t - t0) * 0.001;
+      const deltaMs = last ? t - last : 0;
+      last = t;
+      const dt = Math.min(0.05, Math.max(0, deltaMs) * 0.001);
+      elapsed += dt;
+      const time = elapsed;
       program.uniforms.iTime.value = time;
+
+      if (!guardDone && deltaMs > 0 && deltaMs <= GUARD_MAX_DELTA_MS) {
+        if (guardSkip > 0) {
+          guardSkip -= 1;
+        } else {
+          guardSamples.push(deltaMs);
+          if (guardSamples.length >= GUARD_SAMPLE_FRAMES) {
+            guardDone = true;
+            guardSamples.sort((a, b) => a - b);
+            const mid = guardSamples.length >> 1;
+            const median = (guardSamples[mid - 1] + guardSamples[mid]) * 0.5;
+            if (median > GUARD_SLOW_MEDIAN_MS && maxPixels > LOW_PIXELS) {
+              maxPixels = LOW_PIXELS; // once, never back up
+              resize();
+            }
+          }
+        }
+      }
 
       let continueRAF = true;
 
-      if (animationType === 'hover' && !isMobile) {
+      if (animationType === 'hover') {
         const maxPitch = 0.6 * HOVSTR;
         const maxYaw = 0.6 * HOVSTR;
         targetYaw = (pointer.inside ? -pointer.x : 0) * maxYaw;
@@ -414,6 +475,13 @@ const Prism = ({
         pitch = Math.sin(tScaled * wX + phX) * 0.6;
         roll = Math.sin(tScaled * wZ + phZ) * 0.5;
         program.uniforms.uRot.value = setMat3FromEuler(yaw, pitch, roll, rotBuf);
+        if (TS < 1e-6) continueRAF = false;
+      } else if (PARALLAX > 0) {
+        // Ease toward the pointer with a frame-rate independent factor.
+        const k = 1 - Math.exp(-dt * 3);
+        yaw += (-pointer.x * PARALLAX - yaw) * k;
+        pitch += (pointer.y * PARALLAX - pitch) * k;
+        program.uniforms.uRot.value = setMat3FromEuler(yaw, pitch, 0, rotBuf);
         if (TS < 1e-6) continueRAF = false;
       } else {
         rotBuf[0] = 1;
@@ -446,26 +514,42 @@ const Prism = ({
       (activeSelector && document.querySelector(activeSelector)) || container;
     if (suspendWhenOffscreen || activeSelector) {
       intersectionObserver = new IntersectionObserver((entries) => {
-        const vis = entries.some((e) => e.isIntersecting);
-        if (vis) startRAF();
+        visible = entries.some((e) => e.isIntersecting);
+        if (visible) startRAF();
         else stopRAF();
       });
       intersectionObserver.observe(watched);
     } else {
+      visible = true;
       startRAF();
     }
+
+    // A lost context (GPU reset, driver update, too many contexts) must not
+    // leave a loop drawing into nothing. preventDefault allows a restore; on
+    // restore the whole effect is rebuilt, since every GL object is invalid.
+    const onContextLost = (e: Event) => {
+      e.preventDefault();
+      contextLost = true;
+      stopRAF();
+    };
+    const onContextRestored = () => setGeneration((g) => g + 1);
+    canvas.addEventListener('webglcontextlost', onContextLost);
+    canvas.addEventListener('webglcontextrestored', onContextRestored);
 
     return () => {
       stopRAF();
       ro.disconnect();
-      if (animationType === 'hover' && onPointerMove) {
+      if (onPointerMove) {
         window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('mouseleave', onLeave);
         window.removeEventListener('blur', onBlur);
       }
       intersectionObserver?.disconnect();
-      if (gl.canvas.parentElement === container)
-        container.removeChild(gl.canvas);
+      canvas.removeEventListener('webglcontextlost', onContextLost);
+      canvas.removeEventListener('webglcontextrestored', onContextRestored);
+      if (canvas.parentElement === container) container.removeChild(canvas);
+      // Release the GPU context now instead of waiting for garbage collection.
+      gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
   }, [
     height,
@@ -485,8 +569,9 @@ const Prism = ({
     bloom,
     suspendWhenOffscreen,
     activeSelector,
-    isMobile,
+    parallax,
     reduced,
+    generation,
   ]);
 
   // Static, calm fallback when motion is reduced — a faint accent wash

@@ -35,24 +35,40 @@ interface ProjectPreviewProps {
 /**
  * The preview surface for a project: the first screenshot (blur-up) when available,
  * otherwise an on-brand generated card (solid emerald tint + lead tech). Must sit in
- * a `relative`, sized parent.
+ * a `relative`, sized parent (the grid card gives it a fixed-aspect slot).
+ *
+ * Screenshots are cropped from the top (`object-cover object-top`) so every card
+ * is filled edge to edge, then tucked into the palette with a static 1px inner
+ * border and a bottom fade to the page colour. Both overlays are static.
  */
 export default function ProjectPreview({ project, isMobile, priority, dense }: ProjectPreviewProps) {
   const hasImage = !!project.imagePaths && project.imagePaths.length > 0;
 
   if (hasImage) {
     return (
-      <Image
-        src={project.imagePaths![0]}
-        alt=""
-        fill
-        className="object-contain p-1"
-        sizes="(max-width: 640px) 50vw, 320px"
-        priority={priority}
-        quality={isMobile ? 50 : 75}
-        placeholder="blur"
-        blurDataURL={BLUR_DATA_URL}
-      />
+      <>
+        <Image
+          src={project.imagePaths![0]}
+          alt=""
+          fill
+          className="object-cover object-top"
+          // Grid: 1 column on phones, 2 from `sm`, 3 inside max-w-5xl from `lg`.
+          // Folder papers are ~90 layout px scaled up to 3x.
+          sizes={
+            dense
+              ? '280px'
+              : '(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 340px'
+          }
+          priority={priority}
+          quality={isMobile ? 50 : 75}
+          placeholder="blur"
+          blurDataURL={BLUR_DATA_URL}
+        />
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-cyber-darker/80 via-transparent to-transparent shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+        />
+      </>
     );
   }
 

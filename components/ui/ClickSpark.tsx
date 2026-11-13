@@ -18,11 +18,14 @@ interface Spark {
   startTime: number;
 }
 
+const MAX_DPR = 1.5;
+
 /**
  * Lightweight global click effect: a fullscreen pointer-events:none canvas
- * that listens only for `pointerdown` events. Each click spawns N short
- * radial spark lines that fade in ~400 ms. The rAF loop is only active
- * while at least one spark is alive — between clicks the canvas is idle.
+ * that listens only for `pointerdown` events. Each mouse/pen click spawns N
+ * short radial spark lines that fade in ~400 ms. The rAF loop is only active
+ * while at least one spark is alive; between clicks the canvas is
+ * `display: none`, so no fullscreen layer sits on top of the page.
  *
  * Honors prefers-reduced-motion (renders nothing).
  */
@@ -45,29 +48,36 @@ export default function ClickSpark({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-
-    const resize = () => {
+    // The backing store is only (re)allocated when a spark is about to be
+    // drawn; a resize while idle just marks it stale.
+    let sized = false;
+    const applySize = () => {
+      const dpr = Math.min(MAX_DPR, window.devicePixelRatio || 1);
       const { innerWidth, innerHeight } = window;
-      canvas.width = innerWidth * dpr;
-      canvas.height = innerHeight * dpr;
+      canvas.width = Math.round(innerWidth * dpr);
+      canvas.height = Math.round(innerHeight * dpr);
       canvas.style.width = `${innerWidth}px`;
       canvas.style.height = `${innerHeight}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      sized = true;
     };
-    resize();
-    window.addEventListener('resize', resize, { passive: true });
+    const onResize = () => {
+      if (rafRef.current !== null) applySize();
+      else sized = false;
+    };
+    window.addEventListener('resize', onResize, { passive: true });
 
     const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
     const draw = (now: number) => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
       sparks.current = sparks.current.filter((spark) => {
         const elapsed = now - spark.startTime;
         const progress = elapsed / duration;
         if (progress >= 1) return false;
 
-        const eased = easeOutCubic(progress);
+        // rAF timestamps can precede the pointerdown's performance.now().
+        const eased = easeOutCubic(Math.max(0, progress));
         const distance = eased * sparkRadius;
         const lineLen = sparkSize * (1 - eased);
 
@@ -92,10 +102,14 @@ export default function ClickSpark({
         rafRef.current = requestAnimationFrame(draw);
       } else {
         rafRef.current = null;
+        canvas.style.display = 'none';
       }
     };
 
-    const onClick = (event: PointerEvent) => {
+    const onPointerDown = (event: PointerEvent) => {
+      // Primary button only, and no sparks under a finger: on touch the tap
+      // target is hidden by the finger and the effect only costs frames.
+      if (event.button !== 0 || event.pointerType === 'touch') return;
       // Buttons get their own dedicated click FX (ButtonFX); skip the ambient
       // cursor spark there so the two effects don't compete.
       const el = event.target as HTMLElement | null;
@@ -110,30 +124,34 @@ export default function ClickSpark({
         });
       }
       if (rafRef.current === null) {
+        if (!sized) applySize();
+        canvas.style.display = 'block';
         rafRef.current = requestAnimationFrame(draw);
       }
     };
 
-    window.addEventListener('pointerdown', onClick);
+    window.addEventListener('pointerdown', onPointerDown, { passive: true });
     return () => {
-      window.removeEventListener('resize', resize);
-      window.removeEventListener('pointerdown', onClick);
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('pointerdown', onPointerDown);
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
       sparks.current = [];
+      canvas.style.display = 'none';
     };
   }, [duration, reduced, sparkColor, sparkCount, sparkRadius, sparkSize]);
 
   // Always render the (inert) canvas: the server can't know the user's motion
   // preference, so returning null here under reduced motion produced a
-  // hydration mismatch. The effect above simply never draws in that case.
+  // hydration mismatch. The effect above simply never shows it in that case.
   return (
     <canvas
       ref={canvasRef}
       aria-hidden="true"
       className="pointer-events-none fixed inset-0 z-spark"
+      style={{ display: 'none' }}
     />
   );
 }

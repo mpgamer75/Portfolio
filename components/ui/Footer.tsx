@@ -10,8 +10,10 @@ export default function Footer() {
     // re-blurred on every scroll frame — the same jank source the cards dropped.
     // Extra bottom padding on phones keeps the copyright clear of the floating
     // back-to-top button.
-    <footer className="relative border-t border-cyber-primary/20 bg-cyber-darker/90 pb-16 md:pb-0">
-      <h2 className="sr-only">Site footer</h2>
+    <footer
+      aria-label="Site footer"
+      className="relative border-t border-cyber-primary/20 bg-cyber-darker/90 pb-16 md:pb-0"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
         {/* Middle column is auto-sized so the six links stay on one line at 1440. */}
         <div className="grid gap-8 md:grid-cols-[1fr_auto_1fr] items-start">
@@ -21,7 +23,7 @@ export default function Footer() {
               {'<CL />'}
             </a>
             <p className="mt-2 font-mono text-cyber-accent text-xs sm:text-sm">
-              Cybersecurity Engineer · Paris, France
+              Cybersecurity Consultant · Paris, France
             </p>
           </div>
 
@@ -58,11 +60,10 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-8 pt-5 border-t border-cyber-primary/10 flex flex-col sm:flex-row items-center justify-between gap-2 text-center">
+        <div className="mt-8 pt-5 border-t border-cyber-primary/10 text-center md:text-left">
           <p className="text-cyber-accent text-xs sm:text-sm">
             © {currentYear} Charles Lantigua Jorge. All rights reserved.
           </p>
-          <p className="text-cyber-accent/70 text-xs font-mono">v1.2.0</p>
         </div>
       </div>
     </footer>

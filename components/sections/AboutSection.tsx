@@ -1,44 +1,29 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { MapPin, GraduationCap } from 'lucide-react';
+import { MapPin, Briefcase, GraduationCap } from 'lucide-react';
 import Image from 'next/image';
 import CountUp from '@/components/ui/CountUp';
-import DecryptedText from '@/components/ui/DecryptedText';
+import { Reveal } from '@/components/ui/Reveal';
+import SectionHeading from '@/components/ui/SectionHeading';
 import { BLUR_DATA_URL } from '@/lib/images';
 
 export default function AboutSection() {
   return (
     <section id="about" className="relative py-12 sm:py-16 md:py-20">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 cyber-scan text-cyber-primary">
-            <DecryptedText text="About Me" animateOn="view" speed={45} encryptedClassName="text-cyber-brand/70" />
-          </h2>
-          <div className="w-20 sm:w-24 h-1 bg-cyber-primary mx-auto mb-8 sm:mb-12 md:mb-16 cyber-neon" />
+        <div>
+          <Reveal>
+            <SectionHeading text="About Me" speed={45} className="mb-8 sm:mb-12 md:mb-16" />
+          </Reveal>
 
           <div className="grid md:grid-cols-2 gap-8 sm:gap-10 md:gap-12 items-center">
             {/* Image container */}
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="relative order-2 md:order-1"
-            >
+            <Reveal className="relative order-2 md:order-1">
               <div className="relative w-full aspect-square max-w-sm sm:max-w-md mx-auto group">
                 {/* Decorative border with hover effect - Optimized */}
                 <div
                   className="decorative-border absolute inset-0 border-2 border-cyber-brand/60 rounded-lg smooth-transition group-hover:border-cyber-brand"
-                  style={{
-                    transform: 'translate(12px, 12px)',
-                    willChange: 'transform',
-                  }}
+                  style={{ transform: 'translate(12px, 12px)' }}
                 />
 
                 {/* Image container with hover effects - Performance optimized */}
@@ -55,10 +40,7 @@ export default function AboutSection() {
                   {/* Image with optimized zoom effect */}
                   <div
                     className="relative w-full h-full overflow-hidden"
-                    style={{
-                      transform: 'translateZ(0)',
-                      willChange: 'transform',
-                    }}
+                    style={{ transform: 'translateZ(0)' }}
                   >
                     <Image
                       src="/images/hero/photo_hero.jpg"
@@ -92,19 +74,13 @@ export default function AboutSection() {
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </Reveal>
 
             {/* Content */}
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              className="space-y-4 sm:space-y-6 order-1 md:order-2"
-            >
+            <Reveal className="space-y-4 sm:space-y-6 order-1 md:order-2">
               <p className="text-base sm:text-lg text-white leading-relaxed font-medium">
-                Computer Science &amp; Cybersecurity Engineering student at ECE Paris — I
-                specialize in{' '}
+                Cybersecurity consultant at HeadMind Partners in Paris, trained in Computer
+                Science &amp; Cybersecurity Engineering at ECE Paris — I specialize in{' '}
                 <span className="text-cyber-brand font-semibold">offensive security</span>,{' '}
                 <span className="text-cyber-brand font-semibold">tool development</span> and{' '}
                 <span className="text-cyber-brand font-semibold">threat analysis</span>.
@@ -121,8 +97,17 @@ export default function AboutSection() {
                 </div>
 
                 <div className="flex items-center space-x-3 text-white">
+                  <Briefcase className="text-cyber-primary flex-shrink-0" size={20} />
+                  <span className="font-medium text-sm sm:text-base">
+                    Cybersecurity Consultant · HeadMind Partners
+                  </span>
+                </div>
+
+                <div className="flex items-center space-x-3 text-white">
                   <GraduationCap className="text-cyber-primary flex-shrink-0" size={20} />
-                  <span className="font-medium text-sm sm:text-base">Master&apos;s Student - ECE Paris</span>
+                  <span className="font-medium text-sm sm:text-base">
+                    ECE Paris · Cybersecurity Engineering
+                  </span>
                 </div>
               </div>
 
@@ -159,17 +144,34 @@ export default function AboutSection() {
                     </span>
                   </a>
                 </li>
+                <li>
+                  <a
+                    href="#skills"
+                    className="group inline-flex min-h-[44px] items-baseline gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand focus-visible:ring-offset-2 focus-visible:ring-offset-cyber-darker"
+                    aria-label="3 certifications — jump to my skills and certifications"
+                  >
+                    <span aria-hidden="true" className="text-cyber-brand">&gt;</span>
+                    <span className="text-2xl sm:text-3xl font-bold text-cyber-primary tabular-nums">
+                      <CountUp value={3} />
+                    </span>
+                    <span className="text-cyber-accent transition-colors group-hover:text-cyber-primary">
+                      certifications <span aria-hidden="true">→</span>
+                    </span>
+                  </a>
+                </li>
                 <li className="inline-flex min-h-[44px] items-baseline gap-2.5">
                   <span aria-hidden="true" className="text-cyber-brand">&gt;</span>
-                  <span className="text-2xl sm:text-3xl font-bold text-cyber-primary">3</span>
+                  <span className="text-2xl sm:text-3xl font-bold text-cyber-primary tabular-nums">
+                    <CountUp value={3} />
+                  </span>
                   <span className="text-cyber-accent">
                     languages <span className="text-cyber-secondary">· French, Spanish, English</span>
                   </span>
                 </li>
               </ul>
-            </motion.div>
+            </Reveal>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

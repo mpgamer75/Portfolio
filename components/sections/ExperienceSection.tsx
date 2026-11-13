@@ -1,153 +1,196 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { Briefcase, MapPin, Calendar } from 'lucide-react';
-import DecryptedText from '@/components/ui/DecryptedText';
+import { MapPin, Calendar } from 'lucide-react';
+import { Reveal } from '@/components/ui/Reveal';
+import SectionHeading from '@/components/ui/SectionHeading';
+import SpotlightCard from '@/components/ui/SpotlightCard';
+import { jobs, type Job } from './experienceData';
+
+const currentJob = jobs.find((job) => job.current);
+const pastJobs = jobs.filter((job) => !job.current);
+
+const jobKey = (job: Job) => `${job.company}-${job.period}`;
+
+function TypeChip({ type }: { type: Job['type'] }) {
+  return (
+    <span className="flex-shrink-0 rounded-md border border-cyber-primary/20 px-2 py-0.5 font-mono text-[11px] leading-5 text-cyber-accent">
+      {type}
+    </span>
+  );
+}
+
+function Highlights({ items }: { items: string[] }) {
+  if (items.length === 0) return null;
+  return (
+    <ul className="space-y-2">
+      {items.map((item) => (
+        <li
+          key={item}
+          className="flex items-start text-sm sm:text-[15px] leading-relaxed text-cyber-secondary"
+        >
+          <span aria-hidden="true" className="mr-2 flex-shrink-0 text-cyber-brand2">
+            ▹
+          </span>
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Full-width card for the role held today. Reads as complete with no highlights. */
+function CurrentRoleCard({ job }: { job: Job }) {
+  return (
+    <SpotlightCard
+      as="article"
+      aria-labelledby="current-role-title"
+      className="cyber-card rounded-lg"
+      // .cyber-card's border colour is unlayered CSS, so a utility cannot tint
+      // it; the emerald resting border and static glow are set inline.
+      style={{
+        borderColor: 'color-mix(in srgb, var(--accent) 50%, transparent)',
+        boxShadow: 'var(--glow-primary)',
+      }}
+    >
+      <div className="flex items-center justify-between gap-3 rounded-t-lg border-b border-cyber-brand/20 bg-cyber-brand/5 px-4 py-2.5 sm:px-6 md:px-8">
+        <span className="font-mono text-xs text-cyber-brand">&gt; current_role</span>
+        <span className="inline-flex items-center gap-2 rounded-full border border-cyber-brand/50 px-2.5 py-0.5 font-mono text-xs text-cyber-brand">
+          <span aria-hidden="true" className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full rounded-full bg-cyber-brand/60 animate-ping" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-cyber-brand" />
+          </span>
+          Now
+        </span>
+      </div>
+
+      <div className="p-4 sm:p-6 md:p-8">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <h3
+            id="current-role-title"
+            className="text-xl font-bold text-white break-words sm:text-2xl"
+          >
+            {job.title}
+          </h3>
+          <TypeChip type={job.type} />
+        </div>
+        <p className="mt-1 font-mono text-sm text-cyber-brand sm:text-base">{job.company}</p>
+
+        <div className="mt-4 flex flex-col gap-2 text-sm text-cyber-accent sm:flex-row sm:flex-wrap sm:gap-x-6">
+          <span className="inline-flex items-center gap-2">
+            <MapPin size={14} className="flex-shrink-0 text-cyber-primary" aria-hidden="true" />
+            <span className="break-words">{job.location}</span>
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <Calendar size={14} className="flex-shrink-0 text-cyber-primary" aria-hidden="true" />
+            <span>{job.period}</span>
+          </span>
+        </div>
+
+        {job.summary && (
+          <p className="mt-4 max-w-3xl text-sm leading-relaxed text-cyber-secondary sm:text-[15px]">
+            {job.summary}
+          </p>
+        )}
+
+        {job.highlights.length > 0 && (
+          <div className="mt-4">
+            <Highlights items={job.highlights} />
+          </div>
+        )}
+      </div>
+    </SpotlightCard>
+  );
+}
 
 export default function ExperienceSection() {
-  const jobs = [
-    {
-      title: 'Cybersecurity Engineer Intern',
-      company: 'Airbus Helicopters',
-      location: 'Marignane, France',
-      period: 'March 2026 - Present',
-      description: [
-        'Contribution to vulnerability management operations within a transverse security team (SOC, Endpoint Protection, Architecture): asset inventory integration (CMDB), automated data collection and classification covering workstations, servers, and industrial systems',
-        'Design and implementation of a vulnerability scanning architecture to improve coverage and detection accuracy in the enterprise environment, including OT/IT convergence zones',
-        'Development of predictive data-analytics capabilities: correlation of vulnerability data with asset criticality to prioritize remediation and model cybersecurity impact, applying machine-learning principles',
-        "Development of a real-time dashboard with KPIs and predictive indicators, integrated into the security department's governance framework to drive corrective-action plans",
-      ],
-    },
-    {
-      title: 'Cybersecurity Engineer Intern',
-      company: 'AlticeDo',
-      location: 'Santo Domingo, Dominican Republic',
-      period: 'April 2025 - August 2025',
-      description: [
-        'Security incident response management (SOC) through forensic analysis and advanced response coordination',
-        'Deployment and configuration of Fortinet solutions (FortiGate, FortiMail Cloud, FortiAnalyzer)',
-        'Trellix EDR solutions administration and Active Directory audit report automation',
-        'Threat analysis using OSINT tools',
-      ],
-    },
-    {
-      title: 'Business Discovery Intern',
-      company: 'General Consulate of the Dominican Republic',
-      location: 'Paris, France',
-      period: 'June 2024 - July 2024',
-      description: [
-        'Optimization of administrative workflows through technical solutions implementation',
-        'Document management automation',
-        'Financial and organizational operations analysis',
-      ],
-    },
-    {
-      title: 'Independent Contractor',
-      company: 'Student Pop Platform',
-      location: 'Paris, France',
-      period: 'February 2024 - September 2025',
-      description: [
-        'Event and technical missions for various clients (Coca-Cola, Wild Code School)',
-        'Logistics coordination and Python educational content development',
-      ],
-    },
-  ];
-
   return (
     <section id="experience" className="relative py-12 sm:py-16 md:py-20 bg-cyber-dark/20">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 cyber-scan text-cyber-primary">
-            <DecryptedText text="Professional Experience" animateOn="view" speed={35} encryptedClassName="text-cyber-brand/70" />
-          </h2>
-          <div className="w-20 sm:w-24 h-1 bg-cyber-primary mx-auto mb-8 sm:mb-12 md:mb-16 cyber-neon" />
+        <Reveal>
+          <SectionHeading
+            text="Professional Experience"
+            speed={35}
+            className="mb-8 sm:mb-12 md:mb-16"
+          />
+        </Reveal>
 
-          {/* Timeline */}
-          <div className="relative">
-            {/* Vertical line - hidden on mobile */}
-            <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2 h-full w-0.5 bg-cyber-brand/30" />
+        {currentJob && (
+          <Reveal>
+            <CurrentRoleCard job={currentJob} />
+          </Reveal>
+        )}
 
-            {jobs.map((job, index) => {
-              const isCurrent = job.period.includes('Present');
-              return (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: index % 2 === 0 ? -50 : 50 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6, delay: index * 0.2 }}
-                  className={`relative mb-8 sm:mb-10 md:mb-12 lg:mb-16 ${
-                    index % 2 === 0 ? 'md:pr-[50%] md:mr-8' : 'md:pl-[50%] md:ml-8'
-                  }`}
-                >
-                  {/* Timeline node - hidden on mobile; a 'live' pulse marks the current role */}
-                  <div className="hidden md:flex absolute top-0 left-1/2 -translate-x-1/2 items-center justify-center w-4 h-4 sm:w-5 sm:h-5">
-                    {isCurrent && (
-                      <span
-                        aria-hidden="true"
-                        className="absolute inline-flex h-full w-full rounded-full bg-cyber-brand/50 animate-ping"
-                      />
-                    )}
-                    <span
-                      className={`relative inline-flex rounded-full border-2 sm:border-4 border-cyber-darker w-3 h-3 sm:w-4 sm:h-4 bg-cyber-brand ${
-                        isCurrent
-                          ? 'shadow-[0_0_14px_rgba(52,211,153,0.95)]'
-                          : 'shadow-[0_0_10px_rgba(52,211,153,0.7)]'
-                      }`}
-                    />
-                  </div>
+        {pastJobs.length > 0 && (
+          <>
+            {currentJob && (
+              <div className="mb-6 mt-10 flex items-center gap-4 sm:mb-8 sm:mt-12">
+                <span className="font-mono text-xs tracking-widest text-cyber-accent">
+                  {'// previously'}
+                </span>
+                <span aria-hidden="true" className="h-px flex-1 bg-cyber-primary/10" />
+              </div>
+            )}
 
-                  {/* Card */}
-                  {/* The current role is marked by the pill + live timeline node, plus a
-                      full emerald border tint (not a side stripe). */}
-                  <div className={`cyber-card rounded-lg p-4 sm:p-5 md:p-6 ${isCurrent ? 'border-cyber-brand/50' : ''}`}>
-                    <div className="flex items-start justify-between gap-2 mb-3 sm:mb-4">
-                      <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
-                        <div className="p-1.5 sm:p-2 bg-cyber-brand/10 rounded-lg flex-shrink-0">
-                          <Briefcase className="text-cyber-brand2" size={20} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <h3 className="text-lg sm:text-xl font-bold text-white break-words">{job.title}</h3>
-                          <p className="text-cyber-secondary font-semibold text-sm sm:text-base">{job.company}</p>
-                        </div>
+            {/* Single left rail. The rail (1px at x 7-8) and the 15px nodes
+                (x 0-15) share the wrapper's left edge, so both centre on 7.5px. */}
+            <div className="relative">
+              <span
+                aria-hidden="true"
+                className="absolute bottom-0 left-[7px] top-2 w-px bg-cyber-primary/10"
+              />
+              <span
+                aria-hidden="true"
+                className="rail-draw absolute bottom-0 left-[7px] top-2 w-px bg-cyber-brand/60"
+              />
+
+              <ol className="relative">
+              {pastJobs.map((job) => (
+                <li key={jobKey(job)} className="relative pb-8 pl-8 last:pb-0 sm:pb-10 sm:pl-10">
+                  <span
+                    aria-hidden="true"
+                    className="absolute left-0 top-[3px] h-[15px] w-[15px] rounded-full border-2 border-cyber-brand/70 bg-cyber-darker"
+                  />
+
+                  <Reveal className="md:grid md:grid-cols-[9.5rem_minmax(0,1fr)] md:gap-6">
+                    <p className="mb-2 font-mono text-xs leading-5 text-cyber-accent md:mb-0">
+                      {job.period}
+                    </p>
+
+                    <SpotlightCard className="cyber-card rounded-lg p-4 sm:p-5 md:p-6">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                        <h3 className="text-lg font-bold text-white break-words sm:text-xl">
+                          {job.title}
+                        </h3>
+                        <TypeChip type={job.type} />
                       </div>
-                      {isCurrent && (
-                        <span className="flex-shrink-0 mt-0.5 text-xs font-mono bg-cyber-brand/20 text-cyber-brand border border-cyber-brand/60 rounded-full px-2 py-0.5">
-                          Current
-                        </span>
-                      )}
-                    </div>
+                      <p className="mt-1 text-sm font-semibold text-cyber-secondary sm:text-base">
+                        {job.company}
+                      </p>
 
-                    <div className="space-y-1.5 sm:space-y-2 mb-3 sm:mb-4">
-                      <div className="flex items-center space-x-2 text-cyber-accent text-xs sm:text-sm">
-                        <MapPin size={14} className="text-cyber-primary flex-shrink-0" />
+                      <div className="mb-4 mt-2 flex items-center gap-2 text-xs text-cyber-accent sm:text-sm">
+                        <MapPin
+                          size={14}
+                          className="flex-shrink-0 text-cyber-primary"
+                          aria-hidden="true"
+                        />
                         <span className="break-words">{job.location}</span>
                       </div>
-                      <div className="flex items-center space-x-2 text-cyber-accent text-xs sm:text-sm">
-                        <Calendar size={14} className="text-cyber-primary flex-shrink-0" />
-                        <span>{job.period}</span>
-                      </div>
-                    </div>
 
-                    <ul className="space-y-1.5 sm:space-y-2">
-                      {job.description.map((item, i) => (
-                        <li key={i} className="text-cyber-secondary text-xs sm:text-sm flex items-start">
-                          <span className="text-cyber-brand2 mr-2 mt-0.5 flex-shrink-0">▹</span>
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        </motion.div>
+                      {job.summary && (
+                        <p className="mb-3 text-sm leading-relaxed text-cyber-secondary sm:text-[15px]">
+                          {job.summary}
+                        </p>
+                      )}
+
+                      <Highlights items={job.highlights} />
+                    </SpotlightCard>
+                  </Reveal>
+                </li>
+              ))}
+              </ol>
+            </div>
+          </>
+        )}
       </div>
     </section>
   );

@@ -40,28 +40,39 @@ interface SkillDetailCardProps {
  */
 export default function SkillDetailCard({ data, onClose, onOpenProject }: SkillDetailCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  // Card origin in client px, measured once per pointer entry (not per move).
+  const origin = useRef({ left: 0, top: 0 });
 
-  const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleEnter = () => {
     const el = cardRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    el.style.setProperty('--sx', `${e.clientX - r.left}px`);
-    el.style.setProperty('--sy', `${e.clientY - r.top}px`);
+    origin.current.left = r.left;
+    origin.current.top = r.top;
+  };
+  const handleMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = cardRef.current;
+    if (!el || e.pointerType !== 'mouse') return;
+    el.style.setProperty('--sx', `${e.clientX - origin.current.left}px`);
+    el.style.setProperty('--sy', `${e.clientY - origin.current.top}px`);
   };
 
+  // Vertical centring lives in the motion values (`y: '-50%'`): framer writes an
+  // inline transform, which would override a Tailwind translate utility here.
   return (
     <motion.div
-      key={data.title}
-      initial={{ opacity: 0, x: 28, scale: 0.96 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
-      exit={{ opacity: 0, x: 28, scale: 0.97 }}
+      data-skill-card=""
+      initial={{ opacity: 0, x: 28, y: '-50%', scale: 0.96 }}
+      animate={{ opacity: 1, x: 0, y: '-50%', scale: 1 }}
+      exit={{ opacity: 0, x: 28, y: '-50%', scale: 0.97 }}
       transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-      className="pointer-events-auto absolute right-3 top-1/2 z-20 w-[min(440px,38%)] max-h-[78%] -translate-y-1/2 sm:right-6 lg:right-10"
+      className="pointer-events-auto absolute right-3 top-1/2 z-20 flex max-h-[78%] w-[min(440px,38%)] flex-col sm:right-6 lg:right-10"
     >
       <div
         ref={cardRef}
-        onMouseMove={handleMove}
-        className="relative overflow-hidden rounded-xl border bg-cyber-darker/92 p-6 font-mono shadow-[0_0_40px_rgba(16,185,129,0.14)] lg:p-7"
+        onPointerEnter={handleEnter}
+        onPointerMove={handleMove}
+        className="relative flex min-h-0 flex-col overflow-hidden rounded-xl border bg-cyber-darker/92 font-mono shadow-[0_0_40px_rgba(16,185,129,0.14)]"
         style={{ borderColor: `${data.color}66` }}
       >
         {/* Cursor-tracked spotlight (reactbits SpotlightCard) */}
@@ -73,13 +84,14 @@ export default function SkillDetailCard({ data, onClose, onOpenProject }: SkillD
           }}
         />
 
-        <div className="relative">
+        {/* Single scroller: a long domain list scrolls inside the card, never the page. */}
+        <div className="relative min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain p-6 lg:p-7">
           {/* Close */}
           <button
             type="button"
             onClick={onClose}
             aria-label="Close skill details"
-            className="absolute -right-1 -top-1 flex h-11 w-11 items-center justify-center rounded-full text-cyber-accent transition-colors hover:text-cyber-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand"
+            className="absolute right-5 top-5 z-10 flex h-11 w-11 lg:right-6 lg:top-6 items-center justify-center rounded-full text-cyber-accent transition-colors hover:text-cyber-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand"
           >
             <X size={18} aria-hidden="true" />
           </button>

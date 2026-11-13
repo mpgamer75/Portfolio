@@ -25,16 +25,20 @@ const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ??
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
+const SITE_DESCRIPTION =
+  'Cybersecurity consultant at HeadMind Partners in Paris, focused on vulnerability management, offensive security and security tooling.';
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'Charles Lantigua Jorge | Cybersecurity Engineer & Developer',
+    default: 'Charles Lantigua Jorge | Cybersecurity Consultant',
     template: '%s | Charles Lantigua Jorge',
   },
-  description:
-    'Cybersecurity engineer and software developer specializing in offensive security, pentesting, and tool development.',
+  description: SITE_DESCRIPTION,
   keywords: [
     'cybersecurity',
+    'cybersecurity consultant',
+    'vulnerability management',
     'developer',
     'pentesting',
     'security engineer',
@@ -54,18 +58,16 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en',
-    title: 'Charles Lantigua Jorge | Portfolio',
-    description:
-      'Cybersecurity engineer and software developer specializing in offensive security, pentesting, and tool development.',
+    title: 'Charles Lantigua Jorge | Cybersecurity Consultant',
+    description: SITE_DESCRIPTION,
     siteName: 'Charles Lantigua Jorge',
     // og:image / twitter:image come from app/opengraph-image.tsx (file convention).
   },
   alternates: { canonical: '/' },
   twitter: {
     card: 'summary_large_image',
-    title: 'Charles Lantigua Jorge | Portfolio',
-    description:
-      'Cybersecurity engineer and software developer specializing in offensive security, pentesting, and tool development.',
+    title: 'Charles Lantigua Jorge | Cybersecurity Consultant',
+    description: SITE_DESCRIPTION,
   },
   robots: { index: true, follow: true },
 };
@@ -85,13 +87,13 @@ const personJsonLd = {
   '@type': 'Person',
   name: 'Charles Lantigua Jorge',
   url: siteUrl,
-  jobTitle: 'Cybersecurity Engineer',
-  description:
-    'Cybersecurity engineer and software developer specializing in offensive security, pentesting, and tool development.',
+  jobTitle: 'Cybersecurity Consultant',
+  worksFor: { '@type': 'Organization', name: 'HeadMind Partners' },
+  description: SITE_DESCRIPTION,
   email: 'mailto:charleslantiguajorge@gmail.com',
   address: { '@type': 'PostalAddress', addressLocality: 'Paris', addressCountry: 'FR' },
   alumniOf: { '@type': 'CollegeOrUniversity', name: 'ECE Paris' },
-  knowsAbout: ['Cybersecurity', 'Penetration testing', 'SOC', 'OSINT', 'Python', 'Next.js'],
+  knowsAbout: ['Cybersecurity', 'Vulnerability management', 'Penetration testing', 'SOC', 'OSINT', 'Python', 'Next.js'],
   sameAs: ['https://github.com/mpgamer75', 'https://www.linkedin.com/in/charles-lantigua-jorge'],
 };
 

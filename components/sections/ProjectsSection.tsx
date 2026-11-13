@@ -3,10 +3,11 @@
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { LayoutGrid, FolderOpen, Star } from 'lucide-react';
-import DecryptedText from '@/components/ui/DecryptedText';
 import Folder from '@/components/ui/Folder';
 import ProjectsGrid from '@/components/ui/ProjectsGrid';
 import ProjectPreview from '@/components/ui/ProjectPreview';
+import SectionHeading from '@/components/ui/SectionHeading';
+import { Reveal } from '@/components/ui/Reveal';
 import { useProjectModal } from '@/components/ui/ProjectModalProvider';
 import { projects } from '@/components/sections/projectsData';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -48,7 +49,7 @@ export default function ProjectsSection() {
               <ProjectPreview project={project} isMobile={isMobile} priority={false} dense />
               {project.featured && (
                 <span
-                  className="absolute top-0.5 left-0.5 z-10 flex h-2 w-2 items-center justify-center rounded-sm bg-cyber-brand text-white shadow-[0_0_6px_rgba(52,211,153,0.5)]"
+                  className="absolute top-0.5 left-0.5 z-10 flex h-2 w-2 items-center justify-center rounded-sm bg-cyber-brand text-cyber-darker shadow-[0_0_6px_rgba(52,211,153,0.5)]"
                   aria-hidden="true"
                 >
                   <Star size={5} strokeWidth={3} />
@@ -78,32 +79,25 @@ export default function ProjectsSection() {
           <div className="absolute inset-0 bg-cyber-brand/0 group-hover:bg-cyber-brand/10 transition-colors duration-300 rounded-lg pointer-events-none" />
         </button>
       )),
-    // `index` is unused now that Folder previews never load at priority.
     [isMobile, openProject],
   );
 
   return (
     <section
       id="projects"
-        className="relative py-12 sm:py-16 md:py-20 flex flex-col items-center justify-center px-4"
-      >
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="w-full"
-        >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 cyber-scan text-cyber-primary">
-            <DecryptedText text="Projects" animateOn="view" speed={55} encryptedClassName="text-cyber-brand/70" />
-          </h2>
-          <div className="w-20 sm:w-24 h-1 bg-cyber-primary mx-auto mb-6 sm:mb-8 cyber-neon" />
+      className="relative py-12 sm:py-16 md:py-20 flex flex-col items-center justify-center px-4"
+    >
+      <div className="w-full">
+        {/* Heading + toggle reveal as one small block. The grid cards reveal
+            themselves, so nothing tall ever waits on a single viewport threshold. */}
+        <Reveal>
+          <SectionHeading text="Projects" speed={55} />
 
           {/* View toggle */}
           <div className="flex justify-center mb-8 sm:mb-10">
             <div
               className="inline-flex items-center gap-1 p-1 rounded-lg border border-cyber-primary/20 bg-cyber-darker/60"
-              role="tablist"
+              role="group"
               aria-label="Projects view"
             >
               {([
@@ -115,8 +109,7 @@ export default function ProjectsSection() {
                   <button
                     key={id}
                     type="button"
-                    role="tab"
-                    aria-selected={active}
+                    aria-pressed={active}
                     onClick={() => setView(id)}
                     className={`inline-flex min-h-[44px] items-center gap-1.5 px-4 py-2 rounded-md text-xs sm:text-sm font-mono transition-colors ${
                       active
@@ -131,63 +124,58 @@ export default function ProjectsSection() {
               })}
             </div>
           </div>
+        </Reveal>
 
-          <AnimatePresence mode="wait">
-            {view === 'folder' ? (
-              <motion.div
-                key="folder"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.25 }}
-              >
-                <div className="flex justify-center items-center h-48 sm:h-56 md:h-64">
-                  <motion.div
-                    initial={reduced ? false : { y: 0 }}
-                    whileInView={reduced ? undefined : { y: [0, -8, 0] }}
-                    viewport={{ once: true, amount: 0.6 }}
-                    transition={{ duration: 0.7, delay: 0.5, times: [0, 0.5, 1] }}
-                  >
-                    <Folder color="#34D399" size={isMobile ? 2 : 3} items={folderItems} />
-                  </motion.div>
-                </div>
-
-                <p className="text-center text-cyber-accent text-readable font-mono mt-10 sm:mt-14 text-sm sm:text-base">
-                  <span className="text-cyber-brand">&gt;</span> click the folder to open ·{' '}
-                  {projects.length} highlighted projects · more on GitHub
-                </p>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="grid"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.25 }}
-              >
-                <ProjectsGrid projects={projects} isMobile={isMobile} onOpen={openProject} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="text-center mt-10 sm:mt-12"
-          >
-            <a
-              href="https://github.com/mpgamer75"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="cyber-button inline-block"
-              aria-label="View more projects on GitHub"
+        <AnimatePresence mode="wait">
+          {view === 'folder' ? (
+            <motion.div
+              key="folder"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
             >
-              View more on GitHub
-            </a>
-          </motion.div>
-        </motion.div>
-      </section>
+              <div className="flex justify-center items-center h-48 sm:h-56 md:h-64">
+                <motion.div
+                  initial={reduced ? false : { y: 0 }}
+                  whileInView={reduced ? undefined : { y: [0, -8, 0] }}
+                  viewport={{ once: true, amount: 0.6 }}
+                  transition={{ duration: 0.7, delay: 0.5, times: [0, 0.5, 1] }}
+                >
+                  <Folder color="#34D399" size={isMobile ? 2 : 3} items={folderItems} />
+                </motion.div>
+              </div>
+
+              <p className="text-center text-cyber-accent text-readable font-mono mt-10 sm:mt-14 text-sm sm:text-base">
+                <span className="text-cyber-brand">&gt;</span> click the folder to open ·{' '}
+                {projects.length} highlighted projects · more on GitHub
+              </p>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="grid"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+            >
+              <ProjectsGrid projects={projects} isMobile={isMobile} onOpen={openProject} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <Reveal className="text-center mt-10 sm:mt-12">
+          <a
+            href="https://github.com/mpgamer75"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="cyber-button inline-block"
+            aria-label="View more projects on GitHub"
+          >
+            View more on GitHub
+          </a>
+        </Reveal>
+      </div>
+    </section>
   );
 }

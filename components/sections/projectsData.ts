@@ -1,5 +1,7 @@
 export interface Project {
   title: string;
+  /** Optional short pitch for the grid card. Falls back to `description`. */
+  tagline?: string;
   description: string;
   tech: string[];
   github?: string;

@@ -6,14 +6,16 @@ import { ImageResponse } from 'next/og';
  * cropped it unpredictably and every unfurl downloaded the full JPEG.
  */
 
-export const alt = 'Charles Lantigua Jorge — Cybersecurity Engineer & Developer';
+export const alt = 'Charles Lantigua Jorge — Cybersecurity Consultant at HeadMind Partners';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
 // Same two-line break as the hero h1.
 const NAME_LINES = ['Charles', 'Lantigua Jorge'];
-const ROLE = 'Cybersecurity Engineer & Developer';
-const TAGLINE = 'Offensive-security tooling · SOC automation · Threat detection';
+const ROLE = 'Cybersecurity Consultant';
+// Replaces the old "Hi, I'm" opener, mirroring the hero's status eyebrow.
+const EYEBROW = 'HeadMind Partners · Paris';
+const TAGLINE = 'Vulnerability management · Offensive security · Security tooling';
 // Same base-URL resolution as layout.tsx / sitemap.ts, shown as a bare host.
 const SITE = (
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -103,7 +105,7 @@ export default async function OpenGraphImage() {
         {/* Name + role */}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', fontSize: 26, color: '#B8C0D2', marginBottom: 12 }}>
-            {"Hi, I'm"}
+            {EYEBROW}
           </div>
           <div
             style={{

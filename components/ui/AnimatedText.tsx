@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 interface AnimatedTextProps {
   phrases: string[];
@@ -11,15 +10,29 @@ interface AnimatedTextProps {
   pauseDuration?: number;
 }
 
+const REDUCED_QUERY = '(prefers-reduced-motion: reduce)';
+
+function subscribeReduced(callback: () => void) {
+  const mq = window.matchMedia(REDUCED_QUERY);
+  mq.addEventListener('change', callback);
+  return () => mq.removeEventListener('change', callback);
+}
+const getReduced = () => window.matchMedia(REDUCED_QUERY).matches;
+// The server cannot know the preference; hydrate as "motion allowed" and let
+// React correct it right after, so the markup never mismatches.
+const getReducedServer = () => false;
+
 /**
  * Typewriter that cycles through `phrases`. Cursor blink is CSS-driven
  * (`.animate-blink` in globals.css) so there is no per-second JS interval.
- * The phrase-advance setState is wrapped in setTimeout so it doesn't trip
- * react-hooks/set-state-in-effect.
  *
- * Assistive tech gets the full phrase list once, statically; the animated
- * span is hidden from it. (It used to be `aria-live`, which read every
- * keystroke of every phrase aloud, forever.)
+ * - The first phrase is rendered in full from the server HTML, then the cycle
+ *   starts by deleting it — no empty row before hydration.
+ * - Under prefers-reduced-motion the first phrase stays static, with no cursor
+ *   and no timers (MotionConfig cannot stop JS timers, so this is explicit).
+ * - Timers stop while the element is offscreen or the tab is hidden.
+ * - Assistive tech gets the full phrase list once, statically; the animated
+ *   span is hidden from it.
  */
 export default function AnimatedText({
   phrases,
@@ -28,61 +41,79 @@ export default function AnimatedText({
   deletingSpeed = 50,
   pauseDuration = 2000,
 }: AnimatedTextProps) {
+  const reduced = useSyncExternalStore(subscribeReduced, getReduced, getReducedServer);
   const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
-  const [currentText, setCurrentText] = useState('');
+  const [currentText, setCurrentText] = useState(phrases[0] ?? '');
   const [isDeleting, setIsDeleting] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [active, setActive] = useState(true);
+  const rootRef = useRef<HTMLSpanElement>(null);
+
+  // Run only while the row is on screen and the tab is visible.
+  useEffect(() => {
+    const node = rootRef.current;
+    if (!node || reduced) return;
+
+    let inView = true;
+    const update = () => setActive(inView && document.visibilityState === 'visible');
+
+    const io = new IntersectionObserver((entries) => {
+      for (const entry of entries) inView = entry.isIntersecting;
+      update();
+    });
+    io.observe(node);
+    document.addEventListener('visibilitychange', update);
+    return () => {
+      io.disconnect();
+      document.removeEventListener('visibilitychange', update);
+    };
+  }, [reduced]);
 
   useEffect(() => {
+    if (reduced || !active || phrases.length === 0) return;
     const currentPhrase = phrases[currentPhraseIndex] ?? '';
-
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
+    let timeout: ReturnType<typeof setTimeout>;
 
     if (!isDeleting) {
       if (currentText.length < currentPhrase.length) {
-        timeoutRef.current = setTimeout(() => {
+        timeout = setTimeout(() => {
           setCurrentText(currentPhrase.slice(0, currentText.length + 1));
         }, typingSpeed);
       } else {
-        timeoutRef.current = setTimeout(() => setIsDeleting(true), pauseDuration);
+        timeout = setTimeout(() => setIsDeleting(true), pauseDuration);
       }
     } else if (currentText.length > 0) {
-      timeoutRef.current = setTimeout(() => {
+      timeout = setTimeout(() => {
         setCurrentText(currentText.slice(0, -1));
       }, deletingSpeed);
     } else {
-      // Phrase fully deleted — schedule the next-phrase transition on the
-      // next tick so we don't violate react-hooks/set-state-in-effect.
-      timeoutRef.current = setTimeout(() => {
+      // Phrase fully deleted — move to the next one on the next tick.
+      timeout = setTimeout(() => {
         setIsDeleting(false);
         setCurrentPhraseIndex((prev) => (prev + 1) % phrases.length);
       }, 80);
     }
 
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, [currentText, isDeleting, currentPhraseIndex, phrases, typingSpeed, deletingSpeed, pauseDuration]);
+    return () => clearTimeout(timeout);
+  }, [
+    reduced,
+    active,
+    currentText,
+    isDeleting,
+    currentPhraseIndex,
+    phrases,
+    typingSpeed,
+    deletingSpeed,
+    pauseDuration,
+  ]);
 
   return (
-    <span className={`inline-flex items-center ${className}`}>
+    <span ref={rootRef} className={`inline-flex items-center ${className}`}>
       <span className="sr-only">{phrases.join(' · ')}</span>
       <span aria-hidden="true" className="inline-flex items-center">
-        <AnimatePresence mode="wait">
-          <motion.span
-            key={currentPhraseIndex}
-            initial={{ opacity: 0.8 }}
-            animate={{ opacity: 1 }}
-            className="font-mono"
-          >
-            {currentText}
-          </motion.span>
-        </AnimatePresence>
-        <span className="ml-0.5 font-mono text-cyber-primary animate-blink">|</span>
+        <span className="font-mono">{reduced ? (phrases[0] ?? '') : currentText}</span>
+        {!reduced && (
+          <span className="ml-0.5 font-mono text-cyber-primary animate-blink">|</span>
+        )}
       </span>
     </span>
   );

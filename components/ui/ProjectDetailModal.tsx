@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { motion, useReducedMotion, type PanInfo } from 'framer-motion';
+import { motion, useReducedMotion, type PanInfo, type Variants } from 'framer-motion';
 import { Github, ExternalLink, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import type { Project } from '@/components/sections/projectsData';
 import { BLUR_DATA_URL } from '@/lib/images';
+import { EASE_OUT } from '@/lib/motion';
 
 interface ProjectDetailModalProps {
   project: Project | null;
@@ -14,6 +15,20 @@ interface ProjectDetailModalProps {
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** Details content: one short stagger (opacity + small rise), no scale pops. */
+const detailsContainer: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.04, delayChildren: 0.04 } },
+};
+
+const detailsItem: Variants = {
+  hidden: { opacity: 0, y: 8 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: EASE_OUT } },
+};
+
+const CAROUSEL_BUTTON =
+  'flex h-11 w-11 items-center justify-center rounded-md border border-cyber-primary/20 bg-cyber-darker text-cyber-primary transition-colors hover:border-cyber-brand hover:text-cyber-brand';
 
 export default function ProjectDetailModal({ project, onClose }: ProjectDetailModalProps) {
   const [currentImage, setCurrentImage] = useState(0);
@@ -24,9 +39,12 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
   useEffect(() => {
     if (!project) return;
 
-    previouslyFocused.current = document.activeElement as HTMLElement;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    previouslyFocused.current = document.activeElement as HTMLElement | null;
+    // <html> owns the viewport scroll (it carries overflow-x), so the lock goes
+    // there; `scrollbar-gutter: stable` in globals.css prevents a layout shift.
+    const root = document.documentElement;
+    const previousOverflow = root.style.overflow;
+    root.style.overflow = 'hidden';
 
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -50,16 +68,26 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
       }
 
       if (event.key === 'Tab' && dialogRef.current) {
-        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
-          FOCUSABLE_SELECTOR,
-        );
-        if (focusable.length === 0) return;
+        const dialog = dialogRef.current;
+        const focusable = dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+        if (focusable.length === 0) {
+          event.preventDefault();
+          dialog.focus();
+          return;
+        }
         const first = focusable[0];
         const last = focusable[focusable.length - 1];
-        if (event.shiftKey && document.activeElement === first) {
+        const active = document.activeElement;
+        // Focus escaped the dialog (or sits on the panel itself): pull it back in.
+        if (!dialog.contains(active) || active === dialog) {
+          event.preventDefault();
+          (event.shiftKey ? last : first).focus();
+          return;
+        }
+        if (event.shiftKey && active === first) {
           event.preventDefault();
           last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
+        } else if (!event.shiftKey && active === last) {
           event.preventDefault();
           first.focus();
         }
@@ -67,35 +95,37 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
     };
     window.addEventListener('keydown', handleKey);
 
-    requestAnimationFrame(() => {
-      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-        FOCUSABLE_SELECTOR,
-      );
-      focusable?.[0]?.focus();
+    const raf = requestAnimationFrame(() => {
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const first = dialog.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+      (first ?? dialog).focus();
     });
 
     return () => {
+      cancelAnimationFrame(raf);
       window.removeEventListener('keydown', handleKey);
-      document.body.style.overflow = previousOverflow;
-      previouslyFocused.current?.focus?.();
+      root.style.overflow = previousOverflow;
+      const previous = previouslyFocused.current;
+      if (previous?.isConnected) previous.focus?.();
     };
   }, [project, onClose]);
 
   if (!project) return null;
 
-  const hasImages = !!project.imagePaths && project.imagePaths.length > 0;
-  const hasMultipleImages = hasImages && project.imagePaths!.length > 1;
-  const validImageIndex =
-    currentImage < (project.imagePaths?.length || 0) ? currentImage : 0;
+  const imagePaths = project.imagePaths ?? [];
+  const hasImages = imagePaths.length > 0;
+  const hasMultipleImages = imagePaths.length > 1;
+  const validImageIndex = currentImage < imagePaths.length ? currentImage : 0;
 
   const goNext = () => {
     if (!hasImages) return;
-    setCurrentImage((prev) => (prev === project.imagePaths!.length - 1 ? 0 : prev + 1));
+    setCurrentImage((prev) => (prev >= imagePaths.length - 1 ? 0 : prev + 1));
   };
 
   const goPrev = () => {
     if (!hasImages) return;
-    setCurrentImage((prev) => (prev === 0 ? project.imagePaths!.length - 1 : prev - 1));
+    setCurrentImage((prev) => (prev <= 0 ? imagePaths.length - 1 : prev - 1));
   };
 
   const handleDragEnd = (_event: unknown, info: PanInfo) => {
@@ -109,44 +139,58 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
       className="project-modal-backdrop"
       onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="project-modal-title"
     >
+      {/* The panel is the dialog. On phones it is the single scroller; from md
+          the row below has a fixed height and only the details pane scrolls. */}
       <motion.div
         ref={dialogRef}
-        initial={{ scale: 0.9, opacity: 0 }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="project-modal-title"
+        tabIndex={-1}
+        initial={{ scale: 0.97, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 30 }}
+        exit={{ scale: 0.97, opacity: 0 }}
+        transition={reduced ? { duration: 0 } : { duration: 0.2, ease: EASE_OUT }}
         className="project-modal-content p-0.5 sm:p-1"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Screen-reader announcement for carousel image changes */}
         <div className="sr-only" role="status" aria-live="polite">
-          {hasImages
-            ? `Image ${validImageIndex + 1} of ${project.imagePaths!.length}`
-            : ''}
+          {hasImages ? `Image ${validImageIndex + 1} of ${imagePaths.length}` : ''}
         </div>
 
-        <button
-          onClick={onClose}
-          className="project-modal-close-button"
-          aria-label="Close project details"
-        >
-          <X size={24} className="sm:w-8 sm:h-8" aria-hidden="true" />
-        </button>
+        {/* Zero-height sticky rail: keeps the close button in view while the
+            panel scrolls on phones. The button positions itself against it. */}
+        <div className="sticky top-0 z-20 h-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="project-modal-close-button"
+            aria-label="Close project details"
+          >
+            <X size={20} aria-hidden="true" />
+          </button>
+        </div>
 
-        <div className="flex flex-col md:flex-row h-full w-full overflow-hidden rounded-lg">
+        <div className="flex w-full flex-col overflow-hidden rounded-lg md:h-[min(600px,85dvh)] md:flex-row">
           {/* Carousel */}
-          <div className="w-full md:w-1/2 h-[300px] sm:h-[400px] md:h-auto relative bg-cyber-darker/80 rounded-t-lg md:rounded-l-lg md:rounded-tr-none overflow-hidden group">
+          <div
+            role="group"
+            aria-roledescription="carousel"
+            aria-label={`${project.title} screenshots`}
+            className={`relative flex w-full flex-col overflow-hidden rounded-t-lg bg-cyber-darker/80 md:h-auto md:min-h-0 md:w-1/2 md:rounded-l-lg md:rounded-tr-none ${
+              hasImages ? 'h-[38dvh] min-h-[220px]' : 'h-40'
+            }`}
+          >
             {hasImages ? (
               <>
-                <div className="w-full h-full flex items-center justify-center p-4 sm:p-6 md:p-8">
+                <div className="min-h-0 flex-1 p-4 sm:p-6">
                   <motion.div
-                    className={`relative w-full h-full max-h-[250px] sm:max-h-[350px] md:max-h-[500px] ${
+                    className={`relative h-full w-full ${
                       hasMultipleImages ? 'cursor-grab active:cursor-grabbing' : ''
                     }`}
                     drag={hasMultipleImages ? 'x' : false}
@@ -155,12 +199,12 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
                     onDragEnd={handleDragEnd}
                   >
                     <Image
-                      src={project.imagePaths![validImageIndex]}
+                      src={imagePaths[validImageIndex]}
                       alt={`${project.title} screenshot ${validImageIndex + 1}`}
                       fill
                       className="object-contain pointer-events-none select-none"
                       sizes="(max-width: 768px) 90vw, 45vw"
-                      priority
+                      priority={validImageIndex === 0}
                       placeholder="blur"
                       blurDataURL={BLUR_DATA_URL}
                     />
@@ -168,59 +212,36 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
                 </div>
 
                 {hasMultipleImages && (
-                  <>
+                  <div className="flex flex-shrink-0 items-center justify-center gap-4 border-t border-cyber-primary/15 px-3 py-2">
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        goPrev();
-                      }}
-                      className="absolute top-1/2 left-2 sm:left-4 -translate-y-1/2 bg-cyber-primary/20 backdrop-blur-sm text-cyber-primary p-4 sm:p-3 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 smooth-transition z-10 hover:bg-cyber-primary hover:text-cyber-darker hover:scale-110 border border-cyber-primary/50 scale-on-hover"
+                      type="button"
+                      onClick={goPrev}
+                      className={CAROUSEL_BUTTON}
                       aria-label="Previous image"
                     >
-                      <ChevronLeft size={20} className="sm:w-7 sm:h-7" aria-hidden="true" />
+                      <ChevronLeft size={20} aria-hidden="true" />
                     </button>
+                    <span
+                      aria-hidden="true"
+                      className="min-w-[3.5rem] text-center font-mono text-xs tabular-nums text-cyber-secondary select-none"
+                    >
+                      {validImageIndex + 1} / {imagePaths.length}
+                    </span>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        goNext();
-                      }}
-                      className="absolute top-1/2 right-2 sm:right-4 -translate-y-1/2 bg-cyber-primary/20 backdrop-blur-sm text-cyber-primary p-4 sm:p-3 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 smooth-transition z-10 hover:bg-cyber-primary hover:text-cyber-darker hover:scale-110 border border-cyber-primary/50 scale-on-hover"
+                      type="button"
+                      onClick={goNext}
+                      className={CAROUSEL_BUTTON}
                       aria-label="Next image"
                     >
-                      <ChevronRight size={20} className="sm:w-7 sm:h-7" aria-hidden="true" />
+                      <ChevronRight size={20} aria-hidden="true" />
                     </button>
-                    <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-0.5 sm:gap-1 z-10 bg-cyber-darker/50 backdrop-blur-sm px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full">
-                      {(project.imagePaths || []).map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setCurrentImage(i);
-                          }}
-                          className="w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center rounded-full"
-                          aria-label={`Go to image ${i + 1} of ${project.imagePaths!.length}`}
-                          aria-current={i === validImageIndex ? 'true' : undefined}
-                        >
-                          <span
-                            className={`block rounded-full transition-all duration-300 ${
-                              i === validImageIndex
-                                ? 'w-2.5 h-2.5 sm:w-3 sm:h-3 bg-cyber-brand scale-110 shadow-[0_0_8px_rgba(52,211,153,0.9)]'
-                                : 'w-2 h-2 sm:w-2.5 sm:h-2.5 bg-cyber-primary/40 hover:bg-cyber-primary/70'
-                            }`}
-                          />
-                        </button>
-                      ))}
-                    </div>
-                    <span className="md:hidden absolute bottom-10 sm:bottom-14 left-1/2 -translate-x-1/2 z-10 font-mono text-xs text-cyber-accent/80 select-none pointer-events-none">
-                      ‹ swipe ›
-                    </span>
-                  </>
+                  </div>
                 )}
               </>
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center text-cyber-primary/50 p-4 sm:p-6 md:p-8">
+              <div className="flex h-full w-full flex-col items-center justify-center p-4 text-cyber-primary/50 sm:p-6 md:p-8">
                 <svg
-                  className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 mb-3 sm:mb-4"
+                  className="mb-3 h-12 w-12 sm:mb-4 md:h-24 md:w-24"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -233,18 +254,22 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
                     d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                   />
                 </svg>
-                <p className="text-base sm:text-lg font-mono">No preview available</p>
+                <p className="font-mono text-base sm:text-lg">No preview available</p>
               </div>
             )}
           </div>
 
           {/* Details */}
-          <div className="w-full md:w-1/2 p-4 sm:p-6 md:p-8 flex flex-col overflow-y-auto bg-cyber-dark/90 rounded-b-lg md:rounded-r-lg md:rounded-bl-none max-h-[400px] sm:max-h-[500px] md:max-h-[600px]">
+          <motion.div
+            variants={detailsContainer}
+            initial="hidden"
+            animate="visible"
+            className="flex w-full flex-col rounded-b-lg bg-cyber-dark/90 p-4 sm:p-6 md:min-h-0 md:w-1/2 md:overflow-y-auto md:overscroll-contain md:rounded-r-lg md:rounded-bl-none md:p-8"
+          >
             {project.featured && (
               <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="self-start bg-cyber-brand text-white px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs font-bold mb-3 sm:mb-4 shadow-[0_0_12px_rgba(52,211,153,0.5)]"
+                variants={detailsItem}
+                className="mb-3 self-start rounded-full bg-cyber-brand px-3 py-1 text-xs font-bold text-cyber-darker shadow-[0_0_12px_rgba(52,211,153,0.5)] sm:mb-4 sm:px-4 sm:py-1.5"
               >
                 FEATURED
               </motion.span>
@@ -252,66 +277,52 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
 
             <motion.h3
               id="project-modal-title"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 sm:mb-4"
+              variants={detailsItem}
+              className="mb-3 text-2xl font-bold text-white sm:mb-4 sm:text-3xl md:pr-12 md:text-4xl"
             >
               {project.title}
             </motion.h3>
 
             <motion.p
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="text-cyber-secondary mb-4 sm:mb-6 leading-relaxed flex-grow text-sm sm:text-base"
+              variants={detailsItem}
+              className="mb-4 flex-grow text-sm leading-relaxed text-cyber-secondary sm:mb-6 sm:text-base"
             >
               {project.description}
             </motion.p>
 
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="mb-4 sm:mb-6"
-            >
-              <h4 className="text-xs sm:text-sm font-semibold text-cyber-primary mb-2 sm:mb-3 uppercase tracking-wider">
+            <motion.div variants={detailsItem} className="mb-4 sm:mb-6">
+              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-cyber-primary sm:mb-3 sm:text-sm">
                 Technologies
               </h4>
               <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                {project.tech.map((item, i) => (
-                  <motion.span
-                    key={i}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.4 + i * 0.05 }}
-                    className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-mono bg-cyber-primary/10 text-cyber-primary border border-cyber-primary/30 rounded-full hover:bg-cyber-primary/20 hover:border-cyber-primary transition-all duration-300"
+                {project.tech.map((item) => (
+                  <span
+                    key={item}
+                    className="rounded-md border border-cyber-primary/30 bg-cyber-primary/10 px-2 py-1 font-mono text-xs text-cyber-primary sm:px-3 sm:py-1.5 sm:text-sm"
                   >
                     {item}
-                  </motion.span>
+                  </span>
                 ))}
               </div>
             </motion.div>
 
             <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="mt-auto pt-4 sm:pt-6 border-t border-cyber-primary/20"
+              variants={detailsItem}
+              className="mt-auto border-t border-cyber-primary/20 pt-4 sm:pt-6"
             >
-              <p className="text-xs font-mono text-cyber-accent/80 mb-3" aria-hidden="true">
-                {hasMultipleImages ? 'Swipe or use ←/→ to browse · Esc to close' : 'Esc to close'}
+              <p className="mb-3 hidden font-mono text-xs text-cyber-accent/80 md:block" aria-hidden="true">
+                {hasMultipleImages ? 'Drag or use ←/→ to browse · Esc to close' : 'Esc to close'}
               </p>
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                 {project.github && (
                   <a
                     href={project.github}
                     target="_blank"
                     rel="noopener noreferrer"
                     data-fx="scan"
-                    className="flex items-center justify-center space-x-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-cyber-darker text-cyber-primary border border-cyber-primary/50 rounded-lg hover:bg-cyber-brand hover:text-white hover:border-cyber-brand transition-all duration-300 hover:shadow-[0_0_15px_rgba(52,211,153,0.6)] font-semibold text-sm sm:text-base"
+                    className="flex min-h-[44px] items-center justify-center space-x-2 rounded-lg border border-cyber-primary/50 bg-cyber-darker px-4 py-2 text-sm font-semibold text-cyber-primary transition-colors duration-300 hover:border-cyber-brand hover:bg-cyber-brand hover:text-cyber-darker sm:px-5 sm:py-2.5 sm:text-base"
                   >
-                    <Github size={18} className="sm:w-5 sm:h-5" aria-hidden="true" />
+                    <Github size={18} className="sm:h-5 sm:w-5" aria-hidden="true" />
                     <span>View Code</span>
                   </a>
                 )}
@@ -321,15 +332,15 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
                     target="_blank"
                     rel="noopener noreferrer"
                     data-fx="scan"
-                    className="flex items-center justify-center space-x-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-cyber-brand text-white rounded-lg hover:bg-cyber-brand2 transition-all duration-300 hover:shadow-[0_0_15px_rgba(52,211,153,0.6)] font-semibold text-sm sm:text-base"
+                    className="flex min-h-[44px] items-center justify-center space-x-2 rounded-lg bg-cyber-brand px-4 py-2 text-sm font-semibold text-cyber-darker transition-colors duration-300 hover:bg-cyber-brand2 sm:px-5 sm:py-2.5 sm:text-base"
                   >
-                    <ExternalLink size={18} className="sm:w-5 sm:h-5" aria-hidden="true" />
+                    <ExternalLink size={18} className="sm:h-5 sm:w-5" aria-hidden="true" />
                     <span>Live Demo</span>
                   </a>
                 )}
               </div>
             </motion.div>
-          </div>
+          </motion.div>
         </div>
       </motion.div>
     </motion.div>

@@ -54,7 +54,14 @@ export default function ButtonFX() {
   useEffect(() => {
     if (reduced) return;
 
+    // Overlays are positioned once from the button's viewport rect. If the
+    // page then scrolls (anchor buttons start a smooth scroll) they would hang
+    // in mid-air, so the first scroll after a click drops whatever is active.
+    const clearOnScroll = () => setEffects([]);
+
     const onPointerDown = (event: PointerEvent) => {
+      // Primary button / touch / pen contact only: no FX on middle or right click.
+      if (event.button !== 0) return;
       const target = event.target as HTMLElement | null;
       // `.cyber-button` opts in automatically; `[data-fx="scan"]` lets non
       // cyber-button elements (e.g. the modal's View Code / Live Demo links)
@@ -95,14 +102,21 @@ export default function ButtonFX() {
         },
       ]);
 
+      // One-shot and passive; re-adding the same listener while it is still
+      // armed is a no-op, so rapid clicks never stack listeners.
+      window.addEventListener('scroll', clearOnScroll, { passive: true, once: true });
+
       window.setTimeout(
         () => setEffects((prev) => prev.filter((fx) => fx.id !== id)),
         isDownload ? DOWNLOAD_TTL : SCAN_TTL,
       );
     };
 
-    window.addEventListener('pointerdown', onPointerDown);
-    return () => window.removeEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointerdown', onPointerDown, { passive: true });
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('scroll', clearOnScroll);
+    };
   }, [reduced]);
 
   if (reduced || !hydrated || typeof document === 'undefined') return null;
