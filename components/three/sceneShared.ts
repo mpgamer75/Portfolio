@@ -6,15 +6,20 @@ import * as THREE from 'three';
  * reference, so a single write per frame updates every material at once.
  */
 
-export const FOV = 50;
-export const HOME_Z = 11.5;
+export const FOV = 40;
+export const HOME_Z = 16;
 export const FOCAL_F = 1 / Math.tan(((FOV / 2) * Math.PI) / 180);
 
+/** The orbital plane is tipped this far towards the camera (rad), so we look down on it. */
+export const BASE_TILT = 0.5;
+/** …and the whole system rides this far above the camera axis, which centres the tilted disc. */
+export const SYSTEM_LIFT = 1.3;
+
 /** View-space depth range of the fog ramp at the home camera distance. */
-export const FOG_NEAR = HOME_Z - 3.0;
+export const FOG_NEAR = HOME_Z - 3.5;
 export const FOG_FAR = HOME_Z + 6.5;
 /** Brightness of something at (or beyond) the far end of the ramp. */
-export const FOG_FLOOR = 0.5;
+export const FOG_FLOOR = 0.42;
 
 export const SHARED = {
   uTime: { value: 0 },
@@ -31,9 +36,15 @@ export const SHARED = {
    * A ring of extra brightness expands through the nodes and links from a pin.
    */
   uPing: { value: new THREE.Vector4(0, 0, 0, 0) },
+  /**
+   * Pointer light: xy = pointer in NDC, z = strength (0 while the pointer is
+   * away, dragging, or a detail card is open). Whatever is near the cursor on
+   * screen glows a little brighter, so the graph answers before a hover lands.
+   */
+  uPointer: { value: new THREE.Vector3(0, 0, 0) },
 };
 
-/** GLSL: depth fade shared by the node, link and star shaders (1 near → FOG_FLOOR far). */
+/** GLSL: depth fade shared by the node, link and ring shaders (1 near → FOG_FLOOR far). */
 export const FOG_GLSL = /* glsl */ `
   uniform float uFogNear;
   uniform float uFogFar;
@@ -46,8 +57,18 @@ export const FOG_GLSL = /* glsl */ `
 export const PING_GLSL = /* glsl */ `
   uniform vec4 uPing;
   float pingAt(vec3 p) {
-    float r = distance(p, uPing.xyz) - uPing.w * 7.5;
-    return exp(-r * r * 2.2) * (1.0 - uPing.w) * step(0.0005, uPing.w);
+    float r = distance(p, uPing.xyz) - uPing.w * 9.5;
+    return exp(-r * r * 1.8) * (1.0 - uPing.w) * step(0.0005, uPing.w);
+  }
+`;
+
+/** GLSL: pointer-light amount for a clip-space position (declares uResolution too). */
+export const POINTER_GLSL = /* glsl */ `
+  uniform vec3 uPointer;
+  uniform vec2 uResolution;
+  float pointerAt(vec4 clip) {
+    vec2 d = (clip.xy / clip.w - uPointer.xy) * 0.5 * uResolution;
+    return exp(-dot(d, d) / 26000.0) * uPointer.z;
   }
 `;
 

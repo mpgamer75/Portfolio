@@ -23,6 +23,7 @@ Ce portfolio est :
 - Design cybersécurité (non, il n'y a pas de Matrix scrolling text).
 - Animations fluides (60 FPS constant, je promets que j'ai `killall -9 chrome`).
 - Background animé "Prism" (GPU goes brrr).
+- Carte 3D des compétences : un système orbital en WebGL (shaders maison, zéro texture) — noyau holographique, domaines en orbite, compétences qui tournent autour, liens entre domaines, bloom. Glisser pour tourner, survoler un domaine pour le déplier, cliquer pour l'amener au premier plan (`components/three/`).
 - Navigation responsive (fonctionne même sur ton Nokia 3310).
 - Sections : Hero, About, Experience, Projects, Skills, Contact.
 - Timeline interactive (comme `git log --graph` mais en mieux).
@@ -177,6 +178,7 @@ CSP, HSTS, X-Frame-Options DENY, Permissions-Policy et X-Content-Type-Options so
 - **Framer Motion 11** : animations sans jQuery (RIP).
 - **Lucide Icons** : plus de 1000 icônes (et on en utilise 10).
 - **OGL** : WebGL minimaliste pour le Prism background.
+- **three.js + React Three Fiber** : la carte 3D des compétences (chargée à la demande, desktop uniquement ; les cartes prennent le relais sur mobile, sans WebGL ou en `prefers-reduced-motion`).
 
 ## To-Do (aka Technical Debt)
 

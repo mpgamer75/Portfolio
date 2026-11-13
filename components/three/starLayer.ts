@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import { LAYER_MATERIAL, SHARED } from './sceneShared';
+import { FOG_GLSL, LAYER_MATERIAL, SHARED } from './sceneShared';
 
 /*
- * Star layer — a seeded, three-depth starfield in ONE draw call.
+ * Star layer — a seeded, three-depth starfield in ONE draw call, plus a second
+ * small draw of "dust": motes that live inside the system and turn with it.
  *
  * Stars are authored directly in clip space (x,y in -1..1, any aspect ratio),
  * so the field always fills the stage. Depth is faked in the vertex shader:
@@ -108,4 +109,94 @@ STAR_POINTS.renderOrder = 1;
 /** Lowest quality tier: stop drawing the far layer (stored last in the buffer). */
 export function setFarStars(on: boolean): void {
   GEOMETRY.setDrawRange(0, on ? STAR_COUNT : STAR_COUNT_LEAN);
+}
+
+/*
+ * Dust — motes scattered through the system's own volume (graph-local, so they
+ * orbit and tilt with it). They are what makes a drag read as a turn in depth:
+ * near motes sweep past large and soft, far ones barely move.
+ */
+const DUST_COUNT = 150;
+const DUST_POS = new Float32Array(DUST_COUNT * 3);
+/** world size, twinkle phase, drift phase */
+const DUST_META = new Float32Array(DUST_COUNT * 3);
+{
+  const rand = mulberry32(0xd057);
+  for (let i = 0; i < DUST_COUNT; i++) {
+    // A thick disc around the orbital plane, denser towards the middle.
+    const r = 2.2 + Math.sqrt(rand()) * 9.2;
+    const a = rand() * 6.2831853;
+    DUST_POS[i * 3] = Math.cos(a) * r;
+    DUST_POS[i * 3 + 1] = (rand() * 2 - 1) * (1.1 + 0.28 * r);
+    DUST_POS[i * 3 + 2] = Math.sin(a) * r;
+    DUST_META[i * 3] = 0.035 + rand() ** 2 * 0.085;
+    DUST_META[i * 3 + 1] = rand() * 6.2831853;
+    DUST_META[i * 3 + 2] = rand() * 6.2831853;
+  }
+}
+
+const DUST_GEOMETRY = new THREE.BufferGeometry();
+DUST_GEOMETRY.setAttribute('position', new THREE.BufferAttribute(DUST_POS, 3));
+DUST_GEOMETRY.setAttribute('aDust', new THREE.BufferAttribute(DUST_META, 3));
+
+const DUST_VERTEX = /* glsl */ `
+  attribute vec3 aDust;
+  uniform float uTime;
+  uniform float uEnter;
+  uniform float uDpr;
+  uniform vec2 uResolution;
+  ${FOG_GLSL}
+  varying vec4 vDust; // rgb + alpha
+
+  void main() {
+    vec3 p = position;
+    // A slow wander, so the field is never frozen even when the system is held.
+    p += 0.35 * vec3(
+      sin(uTime * 0.11 + aDust.z),
+      sin(uTime * 0.09 + aDust.z * 1.7),
+      cos(uTime * 0.1 + aDust.z * 0.6)
+    );
+    vec4 mv = modelViewMatrix * vec4(p, 1.0);
+    gl_Position = projectionMatrix * mv;
+    float depth = max(-mv.z, 0.5);
+    float px = aDust.x * projectionMatrix[1][1] * uResolution.y / depth;
+    gl_PointSize = clamp(px, 1.0, 26.0) * uDpr;
+    float twinkle = 0.65 + 0.35 * sin(uTime * 0.6 + aDust.y);
+    // Bokeh: a mote close to the lens is large, so it spreads its light thin.
+    float thin = 1.0 / (1.0 + px * px * 0.02);
+    float alpha = 0.5 * twinkle * thin * depthFade(depth) * smoothstep(1.2, 3.5, depth);
+    vDust = vec4(mix(vec3(0.35, 0.92, 0.72), vec3(0.8, 1.0, 0.95), fract(aDust.y)), alpha * smoothstep(0.35, 0.9, uEnter));
+  }
+`;
+
+const DUST_FRAGMENT = /* glsl */ `
+  varying vec4 vDust;
+  void main() {
+    float d = length(gl_PointCoord - 0.5);
+    float a = 1.0 - smoothstep(0.08, 0.5, d);
+    gl_FragColor = vec4(vDust.rgb * a * a * vDust.a, 0.0);
+  }
+`;
+
+const DUST_MATERIAL = new THREE.ShaderMaterial({
+  uniforms: {
+    uTime: SHARED.uTime,
+    uEnter: SHARED.uEnter,
+    uDpr: SHARED.uDpr,
+    uResolution: SHARED.uResolution,
+    uFogNear: SHARED.uFogNear,
+    uFogFar: SHARED.uFogFar,
+  },
+  vertexShader: DUST_VERTEX,
+  fragmentShader: DUST_FRAGMENT,
+  ...LAYER_MATERIAL,
+});
+
+export const DUST_POINTS = new THREE.Points(DUST_GEOMETRY, DUST_MATERIAL);
+DUST_POINTS.frustumCulled = false; // the wander happens in the shader
+DUST_POINTS.renderOrder = 3;
+
+/** Lowest quality tier: no dust. */
+export function setDust(on: boolean): void {
+  DUST_POINTS.visible = on;
 }

@@ -6,25 +6,55 @@ import { AnimatePresence } from 'framer-motion';
 import * as THREE from 'three';
 import {
   CLUSTERS,
+  CLUSTER_AZIMUTH,
   CLUSTER_COUNT,
   CLUSTER_COUNTS,
   CLUSTER_HUB,
   CLUSTER_OF,
+  CLUSTER_REACH,
   CLUSTER_SKILLS,
+  CORE,
+  CORE_COLOR,
+  HUB_RADIUS_W,
   IS_HUB,
   LINK_A,
   LINK_B,
   LINK_COUNT,
+  LINK_CROSS,
+  LINK_KIND,
   LINK_REST,
   NODES,
   NODE_COUNT,
   NODE_POSITIONS,
   NODE_RADIUS,
+  RELATED,
+  SKILL_COUNT,
 } from './constellationData';
-import { FOCAL_F, FOG_FAR, FOG_FLOOR, FOG_NEAR, FOV, HOME_Z, SHARED, depthFade } from './sceneShared';
-import { NODE_MESH, NODE_UNIFORMS, flushNodeState, setAtmosState, setNodeState } from './nodeLayer';
-import { LINK_MESH, LINK_UNIFORMS, flushLinkState, setLinkIntensity, setLinkSkirt } from './linkLayer';
-import { STAR_DRIFT, STAR_POINTS, setFarStars } from './starLayer';
+import {
+  BASE_TILT,
+  FOCAL_F,
+  FOG_FAR,
+  FOG_FLOOR,
+  FOG_NEAR,
+  FOV,
+  HOME_Z,
+  SHARED,
+  SYSTEM_LIFT,
+  depthFade,
+} from './sceneShared';
+import { NODE_MESH, NODE_UNIFORMS, setAtmosState, setNodeState, syncNodes } from './nodeLayer';
+import {
+  LINK_MESH,
+  LINK_UNIFORMS,
+  flushLinkState,
+  setLinkIntensity,
+  setLinkSkirt,
+  syncLinkGeometry,
+} from './linkLayer';
+import { RING_MESH, setSystemRingIntensity, setTrackIntensity, syncRings } from './ringLayer';
+import { DUST_POINTS, STAR_DRIFT, STAR_POINTS, setDust, setFarStars } from './starLayer';
+import { resetOrbits, stepOrbits } from './orbitSim';
+import { compileBloom, disposeBloom, renderBloom } from './bloom';
 import { getSkillMeta } from './skillsMeta';
 import ClusterGlyph from './ClusterGlyph';
 import { projects } from '@/components/sections/projectsData';
@@ -38,13 +68,20 @@ import SkillDetailCard, { type SkillCardData } from '@/components/ui/SkillDetail
  * them, which keeps render pure and avoids tripping react-hooks/immutability
  * (the rule forbids mutating hook-returned values or props, not module scope).
  *
- * The scene is three draw calls, all hand-written shaders, no textures:
- *   starLayer  — seeded parallax starfield
+ * The graph is an orrery: a core, the four domain hubs on a shared orbit around
+ * it, and each domain's skills riding rings around their hub. The whole system
+ * is tipped towards the camera and turns slowly; a focused domain swings its
+ * ring plane round to face the viewer, and a pinned one is carried to the front.
+ *
+ * Five draw calls, all hand-written shaders, no textures:
+ *   starLayer  — seeded parallax starfield + dust motes inside the system
+ *   ringLayer  — planes in space: polar grid + radar sweep, gyro rings, skill rings
  *   linkLayer  — instanced ribbons (glow, energy flow, entrance draw)
- *   nodeLayer  — instanced billboards (leaves, hub emblems, reticle, domain glows)
+ *   nodeLayer  — instanced billboards (core globe, hub orbs, skill beads, reticle, glows)
+ * plus, on the top quality tier, a small bloom chain (bloom.ts).
  */
 
-const restIntensity = (i: number) => (IS_HUB[i] ? 0.95 : 0.55);
+const restIntensity = (i: number) => (i === CORE ? 1.05 : IS_HUB[i] ? 0.95 : 0.55);
 /** Eased per-node glow and selection (0 none · 0.6 hovered · 1 pinned), fed to the node layer. */
 const GLOW = new Float32Array(NODE_COUNT);
 const SELECT = new Float32Array(NODE_COUNT);
@@ -54,6 +91,12 @@ const LINE_INT = new Float32Array(LINK_COUNT);
 LINE_INT.set(LINK_REST);
 /** Eased glow strength per domain (+ the backdrop in the last slot). */
 const ATMOS = new Float32Array(CLUSTER_COUNT + 1);
+/** Eased brightness of each domain's skill rings, and of the grid disc + gyro rings. */
+const TRACK_INT = new Float32Array(CLUSTER_COUNT).fill(0.2);
+const SYSTEM_INT = { v: 1 };
+/** Eased bloom strength (0 while the top quality tier is not active). */
+const BLOOM = { v: 0 };
+const BLOOM_STRENGTH = 0.38;
 
 /**
  * Screen-space projection of every node, refreshed each frame by the scene:
@@ -67,7 +110,7 @@ const NODE_DEPTH = new Float32Array(NODE_COUNT);
 /** On-screen radius of every node in CSS px (hub plate / leaf core). */
 const NODE_RPX = new Float32Array(NODE_COUNT);
 /** Minimum pick radius in CSS px — hubs get a bigger, higher-priority target. */
-const PICK_RADIUS_HUB = 26;
+const PICK_RADIUS_HUB = 24;
 const PICK_RADIUS_LEAF = 15;
 
 /** Label DOM nodes, one per skill node; filled by ref callbacks, positioned by useFrame. */
@@ -142,6 +185,17 @@ const SW_ORDER = new Int8Array(SWEEP_MAX);
 const SW_UP = new Int8Array(SWEEP_MAX);
 const LABEL_GAP = 3;
 
+/**
+ * Scratch for the anchor labels (four hubs + the core). As the system turns,
+ * a near hub's label can slide over a far one's: the far one steps aside.
+ */
+const ANCHOR_MAX = 8;
+const AN_I = new Int16Array(ANCHOR_MAX);
+const AN_MODE = new Int8Array(ANCHOR_MAX);
+const AN_X = new Float32Array(ANCHOR_MAX);
+const AN_Y = new Float32Array(ANCHOR_MAX);
+const AN_OP = new Float32Array(ANCHOR_MAX);
+
 /** Writes a label's opacity / hit-testing / transform, skipping anything unchanged. */
 function writeLabel(i: number, opacity: number, interactive: boolean, mode: number, x: number, y: number) {
   const el = LABEL_ELS[i];
@@ -168,17 +222,34 @@ function writeLabel(i: number, opacity: number, interactive: boolean, mode: numb
 }
 
 /**
- * Narrow stages: the near (left/right) clusters sit at z = +2.2 and reach about
- * 5.7 units from the axis, so below a ~2:1 aspect the home camera backs off just
- * enough to keep them in frame.
+ * Narrow stages: the system turns, so its widest moments are a hub passing the
+ * side (about 8 units from the axis with its skills, level with the core) and a
+ * hub on the near diagonal (6.5 units out, 3.6 nearer the camera). Below a ~1.4:1 aspect the
+ * home camera backs off just enough to keep both in frame.
  */
-const NEAR_PLANE_Z = 2.2;
-const HALF_SPAN_X = 5.7;
-/** View depth of the near clusters from the home camera — where the fog ramp is "clear". */
-const CLEAR_DEPTH = HOME_Z - NEAR_PLANE_Z;
+const SIDE_SPAN_X = 8;
+const DIAG_SPAN_X = 6.5;
+const DIAG_Z = 3.6;
+/** View depth at which the fog ramp is "clear" from the home camera. */
+const CLEAR_DEPTH = FOG_NEAR;
 
 /** Stage C4 switch: domain glows + backdrop (extra instances of the node draw). */
 const ATMOS_ENABLED = true;
+
+/**
+ * Ambient chatter: while nothing is focused, one cross link at a time lights
+ * up for a couple of seconds — a packet runs it and its two skills name
+ * themselves — so the dashed arcs explain themselves before anyone hovers.
+ * The order is a fixed stride through the cross links (no randomness).
+ */
+const CROSS_LINKS: number[] = [];
+for (let l = 0; l < LINK_COUNT; l++) if (LINK_KIND[l] === LINK_CROSS) CROSS_LINKS.push(l);
+const CHATTER = { link: -1, age: 0, wait: 2.5, step: 0, env: 0 };
+const CHATTER_SECONDS = 2.6;
+const CHATTER_STRIDE = 4;
+
+/** Left out of the bloom's glow source: the sky and the dust would only add haze. */
+const BLOOM_BACKDROP: THREE.Object3D[] = [STAR_POINTS, DUST_POINTS];
 
 const PROJ_VEC = new THREE.Vector3();
 const CAM_TARGET = new THREE.Vector3(0, 0, HOME_Z);
@@ -186,9 +257,12 @@ const CAM_TARGET = new THREE.Vector3(0, 0, HOME_Z);
 const CAM_VEL = new THREE.Vector3();
 const CAM_TIME_IN = 0.55; // s, towards a pinned target
 const CAM_TIME_OUT = 0.7; // s, back home
-const CAM_TIME_ENTER = 1.0; // s, the entrance push-in
+const CAM_TIME_ENTER = 1.5; // s, the entrance push-in
 /** The camera starts this far back and pushes in while the constellation assembles. */
-const ENTER_DOLLY = 3.2;
+const ENTER_DOLLY = 5.5;
+/** …and the system starts turned and tipped this much further, settling as it assembles. */
+const ENTER_SPIN = -1.25; // rad
+const ENTER_TILT = 0.34; // rad
 /** Click shockwave progress (0 = idle) and the last pinned target, to detect a new pin. */
 const PING = { t: 0, last: -1 };
 const PING_SECONDS = 0.8;
@@ -211,12 +285,13 @@ const FOG = { shift: 0 };
 
 /**
  * One-shot entrance: `t` runs 0 → 1 over ENTER_SECONDS the first time the stage
- * is properly on screen. Hubs pop first, the hub ring draws, then each cluster's
- * links draw outward and the leaves bloom along them (all in the shaders, keyed
- * off the shared `uEnter` uniform).
+ * is properly on screen. The core ignites and the orbital plane radiates out
+ * from it, the trunks shoot to the hubs, the hubs pop, their skill rings sweep
+ * round, then the spokes draw and the skills bloom along them — all in the
+ * shaders, keyed off the shared `uEnter` uniform.
  */
 const ENTER = { t: 0, done: false };
-const ENTER_SECONDS = 1.4;
+const ENTER_SECONDS = 2.6;
 /**
  * Shader warm-up. Programs are compiled off-screen on mount (the frameloop is
  * 'never' until the stage is in view), and the entrance waits for them so the
@@ -232,10 +307,16 @@ const WARM_MAX_WAIT = 1.2; // s
  * and when its median says "under 50 fps" the tier steps down (never back up —
  * resizing the drawing buffer back and forth would itself cause hitches).
  *
- *   tier 0 — DPR ≤ 1.5, everything on
- *   tier 1 — DPR ≤ 1.25, domain glows off
- *   tier 2 — DPR ≤ 1.0, far star layer and link glow skirt off as well
+ *   tier 0 — DPR ≤ 1.5, everything on (bloom included)
+ *   tier 1 — DPR ≤ 1.25, bloom and domain glows off
+ *   tier 2 — DPR ≤ 1.0, far star layer, dust and link glow skirt off as well
+ *
+ * NEXT_PUBLIC_CONSTELLATION_TIER (0-2) pins the tier — for checking a tier's
+ * look on a machine the governor would otherwise move off it.
  */
+const TIER_LOCK = /^[012]$/.test(process.env.NEXT_PUBLIC_CONSTELLATION_TIER ?? '')
+  ? Number(process.env.NEXT_PUBLIC_CONSTELLATION_TIER)
+  : -1;
 const TIER_DPR = [1.5, 1.25, 1.0];
 const MAX_TIER = TIER_DPR.length - 1;
 const GOV_WINDOW = 45;
@@ -244,20 +325,28 @@ const GOV_SLOW = 0.02; // s — median frame time that triggers a step down
 const GOV_GAP = 0.1; // s — a delta this long is a one-off hitch, not a slow frame: ignored
 const GOV_PAUSE = 0.5; // s — a delta this long means the loop was paused: restart the window
 const GOV_COOLDOWN = 2; // s between steps
+/**
+ * …unless they keep coming: this many over-long frames in a row is not a hitch
+ * or a pause but a GPU far out of its depth (under ~10 fps the window above
+ * would never fill), so step down straight away.
+ */
+const GOV_CRAWL_FRAMES = 5;
 /** Above this many device pixels the canvas starts one DPR step lower. */
 const GOV_MAX_PIXELS = 3.2e6;
 const GOV = {
-  tier: 0,
+  tier: Math.max(0, TIER_LOCK),
   n: 0,
   skip: GOV_SKIP,
   sinceStep: GOV_COOLDOWN,
+  /** Consecutive frames longer than GOV_GAP. */
+  crawl: 0,
   /** Fastest frame seen (s) — approximates the display refresh interval. */
   fast: Infinity,
   buf: new Float32Array(GOV_WINDOW),
   sorted: new Float32Array(GOV_WINDOW),
 };
 
-/** Orbit state — pointer drag with inertia; the idle sway resumes after a pause. */
+/** Orbit state — pointer drag with inertia; the idle turn resumes after a pause. */
 const ORBIT = {
   yaw: 0,
   pitch: 0,
@@ -271,16 +360,24 @@ const ORBIT = {
   idle: 10,
 };
 /**
- * Idle motion is a bounded sway, not a free spin: the graph rocks +/-SWAY_AMP
- * about its home view and never turns edge-on. `t` only advances while the sway
- * is blended in, so it freezes (rather than jumps) on a drag or a pin.
+ * Idle motion: the system turns slowly about its axis, like the orrery it is.
+ * `k` is the eased blend of that turn — it winds down while anything is hovered,
+ * pinned or dragged (so a target never drifts out from under the cursor) and
+ * winds back up afterwards.
  */
-const SWAY = { t: 0, v: 0 };
-const SWAY_AMP = 0.38; // rad
-const SWAY_RATE = 0.11; // rad/s (phase)
-/** Soft limit on the total yaw (user + sway); past it the drag rubber-bands. */
-const YAW_LIMIT = 1.1; // rad
-const PITCH_LIMIT = 0.55; // rad
+const AUTO = { k: 0 };
+const AUTO_RATE = 0.055; // rad/s
+/**
+ * Pin → the system turns to carry the pinned domain to the front, a little left
+ * of centre (the detail card docks on the right). A critically damped spring on
+ * the yaw; any drag takes over from it.
+ */
+const YAW_TO = { on: false, target: 0, vel: 0 };
+const YAW_TO_TIME = 0.75; // s
+const PIN_BEARING = -0.3; // rad off dead-ahead (negative = left)
+/** The user's pitch is added to BASE_TILT: up to almost top-down, down to almost edge-on. */
+const PITCH_MAX = 0.62; // rad
+const PITCH_MIN = -0.3;
 const DRAG_YAW = 0.0055; // rad per px
 const DRAG_PITCH = 0.0038;
 const DRAG_THRESHOLD = 4; // px before a press becomes a drag (so clicks still click)
@@ -294,8 +391,13 @@ function resetSceneState() {
   ORBIT.dragging = false;
   ORBIT.moved = false;
   ORBIT.idle = 10;
-  SWAY.t = 0;
-  SWAY.v = 0;
+  AUTO.k = 0;
+  YAW_TO.on = false;
+  YAW_TO.vel = 0;
+  POINTER_IN.v = false;
+  SHARED.uPointer.value.z = 0;
+  BLOOM.v = 0;
+  resetOrbits();
   FOG.shift = 0;
   CAM_VEL.set(0, 0, 0);
   PING.t = 0;
@@ -306,7 +408,31 @@ function resetSceneState() {
   WARM.wait = 0;
   GOV.n = 0;
   GOV.skip = GOV_SKIP;
+  GOV.crawl = 0;
 }
+
+/**
+ * Telemetry readout in the stage corner: the system's bearing and elevation,
+ * written straight to two text nodes (and only when a whole degree changes).
+ */
+const HUD: { az: HTMLElement | null; el: HTMLElement | null; lastAz: number; lastEl: number } = {
+  az: null,
+  el: null,
+  lastAz: -1,
+  lastEl: -1,
+};
+const setHudAz = (el: HTMLElement | null) => {
+  HUD.az = el;
+  HUD.lastAz = -1;
+};
+const setHudEl = (el: HTMLElement | null) => {
+  HUD.el = el;
+  HUD.lastEl = -1;
+};
+const RAD_TO_DEG = 180 / Math.PI;
+
+/** Whether the pointer is over the stage (drives the pointer light). */
+const POINTER_IN = { v: false };
 
 type Sel = { kind: 'node'; i: number } | { kind: 'cluster'; i: number };
 
@@ -317,10 +443,34 @@ function buildDomainCard(c: number): SkillCardData {
     domainLabel: CLUSTERS[c].title,
     color: CLUSTERS[c].color,
     glyph: CLUSTERS[c].glyph,
-    blurb: `${CLUSTER_COUNTS[c]} skills I work with across this domain — hover any node to inspect one.`,
+    blurb: `${CLUSTER_COUNTS[c]} skills I work with across this domain — pick one to see where I use it.`,
     domainSkills: CLUSTER_SKILLS[c],
   };
 }
+
+function buildCoreCard(): SkillCardData {
+  return {
+    kind: 'core',
+    title: 'Skill system',
+    domainLabel: 'Core',
+    color: CORE_COLOR,
+    glyph: 'circle',
+    blurb: `${SKILL_COUNT} skills in ${CLUSTER_COUNT} domains. The dashed arcs join skills I use together on the same project or role — pick a domain to bring it to the front.`,
+    domains: CLUSTERS.map((c, i) => ({
+      title: c.title,
+      color: c.color,
+      glyph: c.glyph,
+      count: CLUSTER_COUNTS[i],
+    })),
+  };
+}
+
+/** How many cross-domain links the graph draws (shown in the telemetry readout). */
+const LINK_TOTALS = { cross: 0 };
+for (let l = 0; l < LINK_COUNT; l++) if (LINK_KIND[l] === LINK_CROSS) LINK_TOTALS.cross++;
+
+/** Node index by skill / domain label (labels are unique across the graph). */
+const NODE_BY_LABEL = new Map(NODES.map((n, i) => [n.label, i]));
 
 /**
  * Nearest node to a CSS-pixel point inside the stage, using the per-frame
@@ -341,6 +491,31 @@ function pickNode(px: number, py: number): number {
     if (score < bestScore) {
       bestScore = score;
       best = i;
+    }
+  }
+  return best;
+}
+
+/**
+ * Domain whose skill rings the point falls within (-1 = none) — hovering
+ * anywhere inside a domain's little system focuses it, so it can unfold towards
+ * the cursor without the hover flickering off as its skills move. `sticky` is
+ * the domain already focused this way: it holds on a little further out.
+ */
+function pickCluster(px: number, py: number, sticky: number): number {
+  let best = -1;
+  let bestScore = 1;
+  for (let c = 0; c < CLUSTER_COUNT; c++) {
+    const h = CLUSTER_HUB[c];
+    if (SCREEN[h * 3 + 2] < 0.5) continue;
+    const pxPerUnit = NODE_RPX[h] / HUB_RADIUS_W;
+    const r = (CLUSTER_REACH[c] + (c === sticky ? 0.75 : 0.3)) * pxPerUnit;
+    const dx = px - SCREEN[h * 3];
+    const dy = py - SCREEN[h * 3 + 1];
+    const score = Math.sqrt(dx * dx + dy * dy) / r;
+    if (score < bestScore) {
+      bestScore = score;
+      best = c;
     }
   }
   return best;
@@ -406,6 +581,7 @@ function Scene({
     const done = () => {
       if (alive) WARM.ready = true;
     };
+    compileBloom(gl);
     gl.compileAsync(scene, camera).then(done, done);
     return () => {
       alive = false;
@@ -445,10 +621,11 @@ function Scene({
       window.clearTimeout(timer);
       // Release this renderer's GPU caches for the shared module-scope objects;
       // they re-upload on next use, so a later remount starts clean.
-      for (const obj of [STAR_POINTS, LINK_MESH, NODE_MESH]) {
+      for (const obj of [STAR_POINTS, DUST_POINTS, RING_MESH, LINK_MESH, NODE_MESH]) {
         obj.geometry.dispose();
         (obj.material as THREE.Material).dispose();
       }
+      disposeBloom();
       resetSceneState();
     };
   }, [gl, onFail]);
@@ -461,9 +638,11 @@ function Scene({
     onDprCap(cap);
   }, [tier, size.width, size.height, onDprCap]);
 
-  // Effect tiers: the lowest tier also drops the far star layer and the link glow skirt.
+  // Effect tiers: the lowest tier also drops the far star layer, the dust and
+  // the link glow skirt.
   useEffect(() => {
     setFarStars(tier < MAX_TIER);
+    setDust(tier < MAX_TIER);
     setLinkSkirt(tier < MAX_TIER);
   }, [tier]);
 
@@ -480,7 +659,16 @@ function Scene({
 
     // ── Quality governor (raw delta: the clamp above would hide slow frames) ──
     GOV.sinceStep += delta;
-    if (delta > GOV_PAUSE) {
+    GOV.crawl = delta > GOV_GAP ? GOV.crawl + 1 : 0;
+    if (GOV.crawl >= GOV_CRAWL_FRAMES && GOV.tier < MAX_TIER && TIER_LOCK < 0) {
+      // Frame after frame over 100 ms: sustained, not a hitch. Drop a tier now.
+      GOV.crawl = 0;
+      GOV.n = 0;
+      GOV.skip = GOV_SKIP;
+      GOV.tier++;
+      GOV.sinceStep = 0;
+      onTier(GOV.tier);
+    } else if (delta > GOV_PAUSE) {
       // The loop was paused (scrolled away / tab hidden): start a fresh window.
       GOV.n = 0;
       GOV.skip = GOV_SKIP;
@@ -488,7 +676,7 @@ function Scene({
       // A one-off hitch (GC, another section mounting) says nothing about fill rate.
     } else if (GOV.skip > 0) {
       GOV.skip--;
-    } else if (GOV.tier < MAX_TIER) {
+    } else if (GOV.tier < MAX_TIER && TIER_LOCK < 0) {
       GOV.buf[GOV.n++] = delta;
       if (GOV.n === GOV_WINDOW) {
         GOV.n = 0;
@@ -517,59 +705,116 @@ function Scene({
       if (ENTER.t >= 1) ENTER.done = true;
     }
     SHARED.uEnter.value = ENTER.t;
-    const enterHub = easeOut(ENTER.t / 0.25);
-    const enterLeaf = easeOut((ENTER.t - 0.45) / 0.45);
+    const enterHub = easeOut((ENTER.t - 0.24) / 0.25);
+    const enterLeaf = easeOut((ENTER.t - 0.55) / 0.4);
+    const enterCore = easeOut(ENTER.t / 0.2);
+    // What is left of the entrance's extra turn and tip (1 → 0, eased out).
+    const settle = Math.pow(1 - ENTER.t, 3);
 
-    // ── Orbit: drag inertia + a bounded idle sway (never a free spin) ──
+    // ── Orbit: a slow idle turn + drag inertia + the turn-to-front of a pin ──
     ORBIT.idle += dt;
-    const autoBlend = pinned ? 0 : clamp01((ORBIT.idle - 1.5) / 1.5);
-    SWAY.t += dt * autoBlend;
-    SWAY.v = SWAY_AMP * Math.sin(SWAY.t * SWAY_RATE);
+    const held = pinned || focusCluster !== null || activeNode !== null || ORBIT.dragging;
+    const autoTarget = held ? 0 : clamp01((ORBIT.idle - 0.5) / 1.2);
+    AUTO.k += (autoTarget - AUTO.k) * (1 - Math.exp(-dt * 3.2));
     if (!ORBIT.dragging) {
-      ORBIT.yaw += ORBIT.vYaw * dt;
-      ORBIT.pitch = Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, ORBIT.pitch + ORBIT.vPitch * dt));
+      ORBIT.yaw += (ORBIT.vYaw + AUTO_RATE * AUTO.k) * dt;
+      ORBIT.pitch = Math.max(PITCH_MIN, Math.min(PITCH_MAX, ORBIT.pitch + ORBIT.vPitch * dt));
       const damp = Math.exp(-dt * 2.4);
       ORBIT.vYaw *= damp;
       ORBIT.vPitch *= damp;
-      // Past the soft limit: kill the inertia and spring back inside it.
-      const total = ORBIT.yaw + SWAY.v;
-      const over = total > YAW_LIMIT ? total - YAW_LIMIT : total < -YAW_LIMIT ? total + YAW_LIMIT : 0;
-      if (over !== 0) {
+      if (YAW_TO.on) {
+        // Critically damped spring on the yaw (same step as the camera's).
+        const omega = 2 / YAW_TO_TIME;
+        const x = omega * dt;
+        const decay = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x);
+        const change = ORBIT.yaw - YAW_TO.target;
+        const temp = (YAW_TO.vel + omega * change) * dt;
+        YAW_TO.vel = (YAW_TO.vel - omega * temp) * decay;
+        ORBIT.yaw = YAW_TO.target + (change + temp) * decay;
         ORBIT.vYaw = 0;
-        ORBIT.yaw -= over * (1 - Math.exp(-dt * 5));
       }
-      // While idle the view eases back home: pitch to level, user yaw to zero
-      // (the yaw stays put while something is pinned, so the framing holds).
-      if (ORBIT.idle > 2.5) {
-        ORBIT.pitch *= Math.exp(-dt * 0.6);
-        if (!pinned) ORBIT.yaw *= Math.exp(-dt * 0.25);
-      }
+      // While idle the tip eases back to its resting angle.
+      if (ORBIT.idle > 2.5) ORBIT.pitch *= Math.exp(-dt * 0.6);
     }
-    const yaw = ORBIT.yaw + SWAY.v;
+    const yaw = ORBIT.yaw + ENTER_SPIN * settle;
     if (spin.current) spin.current.rotation.y = yaw;
     let tiltX = 0;
     let tiltY = 0;
     if (parallax.current) {
-      const tx = (pinned ? 0 : -state.pointer.y * 0.16) + ORBIT.pitch;
-      const ty = pinned ? 0 : state.pointer.x * 0.2;
-      const k = 1 - Math.exp(-dt * (pinned || ORBIT.dragging ? 8 : 2.5));
+      const tx = (pinned ? 0 : -state.pointer.y * 0.07) + ORBIT.pitch + BASE_TILT + ENTER_TILT * settle;
+      const ty = pinned ? 0 : state.pointer.x * 0.1;
+      const k = 1 - Math.exp(-dt * (pinned || ORBIT.dragging || !ENTER.done ? 8 : 2.5));
       parallax.current.rotation.x += (tx - parallax.current.rotation.x) * k;
       parallax.current.rotation.y += (ty - parallax.current.rotation.y) * k;
-      tiltX = parallax.current.rotation.x;
+      tiltX = parallax.current.rotation.x - BASE_TILT;
       tiltY = parallax.current.rotation.y;
     }
+    // Telemetry: bearing 0–359°, elevation above the orbital plane.
+    const az = ((Math.round((yaw + tiltY) * RAD_TO_DEG) % 360) + 360) % 360;
+    const el = Math.round((tiltX + BASE_TILT) * RAD_TO_DEG);
+    if (az !== HUD.lastAz && HUD.az) {
+      HUD.az.textContent = String(az).padStart(3, '0');
+      HUD.lastAz = az;
+    }
+    if (el !== HUD.lastEl && HUD.el) {
+      HUD.el.textContent = String(el).padStart(2, '0');
+      HUD.lastEl = el;
+    }
+
+    // ── Skill rings: turn, and unfold the focused domain towards the camera.
+    // Everything downstream (layers, picker, labels) reads the result ──
+    if (spin.current) {
+      spin.current.updateWorldMatrix(true, false);
+      PROJ_VEC.copy(state.camera.position);
+      spin.current.worldToLocal(PROJ_VEC);
+      stepOrbits(dt, SHARED.uTime.value, focusCluster, PROJ_VEC.x, PROJ_VEC.y, PROJ_VEC.z);
+      syncLinkGeometry();
+    }
+
+    // ── Pointer light: follows the cursor, off while dragging or pinned ──
+    const lightOn = POINTER_IN.v && !ORBIT.dragging && !pinned && ENTER.done ? 1 : 0;
+    SHARED.uPointer.value.x = state.pointer.x;
+    SHARED.uPointer.value.y = state.pointer.y;
+    SHARED.uPointer.value.z += (lightOn - SHARED.uPointer.value.z) * (1 - Math.exp(-dt * 6));
 
     // ── Node glow + selection — active node white-hot, focused cluster lit, the
     // rest dimmed (harder when something is pinned, for a spotlight feel) ──
     const fNode = 1 - Math.exp(-dt * 9);
     const fSelect = 1 - Math.exp(-dt * 12);
-    const dimTarget = pinned ? 0.05 : 0.1;
+    // ── Ambient chatter (only at rest; any focus cuts it short) ──
+    const atRest = focusCluster === null && activeNode === null && !ORBIT.dragging && ENTER.done;
+    if (!atRest || CROSS_LINKS.length === 0) {
+      CHATTER.link = -1;
+      CHATTER.wait = 1.6;
+    } else if (CHATTER.link < 0) {
+      CHATTER.wait -= dt;
+      if (CHATTER.wait <= 0) {
+        CHATTER.step = (CHATTER.step + CHATTER_STRIDE) % CROSS_LINKS.length;
+        CHATTER.link = CROSS_LINKS[CHATTER.step];
+        CHATTER.age = 0;
+      }
+    } else {
+      CHATTER.age += dt;
+      if (CHATTER.age >= CHATTER_SECONDS) {
+        CHATTER.link = -1;
+        CHATTER.wait = 1.4 + (CHATTER.step % 3) * 0.7;
+      }
+    }
+    CHATTER.env = CHATTER.link < 0 ? 0 : Math.sin((Math.PI * CHATTER.age) / CHATTER_SECONDS);
+    const chatA = CHATTER.link < 0 ? -1 : LINK_A[CHATTER.link];
+    const chatB = CHATTER.link < 0 ? -1 : LINK_B[CHATTER.link];
+
+    const dimTarget = pinned ? 0.08 : 0.2;
+    // Skills used together with the active one (cross links) light up with it.
+    const related = activeNode !== null ? RELATED[activeNode] : null;
     for (let i = 0; i < NODE_COUNT; i++) {
       let target: number;
       if (activeNode === i) target = 1.65;
+      else if (related !== null && related.includes(i)) target = 1.3;
+      else if (i === chatA || i === chatB) target = restIntensity(i) + 0.7 * CHATTER.env;
       else if (focusCluster === null) target = restIntensity(i);
       else if (CLUSTER_OF[i] === focusCluster) target = IS_HUB[i] ? 1.1 : 0.85;
-      else target = dimTarget;
+      else target = i === CORE ? dimTarget * 2.2 : dimTarget;
       GLOW[i] += (target - GLOW[i]) * fNode;
       const select = activeNode === i ? (pinnedNode === i ? 1 : 0.6) : 0;
       SELECT[i] += (select - SELECT[i]) * fSelect;
@@ -587,18 +832,37 @@ function Scene({
       ATMOS[c] += (target - ATMOS[c]) * (1 - Math.exp(-dt * 4));
       setAtmosState(c, ATMOS[c]);
     }
-    flushNodeState();
+    // Draw order follows last frame's depths (one frame of lag is invisible).
+    syncNodes(NODE_DEPTH);
+
+    // ── Rings: the focused domain's skill rings brighten; the grid and the gyro
+    // rings step back while a domain has the floor ──
+    const fRing = 1 - Math.exp(-dt * 6);
+    for (let c = 0; c < CLUSTER_COUNT; c++) {
+      const target = focusCluster === null ? 0.2 : focusCluster === c ? 0.42 : 0.06;
+      TRACK_INT[c] += (target - TRACK_INT[c]) * fRing;
+      setTrackIntensity(c, TRACK_INT[c] * enterHub);
+    }
+    const systemTarget = focusCluster === null ? 1 : pinned ? 0.4 : 0.62;
+    SYSTEM_INT.v += (systemTarget - SYSTEM_INT.v) * fRing;
+    setSystemRingIntensity(SYSTEM_INT.v);
+    syncRings(SHARED.uTime.value);
 
     // ── Link brightness mirrors the focus state ──
     const fLine = 1 - Math.exp(-dt * 8);
+    const dimLink = pinned ? 0.03 : 0.07;
     for (let l = 0; l < LINK_COUNT; l++) {
       const a = LINK_A[l];
       const b = LINK_B[l];
       let target: number;
-      if (activeNode !== null && (a === activeNode || b === activeNode)) target = 1.2;
+      if (activeNode !== null && (a === activeNode || b === activeNode)) target = 1.25;
+      else if (l === CHATTER.link) target = LINK_REST[l] + 0.95 * CHATTER.env;
       else if (focusCluster === null) target = LINK_REST[l];
-      else if (CLUSTER_OF[a] === focusCluster || CLUSTER_OF[b] === focusCluster) target = 0.95;
-      else target = pinned ? 0.03 : 0.06;
+      else if (LINK_KIND[l] === LINK_CROSS) {
+        // A focused domain shows where its skills reach out to.
+        target = CLUSTER_OF[a] === focusCluster || CLUSTER_OF[b] === focusCluster ? 0.34 : dimLink * 0.5;
+      } else if (CLUSTER_OF[b] === focusCluster) target = 0.95; // its trunk and its spokes
+      else target = dimLink;
       LINE_INT[l] += (target - LINE_INT[l]) * fLine;
       setLinkIntensity(l, LINE_INT[l]);
     }
@@ -610,20 +874,23 @@ function Scene({
     // card docks on the right); otherwise return home ──
     const cam = state.camera;
     const aspect = size.width / size.height;
-    const homeZ = Math.max(HOME_Z, NEAR_PLANE_Z + (HALF_SPAN_X * FOCAL_F) / aspect);
+    const homeZ = Math.max(
+      HOME_Z,
+      (SIDE_SPAN_X * FOCAL_F) / aspect,
+      DIAG_Z + (DIAG_SPAN_X * FOCAL_F) / aspect,
+    );
     let fogShift = homeZ - HOME_Z;
     if (zoomTarget !== null && spin.current) {
       const i = zoomTarget;
-      // Frame a leaf halfway between it and its hub so the whole cluster stays in
-      // shot (a leaf at the cluster's edge would otherwise push the rest off-stage).
-      const h = CLUSTER_HUB[CLUSTER_OF[i]];
-      const w = IS_HUB[i] ? 1 : 0.5;
+      // Frame a leaf a third of the way out from its hub, so the whole unfolded
+      // dial stays in shot (a leaf at its edge would otherwise push the rest off-stage).
+      const h = IS_HUB[i] ? i : CLUSTER_HUB[CLUSTER_OF[i]];
+      const w = IS_HUB[i] ? 1 : 0.35;
       PROJ_VEC.set(
         NODE_POSITIONS[i * 3] * w + NODE_POSITIONS[h * 3] * (1 - w),
         NODE_POSITIONS[i * 3 + 1] * w + NODE_POSITIONS[h * 3 + 1] * (1 - w),
         NODE_POSITIONS[i * 3 + 2] * w + NODE_POSITIONS[h * 3 + 2] * (1 - w),
       );
-      spin.current.updateWorldMatrix(true, false);
       spin.current.localToWorld(PROJ_VEC);
       const nx = -0.28;
       const ny = 0.04;
@@ -652,6 +919,17 @@ function Scene({
     const pinKey = zoomTarget ?? -1;
     if (pinKey !== PING.last) {
       PING.last = pinKey;
+      // …and a pinned domain (or skill) is carried round to the front. Of the
+      // equivalent yaws, take the one nearest to where the system already is.
+      YAW_TO.on = false;
+      if (pinKey >= 0 && pinKey !== CORE) {
+        let target = CLUSTER_AZIMUTH[CLUSTER_OF[pinKey]] - Math.PI / 2 + PIN_BEARING;
+        target += Math.PI * 2 * Math.round((ORBIT.yaw - target) / (Math.PI * 2));
+        YAW_TO.on = true;
+        YAW_TO.target = target;
+        YAW_TO.vel = ORBIT.vYaw;
+        ORBIT.vYaw = 0;
+      }
       if (pinKey >= 0) {
         SHARED.uPing.value.set(
           NODE_POSITIONS[pinKey * 3],
@@ -676,6 +954,7 @@ function Scene({
     FOG.shift += (fogShift - FOG.shift) * (1 - Math.exp(-dt * 4));
     SHARED.uFogNear.value = FOG_NEAR + FOG.shift;
     SHARED.uFogFar.value = FOG_FAR + FOG.shift;
+    BLOOM.v += ((GOV.tier < 1 ? BLOOM_STRENGTH : 0) - BLOOM.v) * (1 - Math.exp(-dt * 3));
     STAR_DRIFT.set(
       yaw * 0.16 + tiltY * 0.3 + cam.position.x * 0.02,
       -tiltX * 0.3 + cam.position.y * 0.02,
@@ -690,6 +969,7 @@ function Scene({
     const pxPerUnit = FOCAL_F * size.height * 0.5;
     const interactive = !ORBIT.dragging;
     let sweep = 0;
+    let anchors = 0;
     for (let i = 0; i < NODE_COUNT; i++) {
       PROJ_VEC.set(NODE_POSITIONS[i * 3], NODE_POSITIONS[i * 3 + 1], NODE_POSITIONS[i * 3 + 2]);
       spin.current.localToWorld(PROJ_VEC);
@@ -713,8 +993,16 @@ function Scene({
       if (!inFront || ORBIT.dragging) opacity = isHub && inFront ? 0.5 : 0;
       else if (i === activeNode) opacity = 1;
       else if (isHub) opacity = inFocus ? 0.95 : 0.3;
+      else if (related !== null && related.includes(i)) opacity = 0.9;
+      else if (i === chatA || i === chatB) {
+        // …unless the skill is passing behind the core: a tag over the globe reads as noise.
+        const cx = sx - SCREEN[CORE * 3];
+        const cy = sy - SCREEN[CORE * 3 + 1];
+        const clear = cx * cx + cy * cy > NODE_RPX[CORE] * NODE_RPX[CORE] * 2.6;
+        opacity = clear ? Math.min(1, CHATTER.env * 1.6) * 0.85 : 0;
+      }
       else opacity = focusCluster !== null && inFocus ? 0.9 : 0;
-      opacity *= isHub ? enterHub : enterLeaf;
+      opacity *= i === CORE ? enterCore : isHub ? enterHub : enterLeaf;
       // Depth cue: labels on the far side recede with their nodes — but never the
       // active one, nor the focused cluster's (those must stay fully legible).
       if (i !== activeNode && opacity > 0 && CLUSTER_OF[i] !== focusCluster) {
@@ -730,7 +1018,11 @@ function Scene({
       let mode = ANCHOR_ABOVE;
       let ax = sx;
       let ay = sy - (i === activeNode ? rPx * 1.5 : rPx) - 8;
-      if (!isHub) {
+      if (i === CORE) {
+        // The core's tag hangs below it: the far hubs' labels pass just above.
+        mode = ANCHOR_BELOW;
+        ay = sy + rPx * (i === activeNode ? 1.5 : 1.12) + 8;
+      } else if (!isHub) {
         const h = CLUSTER_HUB[CLUSTER_OF[i]] * 3;
         const dx = sx - SCREEN[h];
         const dy = sy - SCREEN[h + 1];
@@ -767,7 +1059,49 @@ function Scene({
         sweep++;
         continue;
       }
+      // Hub and core labels are settled against each other below.
+      if (isHub && anchors < ANCHOR_MAX) {
+        AN_I[anchors] = i;
+        AN_MODE[anchors] = mode;
+        AN_X[anchors] = ax;
+        AN_Y[anchors] = ay;
+        AN_OP[anchors] = opacity;
+        anchors++;
+        continue;
+      }
       writeLabel(i, opacity, interactive, mode, ax, ay);
+    }
+
+    // ── Anchor labels: where two overlap, the farther node's label yields
+    // (the active node's never does) ──
+    for (let a = 0; a < anchors; a++) {
+      if (AN_OP[a] <= 0) continue;
+      const ia = AN_I[a];
+      const la = labelLeft(AN_MODE[a], AN_X[a], LBL_W[ia]) - LABEL_GAP;
+      const ta = labelTop(AN_MODE[a], AN_Y[a], HUB_LABEL_H) - LABEL_GAP;
+      for (let b = a + 1; b < anchors; b++) {
+        if (AN_OP[b] <= 0) continue;
+        const ib = AN_I[b];
+        const lb = labelLeft(AN_MODE[b], AN_X[b], LBL_W[ib]);
+        const tb = labelTop(AN_MODE[b], AN_Y[b], HUB_LABEL_H);
+        if (
+          lb >= la + LBL_W[ia] + LABEL_GAP * 2 ||
+          lb + LBL_W[ib] <= la ||
+          tb >= ta + HUB_LABEL_H + LABEL_GAP * 2 ||
+          tb + HUB_LABEL_H <= ta
+        ) {
+          continue;
+        }
+        const aWins = ia === activeNode || (ib !== activeNode && NODE_DEPTH[ia] <= NODE_DEPTH[ib]);
+        if (aWins) AN_OP[b] = 0;
+        else {
+          AN_OP[a] = 0;
+          break;
+        }
+      }
+    }
+    for (let a = 0; a < anchors; a++) {
+      writeLabel(AN_I[a], AN_OP[a], interactive, AN_MODE[a], AN_X[a], AN_Y[a]);
     }
 
     // ── Leaf-label collision pass (focused cluster only, ≤ 9 labels) ──
@@ -830,12 +1164,26 @@ function Scene({
     }
   });
 
+  // Render: a positive priority hands the draw to us (R3F stops auto-rendering),
+  // and puts it after the update above. The bloom adds itself over the result.
+  useFrame((state) => {
+    state.gl.setRenderTarget(null);
+    state.gl.render(state.scene, state.camera);
+    // The domain glows are already soft light: keep them out of the glow source.
+    const atmos = NODE_UNIFORMS.uAtmos.value;
+    NODE_UNIFORMS.uAtmos.value = 0;
+    renderBloom(state.gl, state.scene, state.camera, BLOOM.v, BLOOM_BACKDROP);
+    NODE_UNIFORMS.uAtmos.value = atmos;
+  }, 1);
+
   return (
     <>
       {/* Shared module-scope objects — dispose={null} so a gate remount can't free them. */}
       <primitive object={STAR_POINTS} dispose={null} />
-      <group ref={parallax}>
+      <group ref={parallax} position={[0, SYSTEM_LIFT, 0]}>
         <group ref={spin}>
+          <primitive object={RING_MESH} dispose={null} />
+          <primitive object={DUST_POINTS} dispose={null} />
           <primitive object={LINK_MESH} dispose={null} />
           {/* Picking is done in screen space by the stage (see pickNode), not by the
               R3F raycaster, so overlapping leaves can't steal a hub. */}
@@ -882,22 +1230,29 @@ export default function SkillsConstellation({
   const fail = onFail ?? noop;
 
   const sel = hover ?? pin;
-  const focusCluster = sel ? (sel.kind === 'cluster' ? sel.i : CLUSTER_OF[sel.i]) : null;
+  // The core belongs to no domain: selecting it focuses nothing.
+  const selCluster = sel ? (sel.kind === 'cluster' ? sel.i : CLUSTER_OF[sel.i]) : -1;
+  const focusCluster = selCluster >= 0 ? selCluster : null;
   const activeNode = sel && sel.kind === 'node' ? sel.i : null;
   const pinned = pin !== null;
   const pinnedNode = pin?.kind === 'node' ? pin.i : null;
+  // The pointer handlers read this without re-subscribing on every pin change.
+  const pinnedRef = useRef(false);
+  useEffect(() => {
+    pinnedRef.current = pinned;
+  }, [pinned]);
 
   let zoomTarget: number | null = null;
   // Camera distance from the framed point: a whole cluster (hub or legend pin)
   // sits a little further back than a single skill.
-  let zoomDist = 7.6;
+  let zoomDist = 10.2;
   if (pin) {
     if (pin.kind === 'node') {
       zoomTarget = pin.i;
-      zoomDist = IS_HUB[pin.i] ? 7.6 : 7.0;
+      zoomDist = pin.i === CORE ? 12 : IS_HUB[pin.i] ? 10.2 : 9.8;
     } else {
       zoomTarget = CLUSTER_HUB[pin.i];
-      zoomDist = 7.6;
+      zoomDist = 10.2;
     }
   }
 
@@ -905,7 +1260,8 @@ export default function SkillsConstellation({
   if (pin) {
     if (pin.kind === 'node') {
       const n = NODES[pin.i];
-      if (n.isHub) cardData = buildDomainCard(n.cluster);
+      if (n.kind === 'core') cardData = buildCoreCard();
+      else if (n.kind === 'hub') cardData = buildDomainCard(n.cluster);
       else {
         const m = getSkillMeta(n.label);
         cardData = {
@@ -916,6 +1272,7 @@ export default function SkillsConstellation({
           glyph: CLUSTERS[n.cluster].glyph,
           blurb: m.blurb,
           usedIn: m.usedIn,
+          related: RELATED[pin.i].map((r) => NODES[r].label),
         };
       }
     } else {
@@ -924,12 +1281,15 @@ export default function SkillsConstellation({
   }
 
   // Announced by the sr-only live region below (the canvas itself is decorative).
-  const activeSkill = activeNode !== null && !NODES[activeNode].isHub ? NODES[activeNode].label : null;
+  const activeSkill =
+    activeNode !== null && NODES[activeNode].kind === 'leaf' ? NODES[activeNode].label : null;
   const announcement = activeSkill
     ? `Selected skill: ${activeSkill}, ${CLUSTERS[focusCluster ?? 0].title}`
     : focusCluster !== null
       ? `Focused domain: ${CLUSTERS[focusCluster].title}, ${CLUSTER_COUNTS[focusCluster]} skills`
-      : '';
+      : activeNode === CORE
+        ? `Core: ${SKILL_COUNT} skills in ${CLUSTER_COUNT} domains`
+        : '';
 
   // Where the detail card sits (layout box, so its enter animation does not
   // matter) — the scene hides any label that would end up underneath it.
@@ -1001,6 +1361,29 @@ export default function SkillsConstellation({
     const r = el.getBoundingClientRect();
     return pickNode(clientX - r.left, clientY - r.top);
   }, []);
+  // Pointer over the stage but not on a node: the domain whose rings it is within
+  // (only while nothing is pinned — a pinned view must not refocus under the cursor).
+  const hoverAt = useCallback(
+    (clientX: number, clientY: number) => {
+      const el = stageRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const px = clientX - r.left;
+      const py = clientY - r.top;
+      const i = pickNode(px, py);
+      // One key for "what is hovered": node index, -2 - cluster, or -1 for nothing.
+      let key = i;
+      if (i === -1 && !pinnedRef.current) {
+        const sticky = lastHover.current <= -2 ? -2 - lastHover.current : -1;
+        const c = pickCluster(px, py, sticky);
+        if (c >= 0) key = -2 - c;
+      }
+      if (key === lastHover.current) return;
+      lastHover.current = key;
+      setHover(key >= 0 ? { kind: 'node', i: key } : key <= -2 ? { kind: 'cluster', i: -2 - key } : null);
+    },
+    [],
+  );
   const onStageDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     ORBIT.dragging = true;
@@ -1021,19 +1404,16 @@ export default function SkillsConstellation({
         if (!ORBIT.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
         if (!ORBIT.moved) {
           ORBIT.moved = true;
+          YAW_TO.on = false; // the hand takes over from the turn-to-front
           setDragging(true);
           lastHover.current = -1;
           setHover(null);
         }
         const now = performance.now();
         const dtMs = Math.max(8, now - ORBIT.lastT);
-        // Rubber band: dragging further past the yaw limit gets progressively heavier.
-        const total = ORBIT.yaw + SWAY.v;
-        const over = Math.abs(total) - YAW_LIMIT;
-        const outward = dx !== 0 && Math.sign(dx) === Math.sign(total);
-        const dYaw = dx * DRAG_YAW * (over > 0 && outward ? 1 / (1 + over * 4) : 1);
+        const dYaw = dx * DRAG_YAW;
         ORBIT.yaw += dYaw;
-        ORBIT.pitch = Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, ORBIT.pitch + dy * DRAG_PITCH));
+        ORBIT.pitch = Math.max(PITCH_MIN, Math.min(PITCH_MAX, ORBIT.pitch + dy * DRAG_PITCH));
         ORBIT.vYaw = (dYaw * 1000) / dtMs;
         ORBIT.vPitch = (dy * DRAG_PITCH * 1000) / dtMs;
         ORBIT.lastX = e.clientX;
@@ -1042,13 +1422,10 @@ export default function SkillsConstellation({
         ORBIT.idle = 0;
         return;
       }
-      const i = pickAt(e.clientX, e.clientY);
-      if (i !== lastHover.current) {
-        lastHover.current = i;
-        onHoverNode(i === -1 ? null : i);
-      }
+      POINTER_IN.v = true;
+      hoverAt(e.clientX, e.clientY);
     },
-    [pickAt, onHoverNode],
+    [hoverAt],
   );
   const onStageUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!ORBIT.dragging) return;
@@ -1059,6 +1436,7 @@ export default function SkillsConstellation({
   }, []);
   const onStageLeave = useCallback(() => {
     if (ORBIT.dragging) return; // pointer capture keeps the drag alive
+    POINTER_IN.v = false;
     lastHover.current = -1;
     onHoverNode(null);
   }, [onHoverNode]);
@@ -1075,8 +1453,11 @@ export default function SkillsConstellation({
         return;
       }
       const i = pickAt(e.clientX, e.clientY);
-      if (i === -1) setPin(null);
-      else onClickNode(i);
+      if (i !== -1) onClickNode(i);
+      // Empty space inside a hovered domain's rings opens that domain; anywhere
+      // else (or with something already pinned) a click on empty space closes.
+      else if (!pinnedRef.current && lastHover.current <= -2) setPin({ kind: 'cluster', i: -2 - lastHover.current });
+      else setPin(null);
     },
     [pickAt, onClickNode],
   );
@@ -1096,7 +1477,9 @@ export default function SkillsConstellation({
         case 'ArrowDown':
         case 'ArrowUp': {
           const dir = e.key === 'ArrowDown' ? 1 : -1;
-          const c = current < 0 ? 0 : (CLUSTER_OF[current] + dir + CLUSTER_COUNT) % CLUSTER_COUNT;
+          // From the core (no domain) or from nothing: enter at the first / last domain.
+          const from = current < 0 ? -1 : CLUSTER_OF[current];
+          const c = from < 0 ? (dir > 0 ? 0 : CLUSTER_COUNT - 1) : (from + dir + CLUSTER_COUNT) % CLUSTER_COUNT;
           next = CLUSTER_HUB[c];
           break;
         }
@@ -1132,6 +1515,16 @@ export default function SkillsConstellation({
     },
     [openProject],
   );
+
+  // Detail-card chips: jump to another skill or domain (the system turns to it).
+  const handleSelectLabel = useCallback((label: string) => {
+    const i = NODE_BY_LABEL.get(label);
+    if (i === undefined) return;
+    stageRef.current?.focus({ preventScroll: true });
+    lastHover.current = -1;
+    setHover(null);
+    setPin({ kind: 'node', i });
+  }, []);
 
   const cursor = dragging ? 'cursor-grabbing' : hover?.kind === 'node' ? 'cursor-pointer' : 'cursor-grab';
 
@@ -1222,29 +1615,47 @@ export default function SkillsConstellation({
       <p className="sr-only" aria-live="polite">
         {announcement}
       </p>
+      {/* Telemetry — decorative; follows the drag and the idle turn. */}
+      <p
+        aria-hidden="true"
+        className={`pointer-events-none absolute right-4 top-4 z-10 hidden whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.14em] text-cyber-accent/60 transition-opacity duration-700 lg:block ${
+          shown ? 'opacity-100' : 'opacity-0'
+        }`}
+      >
+        <span className="text-cyber-brand/80">sys.orbit</span> · az <span ref={setHudAz} className="tabular-nums text-cyber-secondary/80">000</span>° · el{' '}
+        <span ref={setHudEl} className="tabular-nums text-cyber-secondary/80">29</span>° · {SKILL_COUNT} skills · {LINK_TOTALS.cross} links
+      </p>
 
       {/* Node labels — positioned per frame by the scene (transform + opacity only).
           Hubs are always readable; leaves appear when their domain is in focus.
           Decorative for AT (the section keeps an sr-only list), but clickable. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
         {NODES.map((n, i) => {
-          const isHub = n.isHub;
+          const isHub = n.kind !== 'leaf';
+          const isCore = n.kind === 'core';
           const isPinned = pinnedNode === i;
           const isActive = activeNode === i;
-          const cluster = CLUSTERS[n.cluster];
+          const color = isCore ? CORE_COLOR : CLUSTERS[n.cluster].color;
           return (
             <button
               key={n.id}
               ref={LABEL_REFS[i]}
               type="button"
               tabIndex={-1}
-              onPointerEnter={() => onHoverNode(i)}
-              onPointerLeave={() => onHoverNode(null)}
+              onPointerEnter={() => {
+                POINTER_IN.v = true;
+                lastHover.current = i;
+                onHoverNode(i);
+              }}
+              onPointerLeave={() => {
+                lastHover.current = -1;
+                onHoverNode(null);
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 onClickNode(i);
               }}
-              style={{ opacity: 0, borderColor: isPinned || isActive ? cluster.color : undefined }}
+              style={{ opacity: 0, borderColor: isPinned || isActive ? color : undefined }}
               className={`absolute left-0 top-0 inline-flex select-none items-center gap-1.5 whitespace-nowrap rounded-md border font-mono text-xs leading-none transition-[opacity,background-color,border-color] duration-200 ${
                 isHub ? 'px-2.5 py-1.5 font-semibold text-white' : 'px-2 py-1 text-cyber-secondary'
               } ${
@@ -1257,11 +1668,13 @@ export default function SkillsConstellation({
                       : 'border-transparent bg-cyber-darker/60'
               }`}
             >
-              {isHub && <ClusterGlyph shape={cluster.glyph} color={cluster.color} size={11} />}
-              {n.label}
+              {isHub && !isCore && (
+                <ClusterGlyph shape={CLUSTERS[n.cluster].glyph} color={color} size={11} />
+              )}
+              {isCore ? <span className="text-cyber-brand">{n.label}</span> : n.label}
               {isHub && (
                 <span className="rounded-sm bg-white/10 px-1 py-0.5 text-[11px] font-normal tabular-nums text-cyber-accent">
-                  {CLUSTER_COUNTS[n.cluster]}
+                  {isCore ? SKILL_COUNT : CLUSTER_COUNTS[n.cluster]}
                 </span>
               )}
             </button>
@@ -1277,6 +1690,7 @@ export default function SkillsConstellation({
             data={cardData}
             onClose={() => setPin(null)}
             onOpenProject={handleOpenProject}
+            onSelect={handleSelectLabel}
           />
         )}
       </AnimatePresence>

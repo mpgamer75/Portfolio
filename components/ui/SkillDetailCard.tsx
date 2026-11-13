@@ -2,15 +2,22 @@
 
 import { useRef } from 'react';
 import { motion } from 'framer-motion';
-import { X, FolderGit2, Briefcase } from 'lucide-react';
+import { X, FolderGit2, Briefcase, Link2 } from 'lucide-react';
 import DecryptedText from '@/components/ui/DecryptedText';
 import ClusterGlyph from '@/components/three/ClusterGlyph';
 import type { SkillUsage } from '@/components/three/skillsMeta';
 import type { ClusterGlyph as GlyphShape } from '@/components/three/skillsGraph';
 
+export interface SkillCardDomain {
+  title: string;
+  color: string;
+  glyph: GlyphShape;
+  count: number;
+}
+
 export interface SkillCardData {
-  kind: 'skill' | 'domain';
-  /** Skill name (skill variant) or domain title (domain variant). */
+  kind: 'skill' | 'domain' | 'core';
+  /** Skill name (skill variant), domain title (domain variant) or the system's name (core). */
   title: string;
   /** Small label above the title — the domain name. */
   domainLabel: string;
@@ -21,8 +28,12 @@ export interface SkillCardData {
   blurb: string;
   /** skill variant: where the skill is used. */
   usedIn?: SkillUsage[];
+  /** skill variant: skills from other domains it is used with (the scene's dashed arcs). */
+  related?: string[];
   /** domain variant: the skills in this domain. */
   domainSkills?: string[];
+  /** core variant: the domains of the system. */
+  domains?: SkillCardDomain[];
 }
 
 interface SkillDetailCardProps {
@@ -30,7 +41,12 @@ interface SkillDetailCardProps {
   onClose: () => void;
   /** Opens the matching project's modal (label === projects[].title). */
   onOpenProject: (label: string) => void;
+  /** Jumps to another skill or domain by its label (the scene turns to it). */
+  onSelect: (label: string) => void;
 }
+
+const CHIP_BUTTON =
+  'inline-flex items-center gap-1.5 rounded-md border border-cyber-primary/15 bg-cyber-darker px-2 py-1 text-xs text-cyber-secondary transition-colors hover:border-cyber-brand/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand';
 
 /**
  * Reactbits-style SpotlightCard used as the constellation's right-side detail
@@ -38,7 +54,7 @@ interface SkillDetailCardProps {
  * revealed via DecryptedText, and "where I use it" chips (project buttons open the
  * project modal; role chips are context-only). Slides in from the right.
  */
-export default function SkillDetailCard({ data, onClose, onOpenProject }: SkillDetailCardProps) {
+export default function SkillDetailCard({ data, onClose, onOpenProject, onSelect }: SkillDetailCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   // Card origin in client px, measured once per pointer entry (not per move).
   const origin = useRef({ left: 0, top: 0 });
@@ -63,7 +79,14 @@ export default function SkillDetailCard({ data, onClose, onOpenProject }: SkillD
     <motion.div
       data-skill-card=""
       initial={{ opacity: 0, x: 28, y: '-50%', scale: 0.96 }}
-      animate={{ opacity: 1, x: 0, y: '-50%', scale: 1 }}
+      // A beat late on the way in: the system turns towards the pin first.
+      animate={{
+        opacity: 1,
+        x: 0,
+        y: '-50%',
+        scale: 1,
+        transition: { type: 'spring', stiffness: 320, damping: 30, delay: 0.14 },
+      }}
       exit={{ opacity: 0, x: 28, y: '-50%', scale: 0.97 }}
       transition={{ type: 'spring', stiffness: 320, damping: 30 }}
       className="pointer-events-auto absolute right-3 top-1/2 z-20 flex max-h-[78%] w-[min(440px,38%)] flex-col sm:right-6 lg:right-10"
@@ -147,20 +170,52 @@ export default function SkillDetailCard({ data, onClose, onOpenProject }: SkillD
                   ),
                 )}
               </div>
+              {(data.related?.length ?? 0) > 0 && (
+                <>
+                  <h4 className="mb-2 mt-5 flex items-center gap-1.5 text-xs text-cyber-accent">
+                    <Link2 size={12} aria-hidden="true" />
+                    Works with
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(data.related ?? []).map((s) => (
+                      <button key={s} type="button" onClick={() => onSelect(s)} className={CHIP_BUTTON}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </>
-          ) : (
+          ) : data.kind === 'domain' ? (
             <>
               <h4 className="mb-2 text-xs text-cyber-accent">
                 {(data.domainSkills?.length ?? 0)} skills in this domain
               </h4>
               <div className="flex flex-wrap gap-1.5">
                 {(data.domainSkills ?? []).map((s) => (
-                  <span
-                    key={s}
-                    className="rounded-md border border-cyber-primary/15 bg-cyber-darker px-2 py-1 text-xs text-cyber-secondary"
-                  >
+                  <button key={s} type="button" onClick={() => onSelect(s)} className={CHIP_BUTTON}>
                     {s}
-                  </span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <h4 className="mb-2 text-xs text-cyber-accent">Domains</h4>
+              <div className="flex flex-col gap-1.5">
+                {(data.domains ?? []).map((d) => (
+                  <button
+                    key={d.title}
+                    type="button"
+                    onClick={() => onSelect(d.title)}
+                    className={`${CHIP_BUTTON} justify-between px-2.5 py-2`}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <ClusterGlyph shape={d.glyph} color={d.color} size={12} />
+                      {d.title}
+                    </span>
+                    <span className="tabular-nums text-cyber-accent">{d.count}</span>
+                  </button>
                 ))}
               </div>
             </>

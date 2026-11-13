@@ -1,25 +1,43 @@
 /**
  * Deterministic node-graph for the 3D Skills Constellation.
  *
- * Pure data + a stable layout (trig + Fibonacci shells, no runtime randomness),
- * so the constellation looks identical on every load. No React, no three here.
+ * Pure data + a stable layout (trig only, no runtime randomness), so the
+ * constellation starts identically on every load. No React, no three here.
+ *
+ * The graph is an orrery: one core in the middle, the four domain hubs on a
+ * shared orbit around it (the XZ plane — the scene tilts it towards the camera),
+ * and each domain's skills on one or two rings around their hub. The rings turn
+ * at run time (see orbitSim.ts); the positions baked here are the t = 0 pose.
  *
  * NOTE: the skill lists mirror `skillCategories` in components/sections/SkillsSection.tsx
  * (which is the accessible, on-page source of truth). Keep the two in sync.
  */
 
+export type NodeKind = 'core' | 'hub' | 'leaf';
+
 export interface SkillNode {
   id: string;
   label: string;
+  /** Domain index, or -1 for the core. */
   cluster: number;
+  /** Position at t = 0, graph-local. Leaves move at run time. */
   position: [number, number, number];
+  kind: NodeKind;
+  /** Domain hubs only (the core is not a hub). */
   isHub: boolean;
+  /** Leaves: radius of the ring it rides around its hub, and its angle on it at t = 0. */
+  ringRadius: number;
+  ringAngle: number;
 }
+
+export type LinkKind = 'trunk' | 'spoke' | 'cross';
 
 /** Link between two nodes, stored as indices into `GraphData.nodes`. */
 export interface SkillLink {
   a: number;
   b: number;
+  /** trunk: core → hub · spoke: hub → skill · cross: two skills that work together. */
+  kind: LinkKind;
 }
 
 /** Hub emblem — each domain gets its own outline shape as well as its own tint. */
@@ -31,6 +49,12 @@ export interface Cluster {
   color: string;
   glyph: ClusterGlyph;
   center: [number, number, number];
+  /** Unit normal of the plane this domain's skills orbit in (resting pose). */
+  normal: [number, number, number];
+  /** Radii of the skill rings around the hub (one or two). */
+  rings: number[];
+  /** Angular speed of the rings, rad/s (sign = direction). */
+  spin: number;
 }
 
 export interface GraphData {
@@ -72,99 +96,97 @@ const CATEGORIES: { title: string; color: string; glyph: ClusterGlyph; items: st
   },
 ];
 
-const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5)); // ~2.39996 rad
 /**
- * Layout. The four hubs keep their XY compass positions (the home view stays
- * familiar) but sit at strongly alternating depths with a vertical stagger, and
- * each hub's leaves are spread over a Fibonacci shell around it — so the graph
- * is a volume, not a disc, and never collapses into a sliver as it turns.
+ * Skills from different domains that are used together (same project or role in
+ * skillsMeta.ts). Drawn as faint arcs across the system; they light up with
+ * either end. Labels must match the item names above exactly.
  */
-const HUB_RADIUS = 3.7;
-/** Alternating hub depth (left/right hubs come forward, top/bottom recede). */
-const HUB_DEPTH = 2.2;
-/** Vertical stagger: pulls the top/bottom hubs in and tilts the left/right pair. */
-const HUB_STAGGER = 0.6;
-const HUB_STAGGER_SIGN = [1, -1, -1, 1];
-/** Leaf shell radius range around a hub (inner leaves first). */
-const LEAF_SHELL_MIN = 1.05;
-const LEAF_SHELL_MAX = 1.75;
-/** How far the shell reaches towards / away from the camera (unit-sphere z). */
-const LEAF_SHELL_Z = 0.75;
-/** Leaves lean away from the graph centre so clusters open outwards. */
-const LEAF_OUTWARD_BIAS = 0.35;
-// Minimum leaf offset from its hub in the XY plane — keeps every leaf clear of
-// its hub so the hub's emblem, label and hit-target never get buried under a
-// skill node in the home view.
-const LEAF_MIN_RADIUS = 0.95;
+const CROSS_LINKS: [string, string][] = [
+  ['Bash', 'Linux'], // Security Scanner, Encryptor
+  ['Bash', 'GitHub'], // Encryptor's GitHub Actions packaging
+  ['Python', 'OSINT'], // IoC correlation at the SOC
+  ['PowerShell', 'Active Directory'], // AD audit scripting
+  ['Trellix EDR', 'Active Directory'], // automated AD audit reports
+  ['Kali Linux', 'Hack The Box'], // pentest labs
+  ['Kali Linux', 'TryHackMe'],
+  ['Metasploit', 'Hack The Box'],
+  ['JavaScript', 'Next.js'], // SABER
+  ['JavaScript', 'Node.js'],
+  ['TypeScript', 'React'], // this portfolio
+  ['TypeScript', 'Next.js'],
+  ['SQL', 'REST API'], // Mi SaludRD
+  ['Vercel', 'GitHub'], // deploy pipeline
+  ['Docker', 'Linux'], // labs
+];
 
+export const CORE_LABEL = '<CL />';
+
+/** Radius of the orbit the four hubs share. */
+export const ORBIT_RADIUS = 5.4;
+/** First hub's angle on the orbit: 45° puts the hubs on the diagonals of the home view. */
+const ORBIT_PHASE = Math.PI / 4;
+/** Hubs ride a little above / below the orbital plane so the system has volume. */
+const HUB_LIFT = [0.55, -0.5, 0.4, -0.6];
 /**
- * The hub's DOM label hangs just above its plate. A leaf sitting in that band
- * would be hidden under the label in the home view, so each cluster's shell is
- * rotated (about the view axis) to the phase that keeps the band clearest.
- * Scene units, relative to the hub: |x| < LABEL_ZONE_X, LABEL_ZONE_Y0 < y < LABEL_ZONE_Y1.
+ * How far each domain's ring plane leans off the orbital plane (tan of the
+ * angle). Kept well under the scene's tilt, so no ring is ever seen edge-on.
  */
-const LABEL_ZONE_X = 1.7;
-const LABEL_ZONE_Y0 = 0.5;
-const LABEL_ZONE_Y1 = 1.25;
-const PHASE_STEPS = 36;
+const RING_LEAN = 0.24;
+const RING_SPIN = [0.1, -0.085, 0.12, -0.095];
 
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-
-/** Offset of leaf `li` (of `count`) from its hub, for a shell rotated by `phase`. */
-function leafOffset(
-  li: number,
-  count: number,
-  ux: number,
-  uy: number,
-  phase: number,
-): [number, number, number] {
-  const u = (li + 0.5) / count;
-  const phi = li * GOLDEN_ANGLE + phase;
-  const z = lerp(-LEAF_SHELL_Z, LEAF_SHELL_Z, u);
-  const ring = Math.sqrt(1 - z * z);
-  // Unit direction on the shell, biased away from the graph centre.
-  let dx = Math.cos(phi) * ring + ux * LEAF_OUTWARD_BIAS;
-  let dy = Math.sin(phi) * ring + uy * LEAF_OUTWARD_BIAS;
-  let dz = z;
-  const len = Math.hypot(dx, dy, dz) || 1;
-  const r = lerp(LEAF_SHELL_MIN, LEAF_SHELL_MAX, Math.sqrt(u));
-  dx = (dx / len) * r;
-  dy = (dy / len) * r;
-  dz = (dz / len) * r;
-  // Enforce the XY clearance from the hub (see LEAF_MIN_RADIUS).
-  const flat = Math.hypot(dx, dy);
-  if (flat < LEAF_MIN_RADIUS) {
-    const k = flat > 1e-4 ? LEAF_MIN_RADIUS / flat : 0;
-    dx = flat > 1e-4 ? dx * k : ux * LEAF_MIN_RADIUS;
-    dy = flat > 1e-4 ? dy * k : uy * LEAF_MIN_RADIUS;
-  }
-  return [dx, dy, dz];
+/** Ring radii by skill count: up to six ride one ring, more are split over two. */
+function ringPlan(count: number): { radii: number[]; sizes: number[] } {
+  if (count <= 5) return { radii: [1.35], sizes: [count] };
+  if (count <= 6) return { radii: [1.5], sizes: [count] };
+  const inner = Math.floor((count - 1) / 2);
+  return { radii: [1.05, 1.75], sizes: [inner, count - inner] };
 }
 
-/** Shell phase that leaves the fewest leaves (then the most margin) in the label zone. */
-function bestShellPhase(count: number, ux: number, uy: number): number {
+/**
+ * Angular offset of the inner ring that keeps its skills as far as possible (in
+ * angle) from the outer ring's — the two rings turn together, so the spacing
+ * found here holds for good.
+ */
+function interleave(inner: number, outer: number): number {
   let best = 0;
-  let bestCost = Infinity;
-  for (let s = 0; s < PHASE_STEPS; s++) {
-    const phase = (s / PHASE_STEPS) * Math.PI * 2;
-    let inside = 0;
-    let margin = Infinity;
-    for (let li = 0; li < count; li++) {
-      const [dx, dy] = leafOffset(li, count, ux, uy, phase);
-      // Distance outside the zone rectangle (0 when inside it).
-      const ox = Math.max(0, Math.abs(dx) - LABEL_ZONE_X);
-      const oy = Math.max(0, LABEL_ZONE_Y0 - dy, dy - LABEL_ZONE_Y1);
-      const out = Math.hypot(ox, oy);
-      if (out === 0) inside++;
-      margin = Math.min(margin, out);
+  let bestGap = -1;
+  const STEPS = 90;
+  for (let s = 0; s < STEPS; s++) {
+    const offset = (s / STEPS) * ((Math.PI * 2) / inner);
+    let gap = Infinity;
+    for (let i = 0; i < inner; i++) {
+      const a = offset + (i / inner) * Math.PI * 2;
+      for (let o = 0; o < outer; o++) {
+        const b = (o / outer) * Math.PI * 2;
+        const d = Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+        gap = Math.min(gap, d);
+      }
     }
-    const cost = inside * 10 - Math.min(margin, 1);
-    if (cost < bestCost - 1e-9) {
-      bestCost = cost;
-      best = phase;
+    if (gap > bestGap + 1e-9) {
+      bestGap = gap;
+      best = offset;
     }
   }
   return best;
+}
+
+type Vec3 = [number, number, number];
+const cross = (a: Vec3, b: Vec3): Vec3 => [
+  a[1] * b[2] - a[2] * b[1],
+  a[2] * b[0] - a[0] * b[2],
+  a[0] * b[1] - a[1] * b[0],
+];
+const normalize = (v: Vec3): Vec3 => {
+  const l = Math.hypot(v[0], v[1], v[2]) || 1;
+  return [v[0] / l, v[1] / l, v[2] / l];
+};
+
+/** Orthonormal basis (u, v) of the plane with unit normal `n`; u × v = n. */
+export function planeBasis(n: Vec3): { u: Vec3; v: Vec3 } {
+  const ref: Vec3 = Math.abs(n[0]) < 0.8 ? [1, 0, 0] : [0, 0, 1];
+  const u = normalize(cross(ref, n));
+  const v = cross(n, u);
+  return { u, v };
 }
 
 export function buildSkillsGraph(): GraphData {
@@ -172,38 +194,101 @@ export function buildSkillsGraph(): GraphData {
   const links: SkillLink[] = [];
   const clusters: Cluster[] = [];
   const hubIndices: number[] = [];
+  const byLabel = new Map<string, number>();
   const n = CATEGORIES.length;
 
   CATEGORIES.forEach((cat, ci) => {
-    const angle = (ci / n) * Math.PI * 2;
-    const ux = Math.cos(angle);
-    const uy = Math.sin(angle);
-    const center: [number, number, number] = [
-      ux * HUB_RADIUS,
-      uy * HUB_RADIUS + HUB_STAGGER * HUB_STAGGER_SIGN[ci % HUB_STAGGER_SIGN.length],
-      (ci % 2 === 0 ? 1 : -1) * HUB_DEPTH,
+    const angle = ORBIT_PHASE + (ci / n) * Math.PI * 2;
+    const center: Vec3 = [
+      Math.cos(angle) * ORBIT_RADIUS,
+      HUB_LIFT[ci % HUB_LIFT.length],
+      Math.sin(angle) * ORBIT_RADIUS,
     ];
-    clusters.push({ index: ci, title: cat.title, color: cat.color, glyph: cat.glyph, center });
+    // Ring plane: the orbital plane, leaned along the orbit's tangent (alternating
+    // sides), so the four domains read as four differently tilted little systems.
+    const lean = RING_LEAN * (ci % 2 === 0 ? 1 : -1);
+    const normal = normalize([-Math.sin(angle) * lean, 1, Math.cos(angle) * lean]);
+    const plan = ringPlan(cat.items.length);
+    clusters.push({
+      index: ci,
+      title: cat.title,
+      color: cat.color,
+      glyph: cat.glyph,
+      center,
+      normal,
+      rings: plan.radii,
+      spin: RING_SPIN[ci % RING_SPIN.length],
+    });
 
     const hubIdx = nodes.length;
     hubIndices.push(hubIdx);
-    nodes.push({ id: `${ci}-hub`, label: cat.title, cluster: ci, position: center, isHub: true });
+    nodes.push({
+      id: `${ci}-hub`,
+      label: cat.title,
+      cluster: ci,
+      position: center,
+      kind: 'hub',
+      isHub: true,
+      ringRadius: 0,
+      ringAngle: 0,
+    });
 
-    // Leaves on a Fibonacci shell around the hub (even, deterministic, 3D).
-    const count = cat.items.length;
-    const phase = bestShellPhase(count, ux, uy);
-    cat.items.forEach((item, li) => {
-      const [dx, dy, dz] = leafOffset(li, count, ux, uy, phase);
-      const pos: [number, number, number] = [center[0] + dx, center[1] + dy, center[2] + dz];
-      const leafIdx = nodes.length;
-      nodes.push({ id: `${ci}-${li}`, label: item, cluster: ci, position: pos, isHub: false });
-      links.push({ a: hubIdx, b: leafIdx });
+    const { u, v } = planeBasis(normal);
+    const innerOffset = plan.sizes.length > 1 ? interleave(plan.sizes[0], plan.sizes[1]) : 0;
+    let li = 0;
+    plan.sizes.forEach((size, ring) => {
+      const r = plan.radii[ring];
+      for (let k = 0; k < size; k++, li++) {
+        const a = (ring === 0 && plan.sizes.length > 1 ? innerOffset : 0) + (k / size) * Math.PI * 2;
+        const cx = Math.cos(a) * r;
+        const sx = Math.sin(a) * r;
+        const pos: Vec3 = [
+          center[0] + u[0] * cx + v[0] * sx,
+          center[1] + u[1] * cx + v[1] * sx,
+          center[2] + u[2] * cx + v[2] * sx,
+        ];
+        const leafIdx = nodes.length;
+        const label = cat.items[li];
+        byLabel.set(label, leafIdx);
+        nodes.push({
+          id: `${ci}-${li}`,
+          label,
+          cluster: ci,
+          position: pos,
+          kind: 'leaf',
+          isHub: false,
+          ringRadius: r,
+          ringAngle: a,
+        });
+        links.push({ a: hubIdx, b: leafIdx, kind: 'spoke' });
+      }
     });
   });
 
-  // Ring connecting the hubs (inter-domain relationships).
-  for (let i = 0; i < hubIndices.length; i++) {
-    links.push({ a: hubIndices[i], b: hubIndices[(i + 1) % hubIndices.length] });
+  // The core comes last, so hubs still precede their leaves and node 0 is a hub.
+  const coreIdx = nodes.length;
+  nodes.push({
+    id: 'core',
+    label: CORE_LABEL,
+    cluster: -1,
+    position: [0, 0, 0],
+    kind: 'core',
+    isHub: false,
+    ringRadius: 0,
+    ringAngle: 0,
+  });
+  for (const hub of hubIndices) links.push({ a: coreIdx, b: hub, kind: 'trunk' });
+
+  for (const [from, to] of CROSS_LINKS) {
+    const a = byLabel.get(from);
+    const b = byLabel.get(to);
+    if (a === undefined || b === undefined) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(`skillsGraph: cross link "${from}" – "${to}" names an unknown skill`);
+      }
+      continue;
+    }
+    links.push({ a, b, kind: 'cross' });
   }
 
   return { nodes, links, clusters };

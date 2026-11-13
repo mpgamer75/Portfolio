@@ -185,7 +185,7 @@ export default function SkillsSection() {
         <SkillsConstellationGate onModeChange={handleModeChange} />
         {show3D && (
           <p className="text-center text-cyber-accent font-mono text-xs sm:text-sm mt-3 mb-12 md:mb-16 px-4">
-            drag · hover · click a domain
+            drag to spin · hover a domain to unfold it · click to bring it forward
           </p>
         )}
 
