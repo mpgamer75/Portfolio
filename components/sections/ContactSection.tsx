@@ -36,6 +36,7 @@ const contactMethods = [
 
 export default function ContactSection() {
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -51,8 +52,14 @@ export default function ContactSection() {
       // mailto link beside the button still works there.
       await navigator.clipboard.writeText(EMAIL);
     } catch {
+      // Say so instead of looking dead; the address beside it is still selectable.
+      setCopied(false);
+      setCopyFailed(true);
+      if (resetTimer.current) clearTimeout(resetTimer.current);
+      resetTimer.current = setTimeout(() => setCopyFailed(false), 3000);
       return;
     }
+    setCopyFailed(false);
     setCopied(true);
     if (resetTimer.current) clearTimeout(resetTimer.current);
     resetTimer.current = setTimeout(() => setCopied(false), 1500);
@@ -127,8 +134,11 @@ export default function ContactSection() {
               );
             })}
           </ul>
-          <span className="sr-only" aria-live="polite">
-            {copied ? 'Email copied' : ''}
+          <span
+            className={copyFailed ? 'mt-3 block text-center font-mono text-xs text-cyber-accent' : 'sr-only'}
+            aria-live="polite"
+          >
+            {copied ? 'Email copied' : copyFailed ? 'Copy failed — select the address instead' : ''}
           </span>
         </Reveal>
 

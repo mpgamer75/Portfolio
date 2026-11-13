@@ -251,6 +251,8 @@ const GOV = {
   n: 0,
   skip: GOV_SKIP,
   sinceStep: GOV_COOLDOWN,
+  /** Fastest frame seen (s) — approximates the display refresh interval. */
+  fast: Infinity,
   buf: new Float32Array(GOV_WINDOW),
   sorted: new Float32Array(GOV_WINDOW),
 };
@@ -415,21 +417,38 @@ function Scene({
   useEffect(() => {
     const el = gl.domElement;
     let timer: number | undefined;
-    const onLost = (e: Event) => {
-      e.preventDefault();
-      window.clearTimeout(timer);
-      timer = window.setTimeout(onFail, 1500);
-    };
-    const onRestored = () => {
+    let lost = false;
+    // Browsers do not restore a context while the tab is hidden, so the grace
+    // period only runs while the page is visible; otherwise a GPU reset in a
+    // background tab would strand the section on the cards until reload.
+    const arm = () => {
       window.clearTimeout(timer);
       timer = undefined;
+      if (lost && !document.hidden) timer = window.setTimeout(onFail, 1500);
+    };
+    const onLost = (e: Event) => {
+      e.preventDefault();
+      lost = true;
+      arm();
+    };
+    const onRestored = () => {
+      lost = false;
+      arm();
     };
     el.addEventListener('webglcontextlost', onLost);
     el.addEventListener('webglcontextrestored', onRestored);
+    document.addEventListener('visibilitychange', arm);
     return () => {
       el.removeEventListener('webglcontextlost', onLost);
       el.removeEventListener('webglcontextrestored', onRestored);
+      document.removeEventListener('visibilitychange', arm);
       window.clearTimeout(timer);
+      // Release this renderer's GPU caches for the shared module-scope objects;
+      // they re-upload on next use, so a later remount starts clean.
+      for (const obj of [STAR_POINTS, LINK_MESH, NODE_MESH]) {
+        obj.geometry.dispose();
+        (obj.material as THREE.Material).dispose();
+      }
       resetSceneState();
     };
   }, [gl, onFail]);
@@ -475,7 +494,11 @@ function Scene({
         GOV.n = 0;
         GOV.sorted.set(GOV.buf);
         GOV.sorted.sort();
-        if (GOV.sorted[GOV_WINDOW >> 1] > GOV_SLOW && GOV.sinceStep >= GOV_COOLDOWN) {
+        // "Slow" is relative to the display: a 30/40/48 Hz panel (or a capped
+        // power mode) runs every frame above GOV_SLOW without being overloaded.
+        if (GOV.sorted[0] > 0.002) GOV.fast = Math.min(GOV.fast, GOV.sorted[0]);
+        const slow = Math.max(GOV_SLOW, GOV.fast * 1.4);
+        if (GOV.sorted[GOV_WINDOW >> 1] > slow && GOV.sinceStep >= GOV_COOLDOWN) {
           GOV.tier++;
           GOV.sinceStep = 0;
           GOV.skip = GOV_SKIP;
@@ -914,16 +937,25 @@ export default function SkillsConstellation({
   useEffect(() => {
     CARD.on = false;
     if (cardTitle === null) return;
-    const cards = rootRef.current?.querySelectorAll<HTMLElement>('[data-skill-card]');
+    const root = rootRef.current;
+    const cards = root?.querySelectorAll<HTMLElement>('[data-skill-card]');
     const el = cards?.[cards.length - 1];
-    if (!el) return;
-    const pad = 6;
-    CARD.left = el.offsetLeft - pad;
-    CARD.right = el.offsetLeft + el.offsetWidth + pad;
-    // The card is centred with translateY(-50%) on a top: 50% box.
-    CARD.top = el.offsetTop - el.offsetHeight / 2 - pad;
-    CARD.bottom = el.offsetTop + el.offsetHeight / 2 + pad;
-    CARD.on = true;
+    if (!root || !el) return;
+    const measure = () => {
+      const pad = 6;
+      CARD.left = el.offsetLeft - pad;
+      CARD.right = el.offsetLeft + el.offsetWidth + pad;
+      // The card is centred with translateY(-50%) on a top: 50% box.
+      CARD.top = el.offsetTop - el.offsetHeight / 2 - pad;
+      CARD.bottom = el.offsetTop + el.offsetHeight / 2 + pad;
+      CARD.on = true;
+    };
+    measure();
+    // The card moves with the stage size and breakpoint, so follow resizes.
+    const ro = new ResizeObserver(measure);
+    ro.observe(root);
+    ro.observe(el);
+    return () => ro.disconnect();
   }, [cardTitle]);
 
   // Label widths feed the collision pass; re-measure once the mono font has loaded.
@@ -1091,6 +1123,9 @@ export default function SkillsConstellation({
   const handleOpenProject = useCallback(
     (label: string) => {
       const proj = projects.find((p) => p.title === label);
+      // The chip that was clicked unmounts with the card, so park focus on the
+      // stage first: the modal then returns focus there when it closes.
+      if (proj) stageRef.current?.focus({ preventScroll: true });
       if (proj) openProject(proj);
       setPin(null); // hand off: zoom back out as the project modal takes over
       setHover(null);
