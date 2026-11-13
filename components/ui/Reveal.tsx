@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import type { CSSProperties, ReactNode } from 'react';
 import {
   REVEAL_VIEWPORT,
@@ -25,7 +25,8 @@ interface RevealProps {
 
 /**
  * Scroll-reveal wrapper: transform/opacity only, fires once, IntersectionObserver-native
- * (framer `whileInView`). Reduced-motion users get the final state immediately.
+ * (framer `whileInView`). Reduced motion is handled by the global MotionConfig (opacity-only
+ * fade); branching on it here would mismatch the server HTML and leave content hidden.
  */
 export function Reveal({
   children,
@@ -36,20 +37,11 @@ export function Reveal({
   stagger,
   id,
 }: RevealProps) {
-  const reduced = useReducedMotion();
-
-  if (reduced) {
-    return (
-      <div id={id} className={className} style={style}>
-        {children}
-      </div>
-    );
-  }
-
   if (stagger) {
     const amount = typeof stagger === 'number' ? stagger : 0.08;
     return (
       <motion.div
+        data-reveal
         id={id}
         className={className}
         style={style}
@@ -65,6 +57,7 @@ export function Reveal({
 
   return (
     <motion.div
+      data-reveal
       id={id}
       className={className}
       style={style}
@@ -87,18 +80,8 @@ interface RevealItemProps {
 
 /** A child of `<Reveal stagger>` — animates as its parent scrolls into view. */
 export function RevealItem({ children, className, style, x }: RevealItemProps) {
-  const reduced = useReducedMotion();
-
-  if (reduced) {
-    return (
-      <div className={className} style={style}>
-        {children}
-      </div>
-    );
-  }
-
   return (
-    <motion.div className={className} style={style} variants={x ? fadeIn(x) : revealItem}>
+    <motion.div data-reveal className={className} style={style} variants={x ? fadeIn(x) : revealItem}>
       {children}
     </motion.div>
   );

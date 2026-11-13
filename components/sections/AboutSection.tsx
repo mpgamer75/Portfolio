@@ -79,8 +79,8 @@ export default function AboutSection() {
             {/* Content */}
             <Reveal className="space-y-4 sm:space-y-6 order-1 md:order-2">
               <p className="text-base sm:text-lg text-white leading-relaxed font-medium">
-                Cybersecurity consultant at HeadMind Partners in Paris, trained in Computer
-                Science &amp; Cybersecurity Engineering at ECE Paris — I specialize in{' '}
+                Cybersecurity consultant at HeadMind Partners in Paris and Computer
+                Science &amp; Cybersecurity Engineering graduate of ECE Paris — I specialize in{' '}
                 <span className="text-cyber-brand font-semibold">offensive security</span>,{' '}
                 <span className="text-cyber-brand font-semibold">tool development</span> and{' '}
                 <span className="text-cyber-brand font-semibold">threat analysis</span>.
@@ -106,7 +106,7 @@ export default function AboutSection() {
                 <div className="flex items-center space-x-3 text-white">
                   <GraduationCap className="text-cyber-primary flex-shrink-0" size={20} />
                   <span className="font-medium text-sm sm:text-base">
-                    ECE Paris · Cybersecurity Engineering
+                    ECE Paris graduate · Cybersecurity Engineering
                   </span>
                 </div>
               </div>

@@ -276,7 +276,7 @@ export default function SkillsSection() {
                 <GraduationCap size={16} className="flex-shrink-0 text-cyber-brand" aria-hidden="true" />
                 <span>
                   <span className="whitespace-nowrap">ECE Paris</span>{' '}
-                  <span className="text-cyber-accent">· Cybersecurity Engineering</span>
+                  <span className="text-cyber-accent">· Cybersecurity Engineering graduate</span>
                 </span>
               </li>
             </ul>

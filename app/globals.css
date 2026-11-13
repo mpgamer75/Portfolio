@@ -757,3 +757,12 @@ button:focus-visible,
   25%  { opacity: 1; }
   100% { transform: translateY(78px); opacity: 0; }
 }
+
+/* Reduced motion: scroll-reveal wrappers must never stay hidden. The server HTML
+   carries their opacity:0 start state, so force the final state in CSS. */
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
