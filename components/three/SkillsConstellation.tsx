@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { AnimatePresence } from 'framer-motion';
-import { Minus, Plus, Rocket } from 'lucide-react';
+import { Minus, Pause, Play, Plus, Rocket, Sun } from 'lucide-react';
 import * as THREE from 'three';
 import {
   CLUSTERS,
@@ -13,8 +13,12 @@ import {
   CLUSTER_OF,
   CLUSTER_SKILLS,
   CURVE_STRIDE,
+  DOCK_SECONDS,
   IS_HUB,
+  LANES,
   LANE_COUNT,
+  LANE_TRANSITS,
+  LEAF_RADIUS_W,
   NODES,
   NODE_COUNT,
   NODE_POSITIONS,
@@ -47,6 +51,7 @@ import {
   requestPlanetDetail,
   setBigState,
   setGlow,
+  setPlanetMoon,
   setPlanetSpin,
   setSmallHeading,
   setSmallPosition,
@@ -75,11 +80,30 @@ import {
   setFarStars,
   updateNebula,
 } from './starLayer';
+import {
+  AU_KM,
+  FLIGHT_DOCKED,
+  FLIGHT_LABELS,
+  PLANET_PHYSICS,
+  SHIP_THRUST_G,
+  TIME_WARP,
+  TRANSIT_WARP,
+  flightAt,
+  formatDuration,
+  formatKm,
+  formatSpeed,
+  orbitRadius,
+  orbitalPeriod,
+  solveKepler,
+  visViva,
+  type FlightState,
+} from './orbitalMechanics';
 import { getSkillMeta } from './skillsMeta';
 import ClusterGlyph from './ClusterGlyph';
 import { projects } from '@/components/sections/projectsData';
 import { useProjectModal } from '@/components/ui/ProjectModalProvider';
-import SkillDetailCard, { type SkillCardData } from '@/components/ui/SkillDetailCard';
+import SkillDetailCard, { setLiveReadout, type SkillCardData } from '@/components/ui/SkillDetailCard';
+import { socialLinks } from '@/lib/links';
 
 /*
  * Client-only (the gate imports it with `ssr:false`), so module-scope `document`
@@ -94,16 +118,24 @@ import SkillDetailCard, { type SkillCardData } from '@/components/ui/SkillDetail
  *   bodyLayer  — domain glows (1), the star and the four planets (5, back to
  *                front), and the moons and the craft behind / in front of them (4)
  *
- * The skill domains are planets around a star; each skill is a moon on one of
- * its planet's two orbits; every highlighted project is a ship flying a lane
- * between the two domains it draws on.
+ * The star is the owner's profile; the skill domains are planets around it;
+ * each skill is a moon on one of its planet's two orbits; every highlighted
+ * project is a ship flying a lane between the two domains it draws on.
+ *
+ * What moves is worked out, not keyframed (see orbitalMechanics.ts): moons and
+ * satellites follow Kepler ellipses with periods set by their planet's mass,
+ * planets turn at their own day length, and ships fly constant-thrust
+ * transits (burn, flip at the midpoint, brake). The figures in the detail
+ * panel come out of the same equations.
  */
 
 /**
- * Pickable things: every node (planet or moon) followed by every ship. A "pick
- * index" below NODE_COUNT is a node; NODE_COUNT + s is ship s.
+ * Pickable things: every node (planet or moon), then every ship, then the
+ * star. A "pick index" below NODE_COUNT is a node; NODE_COUNT + s is ship s;
+ * STAR_PICK is the star.
  */
-const PICK_COUNT = NODE_COUNT + SHIP_COUNT;
+const STAR_PICK = NODE_COUNT + SHIP_COUNT;
+const PICK_COUNT = STAR_PICK + 1;
 
 const restIntensity = (i: number) => (IS_HUB[i] ? 0.95 : 0.6);
 /** Eased per-node glow and selection (0 none · 0.6 hovered · 1 pinned), fed to the body layer. */
@@ -114,15 +146,26 @@ for (let i = 0; i < NODE_COUNT; i++) GLOW[i] = restIntensity(i);
 const LINE_INT = new Float32Array(LINE_COUNT);
 /** Eased glow strength per domain (+ the backdrop in the last slot). */
 const ATMOS = new Float32Array(CLUSTER_COUNT + 1);
-/** Eased brightness of the star, the ships and the ships' selection. */
-const SUN = { glow: 1 };
+/** Eased brightness and selection of the star, then of the ships. */
+const SUN = { glow: 1, select: 0 };
 const SHIP_GLOW = new Float32Array(SHIP_COUNT).fill(1);
 const SHIP_SELECT = new Float32Array(SHIP_COUNT);
 
 /**
- * Orbital clocks. Each domain has its own, so a system can slow to a stop while
- * it is in focus (labels and hit targets hold still) without the others pausing.
- * Ships likewise ease off the throttle while hovered, so they can be caught.
+ * The simulation clock. `warp` is the visitor's time control (0 = paused),
+ * `eased` follows it so a change of speed is never a jolt, and `t` is the
+ * running time (scene seconds) for whatever has no clock of its own.
+ */
+const SIM = { warp: 1, eased: 1, t: 0 };
+/** The speeds the time control steps through. */
+const WARP_STEPS = [1, 4, 10];
+/** A system in focus runs in slow motion, so its moons can be caught and read. */
+const FOCUS_RATE = 0.25;
+
+/**
+ * Orbital clocks. Each domain has its own, so a system can drop into slow
+ * motion while it is in focus without the others slowing down. Ships likewise
+ * ease off while hovered, so they can be caught.
  */
 const CLUSTER_TIME = new Float64Array(CLUSTER_COUNT);
 const CLUSTER_RATE = new Float32Array(CLUSTER_COUNT).fill(1);
@@ -130,6 +173,22 @@ const SHIP_TIME = new Float64Array(SHIP_COUNT);
 const SHIP_RATE = new Float32Array(SHIP_COUNT).fill(1);
 /** Live ship positions (system-local), for the chase camera. */
 const SHIP_POS = new Float32Array(SHIP_COUNT * 3);
+/** Each ship's flight state, whether it is on the way back, and how far through its leg it is. */
+const FLIGHT: FlightState[] = SHIPS.map(() => ({ progress: 0, speed: 0, mode: 0, turn: 0, thrust: 0 }));
+const SHIP_INBOUND = new Uint8Array(SHIP_COUNT);
+const SHIP_TAU = new Float32Array(SHIP_COUNT);
+/** How far each planet has turned on its axis (radians). */
+const DAY = new Float64Array(CLUSTER_COUNT);
+/** Each moon's eccentric anomaly this frame, and its slot among its planet's moons. */
+const MOON_E = new Float64Array(NODE_COUNT);
+const MOON_INDEX = new Int8Array(NODE_COUNT);
+{
+  const next = new Int8Array(CLUSTER_COUNT);
+  for (let i = 0; i < NODE_COUNT; i++) if (!IS_HUB[i]) MOON_INDEX[i] = next[CLUSTER_OF[i]]++;
+}
+/** Seconds since the live readouts were last written (they update a few times a second). */
+const READOUT = { t: 0 };
+const READOUT_INTERVAL = 0.12;
 /**
  * The visitor's own turn of each planet's globe (radians) and its inertia.
  * `AXIS_UP` is +1 when a planet's north pole points up on screen, so a drag to
@@ -197,27 +256,29 @@ const ANCHOR_ABOVE = 0;
 const ANCHOR_RIGHT = 1;
 const ANCHOR_LEFT = 2;
 const ANCHOR_BELOW = 3;
+/** The position IS the box's top-left corner (labels that glide to their place). */
+const ANCHOR_CORNER = 4;
 const ANCHORS = [
   'translate(-50%, -100%)',
   'translate(0, -50%)',
   'translate(-100%, -50%)',
   'translate(-50%, 0)',
+  'translate(0, 0)',
 ];
 
 /** Left edge / top edge of a label's box for an anchor mode and anchor point. */
 const labelLeft = (mode: number, x: number, w: number) =>
-  mode === ANCHOR_RIGHT ? x : mode === ANCHOR_LEFT ? x - w : x - w / 2;
+  mode === ANCHOR_RIGHT || mode === ANCHOR_CORNER ? x : mode === ANCHOR_LEFT ? x - w : x - w / 2;
 const labelTop = (mode: number, y: number, h: number) =>
-  mode === ANCHOR_BELOW ? y : mode === ANCHOR_ABOVE ? y - h : y - h / 2;
-/** Inverse of labelTop: the anchor y that puts the box's top edge at `top`. */
-const anchorY = (mode: number, top: number, h: number) =>
-  mode === ANCHOR_BELOW ? top : mode === ANCHOR_ABOVE ? top + h : top + h / 2;
+  mode === ANCHOR_BELOW || mode === ANCHOR_CORNER ? y : mode === ANCHOR_ABOVE ? y - h : y - h / 2;
 
 /**
  * The pinned detail card's box in stage px (labels underneath it are hidden).
  * Measured from layout on pin, so it costs nothing per frame.
  */
 const CARD = { on: false, left: 0, top: 0, right: 0, bottom: 0 };
+/** The box of the star's own label this frame (other names keep clear of it). */
+const STAR_LABEL = { on: false, left: 0, top: 0, right: 0, bottom: 0 };
 
 /**
  * Scratch for the moon-label collision pass: the focused system's visible moon
@@ -297,6 +358,7 @@ const ENTER_DOLLY = 4.2;
 const ZOOM_DIST_SYSTEM = 5.6;
 const ZOOM_DIST_MOON = 4.0;
 const ZOOM_DIST_SHIP = 3.0;
+const ZOOM_DIST_STAR = 5.2;
 /**
  * How close the visitor's zoom can bring the camera to what is pinned: a planet
  * (in planet radii, so every globe ends up the same size on screen), a moon
@@ -305,6 +367,7 @@ const ZOOM_DIST_SHIP = 3.0;
 const CLOSE_PLANET = 2.3;
 const CLOSE_MOON = 0.9;
 const CLOSE_SHIP = 1.15;
+const CLOSE_STAR = 1.7;
 /** Click shockwave progress (0 = idle) and the last pinned target, to detect a new pin. */
 const PING = { t: 0, last: -1 };
 const PING_SECONDS = 0.8;
@@ -495,34 +558,138 @@ function resetSceneState() {
   CLOSE.k = 0;
   GRAB.cluster = -1;
   SPIN_VEL.fill(0);
+  SIM.warp = 1;
+  SIM.eased = 1;
 }
 
 type Sel =
   | { kind: 'node'; i: number }
   | { kind: 'cluster'; i: number }
   | { kind: 'ship'; i: number }
+  | { kind: 'star' }
   | { kind: 'fleet' };
-/** What can be pinned open: a planet, a moon, a domain from the legend, or a ship. */
-type Pin = Extract<Sel, { kind: 'node' | 'cluster' | 'ship' }>;
+/** What can be pinned open: a planet, a moon, a domain from the legend, a ship, or the star. */
+type Pin = Extract<Sel, { kind: 'node' | 'cluster' | 'ship' | 'star' }>;
 
 /** How far the visitor can zoom with this pinned (1 = no closer than its normal framing). */
 function zoomMaxFor(pin: Pin | null): number {
   if (!pin) return ZOOM_MAX_FREE;
+  if (pin.kind === 'star') return ZOOM_DIST_STAR / CLOSE_STAR;
   if (pin.kind === 'ship') return ZOOM_DIST_SHIP / CLOSE_SHIP;
   if (pin.kind === 'node' && !IS_HUB[pin.i]) return ZOOM_DIST_MOON / CLOSE_MOON;
   const c = pin.kind === 'cluster' ? pin.i : CLUSTER_OF[pin.i];
   return ZOOM_DIST_SYSTEM / (CLUSTERS[c].radius * CLOSE_PLANET);
 }
 
+const CRAFT_CLASS = ['Courier', 'Freighter', 'Explorer'];
+const LEAF_TOTAL = NODE_COUNT - CLUSTER_COUNT;
+/** What the figures in a moon system's readout are. */
+const ORBIT_NOTE = `From the planet's mass (Kepler). Orbits are to scale with the planet; time runs ${TIME_WARP}× faster.`;
+
 function buildDomainCard(c: number): SkillCardData {
+  const cluster = CLUSTERS[c];
+  const p = PLANET_PHYSICS[cluster.planet];
   return {
     kind: 'domain',
-    title: CLUSTERS[c].title,
-    domainLabel: CLUSTERS[c].title,
-    color: CLUSTERS[c].color,
-    glyph: CLUSTERS[c].glyph,
-    blurb: `${CLUSTER_COUNTS[c]} skills I work with across this domain, one moon each. Hover any of them to inspect it.`,
+    title: cluster.title,
+    domainLabel: `Domain · ${p.type}`,
+    color: cluster.color,
+    glyph: cluster.glyph,
+    blurb: `${CLUSTER_COUNTS[c]} skills I work with across this domain, one moon each. Drag the globe to turn it.`,
     domainSkills: CLUSTER_SKILLS[c],
+    facts: [
+      { label: 'Radius', value: formatKm(p.radiusKm) },
+      { label: 'Surface gravity', value: `${p.gravityG.toFixed(2)} g` },
+      { label: 'Day', value: formatDuration(p.dayHours * 3600) },
+      { label: 'Year', value: `${formatDuration(p.yearDays * 86_400)} · ${p.orbitAU} AU` },
+      { label: 'Escape velocity', value: formatSpeed(p.escapeKmS) },
+      { label: 'Moons', value: String(CLUSTER_COUNTS[c]) },
+    ],
+    factsNote: `From its radius and density. At ${TIME_WARP}× a year still takes hours, so the planet holds its place.`,
+  };
+}
+
+function buildSkillCard(i: number): SkillCardData {
+  const node = NODES[i];
+  const cluster = CLUSTERS[node.cluster];
+  const p = PLANET_PHYSICS[cluster.planet];
+  const meta = getSkillMeta(node.label);
+  const radii = node.orbitRadius / cluster.radius;
+  return {
+    kind: 'skill',
+    title: node.label,
+    domainLabel: cluster.title,
+    color: cluster.color,
+    glyph: cluster.glyph,
+    blurb: meta.blurb,
+    usedIn: meta.usedIn,
+    facts: [
+      { label: 'Orbit', value: formatKm(radii * p.radiusKm) },
+      { label: 'Period', value: formatDuration(orbitalPeriod(p, radii)) },
+      { label: 'Altitude', value: '…', live: 'moon-altitude' },
+      { label: 'Speed', value: '…', live: 'moon-speed' },
+      { label: 'Eccentricity', value: cluster.ecc[node.orbit].toFixed(2) },
+      { label: 'Light', value: '…', live: 'moon-light' },
+    ],
+    factsNote: ORBIT_NOTE,
+  };
+}
+
+function buildShipCard(s: number): SkillCardData {
+  const ship = SHIPS[s];
+  const project = projects[ship.project];
+  const transit = LANE_TRANSITS[ship.lane];
+  const lane = LANES[ship.lane];
+  return {
+    kind: 'project',
+    title: project.title,
+    domainLabel: `Shipped project · ${CRAFT_CLASS[ship.craft]}`,
+    color: '#34D399',
+    glyph: 'circle',
+    blurb: project.description,
+    tech: project.tech,
+    route: [CLUSTERS[lane.a].title, CLUSTERS[lane.b].title],
+    facts: [
+      { label: 'Status', value: '…', live: 'ship-status' },
+      { label: 'Heading to', value: '…', live: 'ship-to' },
+      { label: 'Speed', value: '…', live: 'ship-speed' },
+      { label: 'Arrives in', value: '…', live: 'ship-eta' },
+      { label: 'To go', value: '…', live: 'ship-togo' },
+      { label: 'Transit', value: `${transit.distanceAU.toFixed(2)} AU · ${formatDuration(transit.seconds)}` },
+    ],
+    factsNote: `Constant ${SHIP_THRUST_G} g: burn, flip at the midpoint (${formatSpeed(transit.peakKmS)}), brake. Shown ${TRANSIT_WARP.toLocaleString('en-US')}× faster than real time.`,
+    links: [
+      ...(project.demo ? [{ label: 'Live site', href: project.demo, kind: 'external' as const }] : []),
+      ...(project.github ? [{ label: 'Source', href: project.github, kind: 'external' as const }] : []),
+    ],
+  };
+}
+
+function buildProfileCard(): SkillCardData {
+  return {
+    kind: 'profile',
+    title: 'Charles Lantigua Jorge',
+    domainLabel: 'Profile · the star of this system',
+    color: '#34D399',
+    glyph: 'circle',
+    blurb:
+      'Cybersecurity consultant at HeadMind Partners in Paris and Computer Science & Cybersecurity Engineering graduate of ECE Paris. I specialize in offensive security, tool development and threat analysis.',
+    detail: 'Four domains of skills orbit this star; the projects I shipped fly between them.',
+    facts: [
+      { label: 'Role', value: 'Cybersecurity Consultant' },
+      { label: 'Company', value: 'HeadMind Partners' },
+      { label: 'Based in', value: 'Paris, France' },
+      { label: 'Education', value: 'ECE Paris' },
+      { label: 'Languages', value: 'French, Spanish, English' },
+      { label: 'In orbit', value: `${CLUSTER_COUNT} domains · ${LEAF_TOTAL} skills · ${SHIP_COUNT} ships` },
+    ],
+    links: [
+      { label: 'Download CV', href: '/cv.pdf', kind: 'download' },
+      { label: 'Contact', href: '#contact', kind: 'anchor' },
+      ...socialLinks
+        .filter((link) => link.href.startsWith('http'))
+        .map((link) => ({ label: link.label, href: link.href, kind: 'external' as const })),
+    ],
   };
 }
 
@@ -539,9 +706,11 @@ function pickAtPoint(px: number, py: number): number {
     const dx = px - SCREEN[i * 3];
     const dy = py - SCREEN[i * 3 + 1];
     const r =
-      i >= NODE_COUNT
-        ? Math.max(PICK_RADIUS_SHIP, PICK_RPX[i] + 8)
-        : IS_HUB[i]
+      i === STAR_PICK
+        ? Math.max(PICK_RADIUS_HUB, PICK_RPX[i] + 2)
+        : i >= NODE_COUNT
+          ? Math.max(PICK_RADIUS_SHIP, PICK_RPX[i] + 8)
+          : IS_HUB[i]
           ? Math.max(PICK_RADIUS_HUB, PICK_RPX[i] + 2)
           : Math.max(PICK_RADIUS_LEAF, PICK_RPX[i] + 6);
     const score = Math.sqrt(dx * dx + dy * dy) / r;
@@ -573,6 +742,9 @@ interface SceneProps {
   pinnedNode: number | null;
   /** The ship the camera is flying alongside, if one is pinned. */
   chaseShip: number | null;
+  /** The star is hovered or open, and whether it is open. */
+  starActive: boolean;
+  starPinned: boolean;
   /** One-shot: the stage has been properly visible, so the entrance may start. */
   entered: boolean;
   /** Current quality tier (React copy of GOV.tier, so the DPR cap can follow it). */
@@ -597,6 +769,8 @@ function Scene({
   pinned,
   pinnedNode,
   chaseShip,
+  starActive,
+  starPinned,
   entered,
   tier,
   onTier,
@@ -701,7 +875,6 @@ function Scene({
   useFrame((state, delta) => {
     const dt = Math.min(delta, 0.05);
     SHARED.uTime.value += dt;
-    const time = SHARED.uTime.value;
 
     if (!shown.current) {
       shown.current = true;
@@ -802,38 +975,62 @@ function Scene({
       tiltY = parallax.current.rotation.y;
     }
 
-    // ── Orbital motion: each system runs on its own clock and eases to a stop
-    // while it is in focus, so its moons (and their labels) hold still ──
+    // ── Time: the visitor's control (pause / faster) is eased in ──
+    SIM.eased += (SIM.warp - SIM.eased) * (1 - Math.exp(-dt * 8));
+    if (SIM.warp === 0 && SIM.eased < 0.01) SIM.eased = 0;
+    const sim = dt * SIM.eased;
+    SIM.t += sim;
+
+    // ── Orbital motion: each system runs on its own clock, in slow motion
+    // while it is in focus; each planet turns at its own day length ──
     for (let c = 0; c < CLUSTER_COUNT; c++) {
-      const rate = focusCluster === c ? 0 : 1;
+      const rate = focusCluster === c ? FOCUS_RATE : 1;
       CLUSTER_RATE[c] += (rate - CLUSTER_RATE[c]) * (1 - Math.exp(-dt * 3.5));
-      CLUSTER_TIME[c] += dt * CLUSTER_RATE[c];
+      CLUSTER_TIME[c] += sim * CLUSTER_RATE[c];
+      DAY[c] += sim * PLANET_PHYSICS[CLUSTERS[c].planet].spinRate;
       // A globe the visitor has spun coasts to a stop.
       if (GRAB.cluster !== c) {
         SPIN[c] += SPIN_VEL[c] * dt;
         SPIN_VEL[c] *= Math.exp(-dt * 1.8);
       }
-      setPlanetSpin(c, SPIN[c]);
+      setPlanetSpin(c, DAY[c] + SPIN[c]);
     }
+    // Moons: Kepler's equation gives each one its place on its ellipse (the
+    // planet at a focus), so it sweeps equal areas in equal times — quick at
+    // periapsis, slow at apoapsis.
     for (let i = 0; i < NODE_COUNT; i++) {
       if (IS_HUB[i]) continue;
       const node = NODES[i];
       const c = CLUSTERS[node.cluster];
-      const ang = node.orbitPhase + node.orbitSpeed * CLUSTER_TIME[node.cluster];
-      const cs = Math.cos(ang) * node.orbitRadius;
-      const sn = Math.sin(ang) * node.orbitRadius;
-      const x = c.center[0] + c.u[0] * cs + c.v[0] * sn;
-      const y = c.center[1] + c.u[1] * cs + c.v[1] * sn;
-      const z = c.center[2] + c.u[2] * cs + c.v[2] * sn;
+      const ring = node.orbit;
+      const e = c.ecc[ring];
+      const a = node.orbitRadius;
+      const E = solveKepler(node.meanAnomaly + node.meanMotion * CLUSTER_TIME[node.cluster], e);
+      MOON_E[i] = E;
+      const along = a * (Math.cos(E) - e);
+      const across = a * Math.sqrt(1 - e * e) * Math.sin(E);
+      const p = c.periapsis[ring];
+      const q = c.quarter[ring];
+      const rx = p[0] * along + q[0] * across;
+      const ry = p[1] * along + q[1] * across;
+      const rz = p[2] * along + q[2] * across;
+      const x = c.center[0] + rx;
+      const y = c.center[1] + ry;
+      const z = c.center[2] + rz;
       NODE_POSITIONS[i * 3] = x;
       NODE_POSITIONS[i * 3 + 1] = y;
       NODE_POSITIONS[i * 3 + 2] = z;
       setSmallPosition(MOON_SLOT[i], x, y, z);
-      // The trail is the arc the moon has just covered; it shrinks to nothing as
-      // the system slows to a stop.
-      const turn = ang / TAU;
-      const trail = MOON_TRAIL * CLUSTER_RATE[node.cluster] * Math.sign(node.orbitSpeed);
-      setLineRange(TRAIL_OF_NODE[i], turn - trail, turn);
+      // The way to its planet: the moon keeps one face turned to it, and can
+      // tell when it is in its shadow. The planet in turn knows where the moon
+      // is, to carry its shadow.
+      setSmallHeading(MOON_SLOT[i], -rx, -ry, -rz);
+      setPlanetMoon(node.cluster, MOON_INDEX[i], rx / c.radius, ry / c.radius, rz / c.radius, LEAF_RADIUS_W / c.radius);
+      // The trail is the arc the moon has just covered; it shortens as its
+      // system slows down, and is gone while time is paused.
+      const turn = E / TAU;
+      const pace = Math.min(1.5, CLUSTER_RATE[node.cluster] * SIM.eased);
+      setLineRange(TRAIL_OF_NODE[i], turn - MOON_TRAIL * pace * Math.sign(node.meanMotion), turn);
     }
 
     // ── Node glow + selection — active node white-hot, focused system lit, the
@@ -844,7 +1041,7 @@ function Scene({
     for (let i = 0; i < NODE_COUNT; i++) {
       let target: number;
       if (activeNode === i) target = 1.65;
-      else if (focusCluster === null) target = restIntensity(i);
+      else if (focusCluster === null) target = restIntensity(i) * (starPinned ? 0.5 : 1);
       else if (CLUSTER_OF[i] === focusCluster) target = IS_HUB[i] ? 1.1 : 0.9;
       else target = dimTarget;
       GLOW[i] += (target - GLOW[i]) * fNode;
@@ -858,7 +1055,7 @@ function Scene({
     for (let s = 0; s < SAT_COUNT; s++) {
       const sat = SATELLITES[s];
       const c = CLUSTERS[sat.cluster];
-      const ang = sat.phase + sat.speed * time;
+      const ang = sat.phase + sat.speed * SIM.t;
       const cs = Math.cos(ang);
       const sn = Math.sin(ang);
       const r = sat.radius;
@@ -878,9 +1075,9 @@ function Scene({
       setSmallState(SAT_BASE + s, Math.min(GLOW[CLUSTER_HUB[sat.cluster]], 1), 0);
     }
 
-    // ── Ships shuttle along their lane: out, dock, back. Throttle follows the
-    // speed, the wake trails behind, and a hovered ship eases off so it can be
-    // caught ──
+    // ── Ships fly their lane as a constant-thrust transit: burn to the
+    // midpoint, flip end over end, brake to arrive at rest, dock, and come
+    // back the same way. A hovered ship eases off so it can be caught ──
     const fShip = 1 - Math.exp(-dt * 6);
     for (let s = 0; s < SHIP_COUNT; s++) {
       const ship = SHIPS[s];
@@ -889,12 +1086,27 @@ function Scene({
       // A hovered ship all but stops; the one the camera follows keeps cruising.
       const rate = chased ? 0.3 : active ? 0.08 : 1;
       SHIP_RATE[s] += (rate - SHIP_RATE[s]) * (1 - Math.exp(-dt * 5));
-      SHIP_TIME[s] += dt * SHIP_RATE[s];
-      const phase = (SHIP_TIME[s] / ship.period + ship.offset) % 1;
-      const along = 0.5 - 0.5 * Math.cos(phase * TAU);
-      const speed = Math.sin(phase * TAU);
-      const dir = speed < 0 ? -1 : 1;
-      const thrust = Math.abs(speed);
+      SHIP_TIME[s] += sim * SHIP_RATE[s];
+      const leg = LANE_TRANSITS[ship.lane].sceneSeconds;
+      const cycle = 2 * (leg + DOCK_SECONDS);
+      let clock = (SHIP_TIME[s] + ship.offset * cycle) % cycle;
+      const inbound = clock >= leg + DOCK_SECONDS;
+      if (inbound) clock -= leg + DOCK_SECONDS;
+      const flight = FLIGHT[s];
+      if (clock < leg) {
+        flightAt(clock / leg, flight);
+      } else {
+        flight.progress = 1;
+        flight.speed = 0;
+        flight.mode = FLIGHT_DOCKED;
+        flight.turn = 1;
+        flight.thrust = 0;
+      }
+      SHIP_INBOUND[s] = inbound ? 1 : 0;
+      SHIP_TAU[s] = Math.min(1, clock / leg);
+      const along = inbound ? 1 - flight.progress : flight.progress;
+      const dir = inbound ? -1 : 1;
+      const thrust = flight.thrust;
       const o = s * CURVE_STRIDE;
       const t0 = SHIP_CURVES[o + 9];
       const t1 = SHIP_CURVES[o + 10];
@@ -910,26 +1122,41 @@ function Scene({
       SHIP_POS[s * 3 + 1] = sy;
       SHIP_POS[s * 3 + 2] = sz;
       setSmallPosition(SHIP_BASE + s, sx, sy, sz);
-      // Heading = the curve's tangent, flipped on the way back.
-      const hx = 2 * k * (SHIP_CURVES[o + 3] - SHIP_CURVES[o]) + 2 * t * (SHIP_CURVES[o + 6] - SHIP_CURVES[o + 3]);
-      const hy = 2 * k * (SHIP_CURVES[o + 4] - SHIP_CURVES[o + 1]) + 2 * t * (SHIP_CURVES[o + 7] - SHIP_CURVES[o + 4]);
-      const hz = 2 * k * (SHIP_CURVES[o + 5] - SHIP_CURVES[o + 2]) + 2 * t * (SHIP_CURVES[o + 8] - SHIP_CURVES[o + 5]);
-      const hl = Math.hypot(hx, hy, hz) || 1;
-      setSmallHeading(SHIP_BASE + s, (hx / hl) * dir, (hy / hl) * dir, (hz / hl) * dir);
+      // Direction of travel = the curve's tangent, reversed on the way back.
+      let hx = 2 * k * (SHIP_CURVES[o + 3] - SHIP_CURVES[o]) + 2 * t * (SHIP_CURVES[o + 6] - SHIP_CURVES[o + 3]);
+      let hy = 2 * k * (SHIP_CURVES[o + 4] - SHIP_CURVES[o + 1]) + 2 * t * (SHIP_CURVES[o + 7] - SHIP_CURVES[o + 4]);
+      let hz = 2 * k * (SHIP_CURVES[o + 5] - SHIP_CURVES[o + 2]) + 2 * t * (SHIP_CURVES[o + 8] - SHIP_CURVES[o + 5]);
+      const hl = (Math.hypot(hx, hy, hz) || 1) * dir;
+      hx /= hl;
+      hy /= hl;
+      hz /= hl;
+      // The nose points along it while accelerating and against it while
+      // braking (the engines always push against the motion they must shed);
+      // in between the ship turns end over end, about the axis that faces the
+      // viewer so the flip can be seen.
+      const turn = flight.turn * Math.PI;
+      const ct = Math.cos(turn);
+      const st = Math.sin(turn);
+      const sl = Math.hypot(hx, hy) || 1;
+      setSmallHeading(SHIP_BASE + s, hx * ct - (hy / sl) * st, hy * ct + (hx / sl) * st, hz * ct);
 
       const glowTarget = active || fleet ? 1.5 : pinned ? 0.3 : focusCluster !== null ? 0.6 : 1;
       SHIP_GLOW[s] += (glowTarget - SHIP_GLOW[s]) * fShip;
       SHIP_SELECT[s] += ((chased ? 1 : active ? 0.7 : 0) - SHIP_SELECT[s]) * fSelect;
       setSmallState(SHIP_BASE + s, SHIP_GLOW[s], SHIP_SELECT[s], thrust);
 
-      const tail = Math.max(t0, Math.min(t1, t - dir * WAKE_LENGTH * (t1 - t0) * thrust));
+      // The wake is the stretch of path just flown: as long as the ship is fast.
+      const tail = Math.max(t0, Math.min(t1, t - dir * WAKE_LENGTH * (t1 - t0) * flight.speed));
       setLineRange(WAKE_BASE + s, tail, t);
-      setLineIntensity(WAKE_BASE + s, 0.95 * Math.sqrt(thrust) * Math.min(SHIP_GLOW[s], 1.2) * enterCraft);
+      setLineIntensity(WAKE_BASE + s, 0.95 * Math.sqrt(flight.speed) * Math.min(SHIP_GLOW[s], 1.2) * enterCraft);
     }
 
-    // ── The star dims a little while a system is in focus ──
-    SUN.glow += ((pinned ? 0.4 : focusCluster !== null ? 0.7 : 1) - SUN.glow) * (1 - Math.exp(-dt * 4));
-    setBigState(0, SUN.glow, 0);
+    // ── The star flares while it is hovered or open, and dims a little while
+    // something else is in focus ──
+    const sunTarget = starActive ? 1.55 : pinned ? 0.4 : focusCluster !== null ? 0.7 : 1;
+    SUN.glow += (sunTarget - SUN.glow) * (1 - Math.exp(-dt * 4));
+    SUN.select += ((starPinned ? 1 : starActive ? 0.6 : 0) - SUN.select) * fSelect;
+    setBigState(0, SUN.glow, SUN.select);
 
     // ── Domain glows follow the focus; switched off from tier 2 down ──
     const atmosOn = ATMOS_ENABLED && GOV.tier < 2 ? 1 : 0;
@@ -964,7 +1191,7 @@ function Scene({
     }
     for (let l = 0; l < LANE_COUNT; l++) {
       const line = LANE_BASE + l;
-      const target = fleet || activeShip !== null ? 0.6 : focusCluster === null ? 0.3 : lineDim;
+      const target = fleet || activeShip !== null || starActive ? 0.6 : focusCluster === null ? 0.3 : lineDim;
       LINE_INT[line] += (target - LINE_INT[line]) * fLine;
       setLineIntensity(line, LINE_INT[line]);
     }
@@ -979,8 +1206,11 @@ function Scene({
     CLOSE.k = pinned && ZOOM.max > 1.01 ? clamp01((zoom - 1) / (ZOOM.max - 1)) : 0;
     const homeZ = Math.max(HOME_Z, NEAR_PLANE_Z + (HALF_SPAN_X * FOCAL_F) / aspect);
     let fogShift = homeZ / zoom - HOME_Z;
-    if ((zoomTarget !== null || chaseShip !== null) && spin.current) {
-      if (chaseShip !== null) {
+    const framing = zoomTarget !== null || chaseShip !== null || starPinned;
+    if (framing && spin.current) {
+      if (starPinned) {
+        PROJ_VEC.set(0, 0, 0);
+      } else if (chaseShip !== null) {
         PROJ_VEC.set(SHIP_POS[chaseShip * 3], SHIP_POS[chaseShip * 3 + 1], SHIP_POS[chaseShip * 3 + 2]);
       } else {
         const i = zoomTarget as number;
@@ -1021,7 +1251,7 @@ function Scene({
     const camTime =
       ZOOM.kick > 0
         ? CAM_TIME_ZOOM
-        : zoomTarget !== null || chaseShip !== null
+        : framing
           ? CAM_TIME_IN
           : ENTER.done
             ? CAM_TIME_OUT
@@ -1031,10 +1261,13 @@ function Scene({
     springAxis('z', cam.position, CAM_TARGET.z, camTime, dt);
 
     // ── Click shockwave: a new pin sends one ripple out through the system ──
-    const pinKey = chaseShip !== null ? -1 : (zoomTarget ?? -1);
+    const pinKey = starPinned ? STAR_PICK : chaseShip !== null ? -1 : (zoomTarget ?? -1);
     if (pinKey !== PING.last) {
       PING.last = pinKey;
-      if (pinKey >= 0) {
+      if (pinKey === STAR_PICK) {
+        SHARED.uPing.value.set(0, 0, 0, 0);
+        PING.t = 0.001;
+      } else if (pinKey >= 0) {
         SHARED.uPing.value.set(
           NODE_POSITIONS[pinKey * 3],
           NODE_POSITIONS[pinKey * 3 + 1],
@@ -1092,6 +1325,32 @@ function Scene({
     BIG_X[0] = PROJ.x;
     BIG_Y[0] = PROJ.y;
     BIG_R[0] = PROJ.front ? (SUN_RADIUS * pxPerUnit) / PROJ.depth : 0;
+    {
+      const nearK = PROJ.front ? nearFade(NEAR_FADE_BIG, PROJ.depth) : 0;
+      SCREEN[STAR_PICK * 3] = PROJ.x;
+      SCREEN[STAR_PICK * 3 + 1] = PROJ.y;
+      SCREEN[STAR_PICK * 3 + 2] = PROJ.front && nearK > 0.5 && enterHub > 0.5 ? 1 : 0;
+      PICK_DEPTH[STAR_PICK] = PROJ.depth;
+      PICK_RPX[STAR_PICK] = BIG_R[0];
+      // Its label: the name, above the corona's bright skirt and its reticle.
+      let opacity = !PROJ.front ? 0 : ORBIT.dragging ? 0.5 : starActive ? 1 : focusCluster !== null || pinned ? 0.3 : 0.92;
+      opacity *= enterHub * nearK;
+      const half = LBL_W[STAR_PICK] / 2;
+      const ax = Math.max(STAGE_PAD + half, Math.min(size.width - STAGE_PAD - half, PROJ.x));
+      const ay = Math.max(PROJ.y - BIG_R[0] * 1.5 - 8, HUB_LABEL_H + 14);
+      if (ay > size.height - LEGEND_BAND) opacity = 0;
+      STAR_LABEL.on = opacity > 0;
+      STAR_LABEL.left = ax - half - LABEL_GAP;
+      STAR_LABEL.right = ax + half + LABEL_GAP;
+      STAR_LABEL.top = ay - HUB_LABEL_H - LABEL_GAP;
+      STAR_LABEL.bottom = ay + LABEL_GAP;
+      if (opacity > 0 && CARD.on) {
+        const left = ax - half;
+        const top = ay - HUB_LABEL_H;
+        if (left < CARD.right && left + LBL_W[STAR_PICK] > CARD.left && top < CARD.bottom && ay > CARD.top) opacity = 0;
+      }
+      writeLabel(STAR_PICK, opacity, interactive, ANCHOR_ABOVE, ax, ay);
+    }
     for (let c = 0; c < CLUSTER_COUNT; c++) {
       const cluster = CLUSTERS[c];
       project(cluster.center[0], cluster.center[1], cluster.center[2]);
@@ -1109,7 +1368,7 @@ function Scene({
     for (let s = 0; s < SAT_COUNT; s++) {
       const sat = SATELLITES[s];
       const c = CLUSTERS[sat.cluster];
-      const ang = sat.phase + sat.speed * time;
+      const ang = sat.phase + sat.speed * SIM.t;
       const cs = Math.cos(ang) * sat.radius;
       const sn = Math.sin(ang) * sat.radius;
       project(
@@ -1226,6 +1485,14 @@ function Scene({
           opacity = 0;
         }
       }
+      // A planet's name out of focus gives way to the star's.
+      if (isHub && opacity > 0 && STAR_LABEL.on && i !== activeNode && CLUSTER_OF[i] !== focusCluster) {
+        const left = labelLeft(mode, ax, w);
+        const top = labelTop(mode, ay, hgt);
+        if (left < STAR_LABEL.right && left + w > STAR_LABEL.left && top < STAR_LABEL.bottom && top + hgt > STAR_LABEL.top) {
+          opacity = 0;
+        }
+      }
       // The focused system's moon labels go through the collision pass below.
       if (!isHub && opacity > 0 && CLUSTER_OF[i] === focusCluster && sweep < SWEEP_MAX) {
         SW_I[sweep] = i;
@@ -1253,15 +1520,7 @@ function Scene({
     // ── Ships: projection, pick target and the label that names the project ──
     for (let s = 0; s < SHIP_COUNT; s++) {
       const ship = SHIPS[s];
-      const phase = (SHIP_TIME[s] / ship.period + ship.offset) % 1;
-      const o = s * CURVE_STRIDE;
-      const t = SHIP_CURVES[o + 9] + (SHIP_CURVES[o + 10] - SHIP_CURVES[o + 9]) * (0.5 - 0.5 * Math.cos(phase * TAU));
-      const k = 1 - t;
-      project(
-        k * k * SHIP_CURVES[o] + 2 * k * t * SHIP_CURVES[o + 3] + t * t * SHIP_CURVES[o + 6],
-        k * k * SHIP_CURVES[o + 1] + 2 * k * t * SHIP_CURVES[o + 4] + t * t * SHIP_CURVES[o + 7],
-        k * k * SHIP_CURVES[o + 2] + 2 * k * t * SHIP_CURVES[o + 5] + t * t * SHIP_CURVES[o + 8],
-      );
+      project(SHIP_POS[s * 3], SHIP_POS[s * 3 + 1], SHIP_POS[s * 3 + 2]);
       const p = NODE_COUNT + s;
       const inFront = PROJ.front === 1;
       // On-screen half-length of the hull.
@@ -1293,6 +1552,7 @@ function Scene({
     // Labels above the planet are pushed further up (the planet's own label is
     // their first obstacle), labels below it further down — always away from it.
     if (sweep > 0 && focusCluster !== null) {
+      const labelEase = 1 - Math.exp(-dt * 14);
       const step = LEAF_LABEL_H + LABEL_GAP;
       const hub = CLUSTER_HUB[focusCluster];
       const hubY = SCREEN[hub * 3 + 1];
@@ -1347,7 +1607,20 @@ function Scene({
         // A label the pass pushed down into the legend's band is dropped.
         if (SW_I[j] !== activeNode && SW_TOP[j] + LEAF_LABEL_H > size.height - LEGEND_BAND) SW_OP[j] = 0;
         if (SW_I[j] !== activeNode && SW_TOP[j] < TOP_BAND) SW_OP[j] = 0;
-        writeLabel(SW_I[j], SW_OP[j], interactive, SW_MODE[j], SW_X[j], anchorY(SW_MODE[j], SW_TOP[j], LEAF_LABEL_H));
+        // The system keeps turning (slowly), so a label's side of its moon
+        // changes now and then: it glides to its new place instead of jumping.
+        const i = SW_I[j];
+        let left = labelLeft(SW_MODE[j], SW_X[j], LBL_W[i]);
+        let top = SW_TOP[j];
+        if (LBL_Q[i] > 0 && LBL_MODE[i] === ANCHOR_CORNER) {
+          const dx = left - LBL_X[i];
+          const dy = top - LBL_Y[i];
+          if (dx * dx + dy * dy < 240 * 240) {
+            left = LBL_X[i] + dx * labelEase;
+            top = LBL_Y[i] + dy * labelEase;
+          }
+        }
+        writeLabel(i, SW_OP[j], interactive, ANCHOR_CORNER, left, top);
       }
     }
     for (let a = 0; a < waiting; a++) {
@@ -1365,6 +1638,51 @@ function Scene({
         }
       }
       writeLabel(i, opacity, interactive, ANCHOR_ABOVE, HUB_WAIT_X[a], HUB_WAIT_Y[a]);
+    }
+
+    // ── Live readouts of whatever is open, a few times a second ──
+    READOUT.t += dt;
+    if (READOUT.t >= READOUT_INTERVAL) {
+      READOUT.t = 0;
+      if (pinnedNode !== null && !IS_HUB[pinnedNode]) {
+        const node = NODES[pinnedNode];
+        const c = CLUSTERS[node.cluster];
+        const physics = PLANET_PHYSICS[c.planet];
+        const aRadii = node.orbitRadius / c.radius;
+        const rRadii = aRadii * orbitRadius(MOON_E[pinnedNode], c.ecc[node.orbit]);
+        setLiveReadout('moon-altitude', formatKm((rRadii - 1) * physics.radiusKm));
+        setLiveReadout('moon-speed', formatSpeed(visViva(physics, rRadii, aRadii)));
+        // In its planet's shadow? The same cylinder test the moon's shader makes.
+        const rx = NODE_POSITIONS[pinnedNode * 3] - c.center[0];
+        const ry = NODE_POSITIONS[pinnedNode * 3 + 1] - c.center[1];
+        const rz = NODE_POSITIONS[pinnedNode * 3 + 2] - c.center[2];
+        const cl = Math.hypot(c.center[0], c.center[1], c.center[2]) || 1;
+        const behind = (rx * c.center[0] + ry * c.center[1] + rz * c.center[2]) / cl;
+        const off = Math.hypot(
+          rx - (behind * c.center[0]) / cl,
+          ry - (behind * c.center[1]) / cl,
+          rz - (behind * c.center[2]) / cl,
+        );
+        setLiveReadout('moon-light', behind > 0 && off < c.radius ? 'In eclipse' : 'In sunlight');
+      } else if (chaseShip !== null) {
+        const ship = SHIPS[chaseShip];
+        const transit = LANE_TRANSITS[ship.lane];
+        const lane = LANES[ship.lane];
+        const flight = FLIGHT[chaseShip];
+        const inbound = SHIP_INBOUND[chaseShip] === 1;
+        const to = CLUSTERS[inbound ? lane.a : lane.b].title;
+        const docked = flight.mode === FLIGHT_DOCKED;
+        setLiveReadout('ship-status', FLIGHT_LABELS[flight.mode]);
+        // Docked, it has arrived at `to`: its next leg goes back the other way.
+        setLiveReadout('ship-to', docked ? CLUSTERS[inbound ? lane.b : lane.a].title : to);
+        setLiveReadout('ship-speed', formatSpeed(flight.speed * transit.peakKmS));
+        const toGo = (1 - flight.progress) * transit.distanceAU * AU_KM;
+        setLiveReadout('ship-togo', docked ? 'Arrived' : `${(toGo / 1e6).toFixed(1)} million km`);
+        setLiveReadout(
+          'ship-eta',
+          docked ? 'Arrived' : formatDuration((1 - SHIP_TAU[chaseShip]) * transit.seconds),
+        );
+      }
     }
 
     // ── Upload: bodies ranked back to front, lines only if something changed ──
@@ -1424,6 +1742,9 @@ export default function SkillsConstellation({
   const [dragging, setDragging] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [zoomMax, setZoomMax] = useState(ZOOM_MAX_FREE);
+  // Time control: the chosen speed, and whether time is paused.
+  const [warp, setWarp] = useState(1);
+  const [paused, setPaused] = useState(false);
   const [wheelHint, setWheelHint] = useState(false);
   const { openProject } = useProjectModal();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -1441,12 +1762,14 @@ export default function SkillsConstellation({
   // A hovered ship (or the fleet chip) never changes which domain is in focus:
   // the pinned system stays lit underneath it.
   const hoverFocus = hover && (hover.kind === 'node' || hover.kind === 'cluster') ? hover : null;
-  const pinFocus = pin && pin.kind !== 'ship' ? pin : null;
+  const pinFocus = pin && (pin.kind === 'node' || pin.kind === 'cluster') ? pin : null;
   const sel = hoverFocus ?? pinFocus;
   const focusCluster = sel ? (sel.kind === 'cluster' ? sel.i : CLUSTER_OF[sel.i]) : null;
   const activeNode = sel && sel.kind === 'node' ? sel.i : null;
   const activeShip = hover?.kind === 'ship' ? hover.i : null;
   const chaseShip = pin?.kind === 'ship' ? pin.i : null;
+  const starPinned = pin?.kind === 'star';
+  const starActive = starPinned || hover?.kind === 'star';
   const fleet = hover?.kind === 'fleet';
   const pinned = pin !== null;
   const pinnedNode = pin?.kind === 'node' ? pin.i : null;
@@ -1456,7 +1779,9 @@ export default function SkillsConstellation({
   // pin) sits further back than a single moon or a ship.
   let zoomDist = ZOOM_DIST_SYSTEM;
   if (pin) {
-    if (pin.kind === 'ship') {
+    if (pin.kind === 'star') {
+      zoomDist = ZOOM_DIST_STAR;
+    } else if (pin.kind === 'ship') {
       zoomDist = ZOOM_DIST_SHIP;
     } else if (pin.kind === 'node') {
       zoomTarget = pin.i;
@@ -1468,41 +1793,18 @@ export default function SkillsConstellation({
 
   let cardData: SkillCardData | null = null;
   if (pin) {
-    if (pin.kind === 'ship') {
-      const project = projects[SHIPS[pin.i].project];
-      cardData = {
-        kind: 'project',
-        title: project.title,
-        domainLabel: 'Shipped project',
-        color: '#34D399',
-        glyph: 'circle',
-        blurb: project.tagline ?? project.description,
-        tech: project.tech,
-      };
-    } else if (pin.kind === 'node') {
-      const n = NODES[pin.i];
-      if (n.isHub) cardData = buildDomainCard(n.cluster);
-      else {
-        const m = getSkillMeta(n.label);
-        cardData = {
-          kind: 'skill',
-          title: n.label,
-          domainLabel: CLUSTERS[n.cluster].title,
-          color: CLUSTERS[n.cluster].color,
-          glyph: CLUSTERS[n.cluster].glyph,
-          blurb: m.blurb,
-          usedIn: m.usedIn,
-        };
-      }
-    } else {
-      cardData = buildDomainCard(pin.i);
-    }
+    if (pin.kind === 'star') cardData = buildProfileCard();
+    else if (pin.kind === 'ship') cardData = buildShipCard(pin.i);
+    else if (pin.kind === 'cluster') cardData = buildDomainCard(pin.i);
+    else cardData = IS_HUB[pin.i] ? buildDomainCard(CLUSTER_OF[pin.i]) : buildSkillCard(pin.i);
   }
 
   // Announced by the sr-only live region below (the canvas itself is decorative).
   const activeSkill = activeNode !== null && !NODES[activeNode].isHub ? NODES[activeNode].label : null;
   const announcement =
-    activeShip !== null
+    hover?.kind === 'star'
+      ? 'The star: Charles Lantigua Jorge. Press Enter to open the profile.'
+      : activeShip !== null
       ? `Project ship: ${SHIPS[activeShip].label}. Press Enter to fly alongside it.`
       : chaseShip !== null
         ? `Flying alongside ${SHIPS[chaseShip].label}. Press Enter to open the project.`
@@ -1575,6 +1877,18 @@ export default function SkillsConstellation({
     setPin(next);
   }, []);
 
+  // ── Time: pause, or run the mechanics faster ──
+  const togglePause = useCallback(() => {
+    SIM.warp = paused ? warp : 0;
+    setPaused(!paused);
+  }, [paused, warp]);
+  const stepWarp = useCallback(() => {
+    const next = WARP_STEPS[(WARP_STEPS.indexOf(warp) + 1) % WARP_STEPS.length];
+    SIM.warp = next;
+    setWarp(next);
+    setPaused(false);
+  }, [warp]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -1620,9 +1934,29 @@ export default function SkillsConstellation({
   /** Hover by pick index: a node, a ship (NODE_COUNT + s), or nothing. */
   const onHoverPick = useCallback((i: number | null) => {
     if (i == null || i < 0) setHover(null);
+    else if (i === STAR_PICK) setHover({ kind: 'star' });
     else if (i >= NODE_COUNT) setHover({ kind: 'ship', i: i - NODE_COUNT });
     else setHover({ kind: 'node', i });
   }, []);
+  const onClickStar = useCallback(
+    () => changePin(pin?.kind === 'star' ? null : { kind: 'star' }),
+    [pin, changePin],
+  );
+  // From the detail panel: a skill chip flies to that moon, a route chip to that planet.
+  const onSelectSkill = useCallback(
+    (label: string) => {
+      const i = NODES.findIndex((node) => !node.isHub && node.label === label);
+      if (i >= 0) changePin({ kind: 'node', i });
+    },
+    [changePin],
+  );
+  const onSelectDomain = useCallback(
+    (title: string) => {
+      const c = CLUSTERS.findIndex((cluster) => cluster.title === title);
+      if (c >= 0) changePin({ kind: 'cluster', i: c });
+    },
+    [changePin],
+  );
   const onClickNode = useCallback(
     (i: number) => changePin(pin?.kind === 'node' && pin.i === i ? null : { kind: 'node', i }),
     [pin, changePin],
@@ -1665,7 +1999,7 @@ export default function SkillsConstellation({
     // Pressing on the globe of the planet that is open grabs it: the drag then
     // turns the globe instead of the whole system.
     GRAB.cluster = -1;
-    if (pin && pin.kind !== 'ship') {
+    if (pin && (pin.kind === 'node' || pin.kind === 'cluster')) {
       const c = pin.kind === 'cluster' ? pin.i : CLUSTER_OF[pin.i];
       const hub = CLUSTER_HUB[c];
       const r = e.currentTarget.getBoundingClientRect();
@@ -1764,10 +2098,11 @@ export default function SkillsConstellation({
       }
       const i = pickAt(e.clientX, e.clientY);
       if (i === -1) changePin(null);
+      else if (i === STAR_PICK) onClickStar();
       else if (i >= NODE_COUNT) onClickShip(i - NODE_COUNT);
       else onClickNode(i);
     },
-    [pickAt, onClickNode, onClickShip, changePin],
+    [pickAt, onClickNode, onClickShip, onClickStar, changePin],
   );
 
   // Double-click dives straight into a close-up of whatever is under the
@@ -1776,7 +2111,10 @@ export default function SkillsConstellation({
     (e: React.MouseEvent) => {
       const i = pickAt(e.clientX, e.clientY);
       if (i === -1) return;
-      changePin(i >= NODE_COUNT ? { kind: 'ship', i: i - NODE_COUNT } : { kind: 'node', i }, true);
+      changePin(
+        i === STAR_PICK ? { kind: 'star' } : i >= NODE_COUNT ? { kind: 'ship', i: i - NODE_COUNT } : { kind: 'node', i },
+        true,
+      );
     },
     [pickAt, changePin],
   );
@@ -1785,10 +2123,18 @@ export default function SkillsConstellation({
   const onStageKey = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       const current =
-        activeShip !== null
-          ? NODE_COUNT + activeShip
-          : (activeNode ??
-            (pin?.kind === 'cluster' ? CLUSTER_HUB[pin.i] : pin?.kind === 'ship' ? NODE_COUNT + pin.i : -1));
+        hover?.kind === 'star'
+          ? STAR_PICK
+          : activeShip !== null
+            ? NODE_COUNT + activeShip
+            : (activeNode ??
+              (pin?.kind === 'cluster'
+                ? CLUSTER_HUB[pin.i]
+                : pin?.kind === 'ship'
+                  ? NODE_COUNT + pin.i
+                  : pin?.kind === 'star'
+                    ? STAR_PICK
+                    : -1));
       let next: number | null = null;
       switch (e.key) {
         case 'ArrowRight':
@@ -1818,9 +2164,19 @@ export default function SkillsConstellation({
             handleOpenProject(SHIPS[chaseShip].label);
           } else if (current >= 0) {
             e.preventDefault();
-            if (current >= NODE_COUNT) onClickShip(current - NODE_COUNT);
+            if (current === STAR_PICK) onClickStar();
+            else if (current >= NODE_COUNT) onClickShip(current - NODE_COUNT);
             else onClickNode(current);
           }
+          return;
+        case 'p':
+        case 'P':
+          e.preventDefault();
+          togglePause();
+          return;
+        case '.':
+          e.preventDefault();
+          stepWarp();
           return;
         case '+':
         case '=':
@@ -1843,12 +2199,26 @@ export default function SkillsConstellation({
       ORBIT.idle = 0;
       onHoverPick(next);
     },
-    [activeNode, activeShip, chaseShip, pin, onClickNode, onClickShip, onHoverPick, applyZoom, handleOpenProject],
+    [
+      hover,
+      activeNode,
+      activeShip,
+      chaseShip,
+      pin,
+      onClickNode,
+      onClickShip,
+      onClickStar,
+      onHoverPick,
+      applyZoom,
+      handleOpenProject,
+      togglePause,
+      stepWarp,
+    ],
   );
 
   const cursor = dragging
     ? 'cursor-grabbing'
-    : hover?.kind === 'node' || hover?.kind === 'ship'
+    : hover?.kind === 'node' || hover?.kind === 'ship' || hover?.kind === 'star'
       ? 'cursor-pointer'
       : 'cursor-grab';
   const zoomButton =
@@ -1923,6 +2293,8 @@ export default function SkillsConstellation({
               pinned={pinned}
               pinnedNode={pinnedNode}
               chaseShip={chaseShip}
+              starActive={starActive}
+              starPinned={starPinned}
               entered={entered}
               tier={tier}
               onTier={setTier}
@@ -1935,31 +2307,60 @@ export default function SkillsConstellation({
       </div>
       <p id={hintId} className="sr-only">
         Drag to rotate; drag an open planet to turn its globe. Use the left and right arrow
-        keys to step through planets, moons and ships, up and down to jump between domains,
-        Enter to open details or fly alongside a ship, plus and minus to zoom into a close-up,
-        and Escape to close.
+        keys to step through planets, moons, ships and the star, up and down to jump between
+        domains, Enter to open details or fly alongside a ship, plus and minus to zoom into a
+        close-up, P to pause time, full stop to change its speed, and Escape to close.
       </p>
       {/* Keyboard focus indicator: no ring is drawn round the stage (it would box
           the scene in), so this line — a lit marker and the keys — is what shows
           that the stage has keyboard focus. */}
       <p
         aria-hidden="true"
-        className={`pointer-events-none absolute left-4 top-12 z-10 whitespace-nowrap font-mono text-xs text-cyber-accent opacity-0 transition-opacity duration-200 peer-focus-visible:opacity-100 ${TEXT_HALO}`}
+        className={`pointer-events-none absolute left-4 top-[6.25rem] z-10 whitespace-nowrap font-mono text-xs text-cyber-accent opacity-0 transition-opacity duration-200 peer-focus-visible:opacity-100 sm:left-6 ${TEXT_HALO}`}
       >
         <span className="mr-2 inline-block h-2 w-2 rounded-full bg-cyber-brand align-middle shadow-[0_0_8px_#34D399]" />
         <span className="text-cyber-brand">←→</span> step · <span className="text-cyber-brand">↑↓</span> domains ·{' '}
         <span className="text-cyber-brand">Enter</span> open · <span className="text-cyber-brand">+ −</span> zoom ·{' '}
+        <span className="text-cyber-brand">P</span> pause ·{' '}
         <span className="text-cyber-brand">Esc</span> close
       </p>
       <p className="sr-only" aria-live="polite">
         {announcement}
       </p>
 
+      {/* Time — pause the mechanics, or run them faster. */}
+      <div
+        role="group"
+        aria-label="Time"
+        className="absolute left-3 top-10 z-10 flex items-center sm:left-5 sm:top-12"
+      >
+        <button
+          type="button"
+          aria-label={paused ? 'Resume time' : 'Pause time'}
+          aria-pressed={paused}
+          onClick={togglePause}
+          className={zoomButton}
+        >
+          {paused ? <Play size={15} aria-hidden="true" /> : <Pause size={15} aria-hidden="true" />}
+        </button>
+        <button
+          type="button"
+          aria-label={`Simulation speed: ${warp} times. Activate to change it.`}
+          onClick={stepWarp}
+          className={`h-11 min-w-[2.75rem] rounded-full px-1 text-center font-mono text-xs tabular-nums transition-colors duration-200 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand ${TEXT_HALO} ${
+            paused ? 'text-cyber-accent/50' : warp > 1 ? 'text-cyber-brand' : 'text-cyber-accent'
+          }`}
+        >
+          {warp}×
+        </button>
+        <span aria-hidden="true" className="mx-1 h-4 w-px bg-white/15" />
+      </div>
+
       {/* Zoom — the same control the +/- keys and Ctrl/⌘ + scroll drive. */}
       <div
         role="group"
         aria-label="Zoom"
-        className="absolute right-3 top-10 z-10 flex items-center sm:right-5 sm:top-12"
+        className="absolute left-[6.75rem] top-10 z-10 flex items-center sm:left-[7.25rem] sm:top-12"
       >
         <button
           type="button"
@@ -2067,6 +2468,28 @@ export default function SkillsConstellation({
             </button>
           );
         })}
+        {/* The star carries the owner's name: it is the profile. */}
+        <button
+          ref={LABEL_REFS[STAR_PICK]}
+          type="button"
+          tabIndex={-1}
+          onPointerEnter={() => onHoverPick(STAR_PICK)}
+          onPointerLeave={() => onHoverPick(null)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClickStar();
+          }}
+          style={{ opacity: 0 }}
+          className={`absolute left-0 top-0 inline-flex select-none items-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 font-mono text-xs font-semibold leading-none text-white transition-[opacity,color] duration-200 ${TEXT_HALO}`}
+        >
+          <Sun size={12} className="text-cyber-brand" aria-hidden="true" />
+          <span
+            className={starPinned ? 'underline decoration-cyber-brand decoration-1 underline-offset-4' : undefined}
+          >
+            Charles Lantigua Jorge
+          </span>
+          <span className="text-[11px] font-normal text-cyber-accent">{starActive && !starPinned ? 'profile →' : 'profile'}</span>
+        </button>
       </div>
 
       {/* Detail card (docks on the right when a body/domain is pinned) */}
@@ -2077,15 +2500,36 @@ export default function SkillsConstellation({
             data={cardData}
             onClose={() => changePin(null)}
             onOpenProject={handleOpenProject}
+            onSelectSkill={onSelectSkill}
+            onSelectDomain={onSelectDomain}
           />
         )}
       </AnimatePresence>
 
-      {/* Legend — the four domains, then the fleet. It never moves: shifting it on
-          a pin would slide a different domain under the pointer. */}
+      {/* Legend — the star, the four domains, then the fleet. It never moves:
+          shifting it on a pin would slide a different item under the pointer. */}
       <div
         className="absolute inset-x-0 bottom-1.5 z-10 flex flex-wrap items-center justify-center gap-x-1 px-3 sm:bottom-2.5 sm:gap-x-3 sm:px-4"
       >
+        <button
+          type="button"
+          onMouseEnter={() => setHover({ kind: 'star' })}
+          onMouseLeave={onLegendLeave}
+          onFocus={() => setHover({ kind: 'star' })}
+          onBlur={onLegendLeave}
+          onClick={onClickStar}
+          aria-pressed={starPinned}
+          className={`${LEGEND_ITEM} ${starActive ? 'text-white' : 'text-cyber-accent hover:text-white'}`}
+        >
+          <Sun size={12} className="text-cyber-brand" aria-hidden="true" />
+          <span
+            className={`whitespace-nowrap underline decoration-1 underline-offset-[6px] ${
+              starActive ? 'decoration-cyber-brand' : 'decoration-transparent'
+            }`}
+          >
+            Profile
+          </span>
+        </button>
         {CLUSTERS.map((c, i) => {
           const isActive = focusCluster === i;
           return (

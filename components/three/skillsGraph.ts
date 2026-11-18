@@ -1,14 +1,17 @@
 /**
  * Deterministic layout for the 3D Skills star system.
  *
- * Each skill domain is a planet; its skills are moons on two equatorial orbits.
- * Shipping lanes join neighbouring planets. Pure data + a stable layout (trig
- * only, no runtime randomness), so the system looks identical on every load.
- * No React, no three here.
+ * Each skill domain is a planet; its skills are moons on two Kepler orbits
+ * (ellipses in the planet's equatorial plane, the planet at one focus).
+ * Shipping lanes join neighbouring planets. Pure data + a stable layout (no
+ * runtime randomness), so the system looks identical on every load. No React,
+ * no three here; the mechanics are in orbitalMechanics.ts.
  *
  * NOTE: the skill lists mirror `skillCategories` in components/sections/SkillsSection.tsx
  * (which is the accessible, on-page source of truth). Keep the two in sync.
  */
+
+import { PLANET_PHYSICS, meanMotion, solveKepler } from './orbitalMechanics';
 
 export type Vec3 = [number, number, number];
 
@@ -16,13 +19,14 @@ export interface SkillNode {
   id: string;
   label: string;
   cluster: number;
-  /** Planet centre for a hub; the moon's position at orbit phase 0 for a leaf. */
+  /** Planet centre for a hub; the moon's position at time 0 for a leaf. */
   position: Vec3;
   isHub: boolean;
-  /** Leaves only: orbit radius (scene units), start angle and angular speed (rad/s). */
+  /** Leaves only: semi-major axis of its orbit (scene units). */
   orbitRadius: number;
-  orbitPhase: number;
-  orbitSpeed: number;
+  /** Leaves only: mean anomaly at time 0 (rad) and mean motion (rad per scene second, signed). */
+  meanAnomaly: number;
+  meanMotion: number;
   /** Leaves only: 0 = inner orbit, 1 = outer orbit. */
   orbit: number;
 }
@@ -47,8 +51,18 @@ export interface Cluster {
   /** Orthonormal basis of the orbital plane. */
   u: Vec3;
   v: Vec3;
-  /** Inner and outer moon orbit radii (scene units). */
+  /** Semi-major axes of the inner and outer moon orbits (scene units). */
   orbits: [number, number];
+  /** Eccentricity of each orbit. */
+  ecc: [number, number];
+  /**
+   * Each orbit's own frame in the orbital plane: `periapsis` points from the
+   * planet to the orbit's nearest point, `quarter` is a quarter turn on from it.
+   * A moon at eccentric anomaly E sits at
+   *   centre + a*(cos E - e)*periapsis + a*sqrt(1 - e^2)*sin E*quarter.
+   */
+  periapsis: [Vec3, Vec3];
+  quarter: [Vec3, Vec3];
 }
 
 /** Shipping lane between two neighbouring planets (indices into `clusters`). */
@@ -76,8 +90,11 @@ interface Category {
    */
   tilt: number;
   lean: number;
-  /** Orbit radii in planet radii. */
+  /** Semi-major axes of the two orbits, in planet radii. */
   orbits: [number, number];
+  /** Their eccentricities, and where each periapsis lies in the orbital plane (degrees). */
+  ecc: [number, number];
+  peri: [number, number];
   items: string[];
 }
 
@@ -97,6 +114,8 @@ const CATEGORIES: Category[] = [
     tilt: 55,
     lean: 58,
     orbits: [2.15, 3.1],
+    ecc: [0.1, 0.05],
+    peri: [40, 205],
     items: [
       'Vulnerability Management',
       'Qualys',
@@ -119,6 +138,8 @@ const CATEGORIES: Category[] = [
     tilt: 57,
     lean: 108,
     orbits: [2.25, 3.3],
+    ecc: [0.08, 0.06],
+    peri: [300, 120],
     items: ['C', 'C#', 'Java', 'JavaScript', 'TypeScript', 'PowerShell', 'Python', 'SQL', 'Bash'],
   },
   {
@@ -130,6 +151,8 @@ const CATEGORIES: Category[] = [
     tilt: 64,
     lean: 80,
     orbits: [2.4, 3.15],
+    ecc: [0.06, 0.04],
+    peri: [160, 20],
     items: ['Next.js', 'React', 'Node.js', 'Supabase', 'Stripe', 'Vercel', 'REST API'],
   },
   {
@@ -141,6 +164,8 @@ const CATEGORIES: Category[] = [
     tilt: 54,
     lean: 148,
     orbits: [2.2, 3.2],
+    ecc: [0.12, 0.07],
+    peri: [250, 75],
     items: ['Git', 'GitHub', 'Docker', 'Flutter', 'Tauri', 'TryHackMe', 'Hack The Box', 'Active Directory'],
   },
 ];
@@ -159,8 +184,6 @@ const HUB_STAGGER = 0.6;
 const HUB_STAGGER_SIGN = [1, -1, -1, 1];
 /** Share of a domain's moons that ride the inner orbit. */
 const INNER_SHARE = 0.4;
-/** Angular speed (rad/s) of a moon one scene unit from its planet; falls off as r^-1.5. */
-const ORBIT_RATE = 0.115;
 
 /**
  * Where the home camera sits (must match HOME_Z in sceneShared.ts). Each
@@ -182,15 +205,25 @@ const normalize = (a: Vec3): Vec3 => {
   const l = Math.hypot(a[0], a[1], a[2]) || 1;
   return [a[0] / l, a[1] / l, a[2] / l];
 };
+/** The unit vector at `angle` in the plane spanned by u and v. */
+const inPlane = (u: Vec3, v: Vec3, angle: number): Vec3 => {
+  const c = Math.cos(angle);
+  const s = Math.sin(angle);
+  return [u[0] * c + v[0] * s, u[1] * c + v[1] * s, u[2] * c + v[2] * s];
+};
 
-/** Point on a cluster's orbital plane at `radius` and `angle`. */
-export function orbitPoint(c: Cluster, radius: number, angle: number): Vec3 {
-  const cs = Math.cos(angle) * radius;
-  const sn = Math.sin(angle) * radius;
+/** Where a moon on `ring` of cluster `c` is at eccentric anomaly `E`. */
+export function orbitPoint(c: Cluster, ring: number, E: number): Vec3 {
+  const a = c.orbits[ring];
+  const e = c.ecc[ring];
+  const x = a * (Math.cos(E) - e);
+  const y = a * Math.sqrt(1 - e * e) * Math.sin(E);
+  const p = c.periapsis[ring];
+  const q = c.quarter[ring];
   return [
-    c.center[0] + c.u[0] * cs + c.v[0] * sn,
-    c.center[1] + c.u[1] * cs + c.v[1] * sn,
-    c.center[2] + c.u[2] * cs + c.v[2] * sn,
+    c.center[0] + p[0] * x + q[0] * y,
+    c.center[1] + p[1] * x + q[1] * y,
+    c.center[2] + p[2] * x + q[2] * y,
   ];
 }
 
@@ -233,6 +266,9 @@ export function buildSkillsGraph(): GraphData {
       u,
       v,
       orbits: [cat.orbits[0] * cat.radius, cat.orbits[1] * cat.radius],
+      ecc: cat.ecc,
+      periapsis: [inPlane(u, v, cat.peri[0] * DEG), inPlane(u, v, cat.peri[1] * DEG)],
+      quarter: [inPlane(u, v, cat.peri[0] * DEG + Math.PI / 2), inPlane(u, v, cat.peri[1] * DEG + Math.PI / 2)],
     };
     clusters.push(cluster);
 
@@ -243,13 +279,16 @@ export function buildSkillsGraph(): GraphData {
       position: center,
       isHub: true,
       orbitRadius: 0,
-      orbitPhase: 0,
-      orbitSpeed: 0,
+      meanAnomaly: 0,
+      meanMotion: 0,
       orbit: 0,
     });
 
-    // Moons: evenly spaced on two coplanar orbits, the inner one faster (Kepler-ish).
+    // Moons: evenly spaced IN TIME round two coplanar ellipses (equal steps of
+    // mean anomaly), so they bunch up where the orbit is slow and spread out
+    // where it is fast. Each orbit's period comes from the planet's mass.
     // Neighbouring systems turn in opposite directions.
+    const physics = PLANET_PHYSICS[cat.planet];
     const count = cat.items.length;
     const inner = Math.max(1, Math.round(count * INNER_SHARE));
     const dir = ci % 2 === 0 ? 1 : -1;
@@ -257,17 +296,16 @@ export function buildSkillsGraph(): GraphData {
       const orbit = li < inner ? 0 : 1;
       const onOrbit = orbit === 0 ? inner : count - inner;
       const slot = orbit === 0 ? li : li - inner;
-      const radius = cluster.orbits[orbit];
-      const phase = (slot / onOrbit) * Math.PI * 2 + ci * 1.3 + orbit * 0.9;
+      const anomaly = (slot / onOrbit) * Math.PI * 2 + ci * 1.3 + orbit * 0.9;
       nodes.push({
         id: `${ci}-${li}`,
         label: item,
         cluster: ci,
-        position: orbitPoint(cluster, radius, phase),
+        position: orbitPoint(cluster, orbit, solveKepler(anomaly, cluster.ecc[orbit])),
         isHub: false,
-        orbitRadius: radius,
-        orbitPhase: phase,
-        orbitSpeed: (dir * ORBIT_RATE) / Math.pow(radius, 1.5),
+        orbitRadius: cluster.orbits[orbit],
+        meanAnomaly: anomaly,
+        meanMotion: dir * meanMotion(physics, cat.orbits[orbit]),
         orbit,
       });
     });

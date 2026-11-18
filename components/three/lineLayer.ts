@@ -19,11 +19,11 @@ import { FOG_GLSL, LAYER_MATERIAL, PING_GLSL, SHARED } from './sceneShared';
 
 /*
  * Line layer — every orbit, lane and trail as a screen-space ribbon in ONE
- * instanced draw call. An instance is either a circle (orbits, moon trails) or
- * a quadratic Bezier (lanes, ship wakes), extruded to a constant pixel width in
- * the vertex shader:
+ * instanced draw call. An instance is either an ellipse (orbits, moon trails)
+ * or a quadratic Bezier (lanes, ship wakes), extruded to a constant pixel width
+ * in the vertex shader:
  *
- *   orbit   the full circle a domain's moons ride, drawn in during the entrance
+ *   orbit   the full ellipse a domain's moons ride, drawn in during the entrance
  *   lane    a dashed route between neighbouring planets, dashes drifting along it
  *   trail   a short arc behind a moon / a wake behind a ship, bright at the head
  *
@@ -62,18 +62,28 @@ const I_META = new Float32Array(LINE_COUNT * 4);
 /** Dynamic: brightness, t0, t1. */
 const I_DYN = new Float32Array(LINE_COUNT * 3);
 
-function setCircle(line: number, cluster: number, radius: number) {
+/**
+ * A Kepler orbit as the "circle" kind: an ellipse centred half-way between its
+ * foci, with the planet at one of them. Its parameter is the eccentric anomaly
+ * (in turns), which is what the scene steps the moons by.
+ */
+function setOrbit(line: number, cluster: number, ring: number) {
   const c = CLUSTERS[cluster];
-  I_A.set(c.center, line * 3);
-  I_B.set([c.u[0] * radius, c.u[1] * radius, c.u[2] * radius], line * 3);
-  I_C.set([c.v[0] * radius, c.v[1] * radius, c.v[2] * radius], line * 3);
+  const a = c.orbits[ring];
+  const e = c.ecc[ring];
+  const b = a * Math.sqrt(1 - e * e);
+  const p = c.periapsis[ring];
+  const q = c.quarter[ring];
+  I_A.set([c.center[0] - a * e * p[0], c.center[1] - a * e * p[1], c.center[2] - a * e * p[2]], line * 3);
+  I_B.set([p[0] * a, p[1] * a, p[2] * a], line * 3);
+  I_C.set([q[0] * b, q[1] * b, q[2] * b], line * 3);
   I_COLOR.set(CLUSTER_RGB.subarray(cluster * 3, cluster * 3 + 3), line * 3);
 }
 
 for (let c = 0; c < CLUSTER_COUNT; c++) {
   for (let o = 0; o < 2; o++) {
     const line = ORBIT_BASE + c * 2 + o;
-    setCircle(line, c, CLUSTERS[c].orbits[o]);
+    setOrbit(line, c, o);
     I_META.set([0.28 + 0.03 * c + 0.1 * o, KIND_ORBIT, 0.6, 0], line * 4);
     I_DYN.set([0, 0, 1], line * 3);
   }
@@ -84,7 +94,7 @@ for (let c = 0; c < CLUSTER_COUNT; c++) {
     if (IS_HUB[i]) continue;
     const line = MOON_TRAIL_BASE + leaf++;
     TRAIL_OF_NODE[i] = line;
-    setCircle(line, CLUSTER_OF[i], NODES[i].orbitRadius);
+    setOrbit(line, CLUSTER_OF[i], NODES[i].orbit);
     I_META.set([Math.min(NODE_ENTER[i] + 0.1, 0.7), KIND_MOON_TRAIL, 1.0, 0], line * 4);
   }
 }
@@ -166,7 +176,7 @@ const VERTEX = /* glsl */ `
     vec3 p;
     vec3 tangent;
     if (kind > 0.5 && kind < 2.5) {
-      // Circle: centre iA, in-plane axes iB / iC (already scaled by the radius).
+      // Ellipse: centre iA, semi-axes iB / iC (a circle when they are equal).
       float ang = t * 6.2831853;
       float c = cos(ang);
       float s = sin(ang);

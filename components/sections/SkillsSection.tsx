@@ -196,7 +196,7 @@ export default function SkillsSection() {
         <SkillsConstellationGate onModeChange={handleModeChange} />
         {show3D && (
           <p className="text-center text-cyber-accent font-mono text-xs sm:text-sm mt-3 mb-12 md:mb-16 px-4">
-            drag to orbit · click a planet, a moon or a ship · double-click to dive in
+            drag to orbit · click the star, a planet, a moon or a ship · double-click to dive in
           </p>
         )}
 

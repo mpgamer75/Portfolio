@@ -21,17 +21,21 @@ import type { PlanetKind } from './skillsGraph';
  * meshes, no depth buffer):
  *
  *   GLOW_MESH      one instanced draw: a soft glow per domain + a wide backdrop
- *   BIG_MESHES     the star (granulated disc, limb darkening, breathing corona)
- *                  and one quad per domain, each planet with its OWN specialised
+ *   BIG_MESHES     the star (convection cells, sunspots, limb darkening,
+ *                  prominences and a streaming corona) and one quad per
+ *                  domain, each planet with its OWN specialised
  *                  program: a sphere impostor wrapped in an equirectangular
  *                  surface map and lit from the star, with relief from the
  *                  map's own slope, a terminator and an atmosphere. The ocean
  *                  world adds a drifting cloud deck (with its shadow) and city
  *                  lights after dark, the ice world glowing fractures, the gas
- *                  giant flowing bands and rings, the forge world molten rock
+ *                  giant flowing bands and rings, the forge world molten rock.
+ *                  A moon that passes between a planet and the star drops its
+ *                  shadow on the globe
  *   MOON_MESHES    two instanced draws of the moons (one per skill): the same
  *                  kind of impostor, all sharing one cratered map, each
- *                  showing a different face of it and tinted by its domain
+ *                  tinted by its domain, keeping one face turned to its
+ *                  planet (tidally locked) and going dark in its shadow
  *   CRAFT_MESHES   two instanced draws of sprites from one atlas: the ships,
  *                  the satellites and the station, lit from the star, the ships
  *                  with engine plumes that follow the throttle
@@ -72,6 +76,8 @@ export const PLANET_COVER: Record<PlanetKind, number> = { terran: 1, ice: 1, gas
 export const SHIP_MIN_PX = 20;
 export const NEAR_FADE_BIG: [number, number] = [0.55, 1.0];
 export const NEAR_FADE_SMALL: [number, number] = [0.4, 0.75];
+/** Most moons a planet can have (each can drop a shadow on it). */
+const MAX_MOONS = 10;
 
 const EMERALD = [0.204, 0.827, 0.6];
 /** Engine and presence tint shared by the ships (the signature emerald, lifted towards white). */
@@ -456,27 +462,68 @@ const SUN_FRAGMENT = /* glsl */ `
   uniform float uTime;
   varying vec2 vP;
   varying vec3 vBody;
+  varying mat3 vToLocal;
   ${NOISE_GLSL}
+  ${RETICLE_GLSL}
   void main() {
-    float d = length(vP);
-    float aa = fwidth(d) * 1.5 + 1e-4;
+    vec2 P = vP;
+    float d = length(P);
+    float fw = fwidth(d);
+    float aa = fw * 1.5 + 1e-4;
     float core = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, d);
-    float n = clamp(vBody.x, 0.0, 1.5);
+    float n = clamp(vBody.x, 0.0, 1.7);
+    float sel = vBody.y;
+    // 0 from afar, 1 when the star fills the stage.
+    float detail = smoothstep(70.0, 380.0, 1.0 / (fw + 1e-5));
     vec3 rgb = vec3(0.0);
+
     if (d < 1.03) {
-      // Photosphere: slow granulation, darker and greener towards the limb.
+      // Photosphere. The surface point is taken in system space, so the
+      // pattern belongs to the star (not to the screen), and the star turns.
       float limb = sqrt(max(1.0 - d * d, 0.0));
-      float gran = fbm(vec3(vP * 3.2, uTime * 0.08));
-      vec3 col = mix(vec3(0.3, 0.95, 0.66), vec3(1.0, 1.0, 0.96), 0.2 + 0.8 * pow(limb, 0.6));
-      rgb = col * (0.78 + 0.42 * gran) * core;
+      vec3 sp = vToLocal * vec3(P, limb);
+      float rot = uTime * 0.035;
+      sp = vec3(sp.x * cos(rot) - sp.z * sin(rot), sp.y, sp.x * sin(rot) + sp.z * cos(rot));
+      // Convection: broad slow cells, and granules (bright centres, dark lanes)
+      // that sharpen as the camera closes in.
+      float cells = fbm(sp * 4.2 + vec3(0.0, uTime * 0.04, 0.0));
+      float granule = 1.0 - abs(2.0 * vnoise(sp * 21.0 + cells * 2.2 + uTime * 0.1) - 1.0);
+      float fine = 1.0 - abs(2.0 * vnoise(sp * 64.0 + uTime * 0.16) - 1.0);
+      // Sunspots: a few dark cores with a lighter fringe, kept to mid latitudes.
+      float belt = 1.0 - smoothstep(0.3, 0.7, abs(sp.y));
+      float spotN = vnoise(sp * 4.6 + vec3(7.1, 1.3, 4.2));
+      float penumbra = smoothstep(0.72, 0.78, spotN) * belt;
+      float umbra = smoothstep(0.78, 0.84, spotN) * belt;
+      vec3 col = mix(vec3(0.12, 0.8, 0.52), vec3(0.9, 1.0, 0.94), 0.22 + 0.78 * pow(limb, 0.6));
+      // Bright granule centres over darker lanes; the lanes deepen in a close-up.
+      float light = 0.8 + 0.2 * cells;
+      light *= mix(0.95 + 0.1 * granule, 0.74 + 0.4 * granule, detail);
+      light *= 1.0 - 0.12 * detail * (1.0 - fine);
+      light *= 1.0 - 0.4 * penumbra - 0.42 * umbra;
+      rgb = col * light * core;
     }
-    // Corona: a tight bright skirt, slow uneven rays, and a wide faint bloom.
+
     float o = max(d - 1.0, 0.0);
-    float ang = atan(vP.y, vP.x);
-    float rays = 0.55 + 0.45 * vnoise(vec3(cos(ang) * 2.4, sin(ang) * 2.4, uTime * 0.1));
-    float corona = exp(-o * 6.0) * 0.9 + exp(-o * 1.7) * 0.34 * rays + exp(-o * 0.6) * 0.085;
-    corona *= (1.0 - core) * (1.0 - smoothstep(4.2, 6.0, d));
-    rgb += mix(vec3(0.16, 0.84, 0.58), vec3(0.88, 1.0, 0.94), exp(-o * 4.5)) * corona * (0.3 + 0.7 * n);
+    float ang = atan(P.y, P.x);
+    if (d > 0.97 && d < 1.5) {
+      // Prominences: tongues of gas standing off the limb, where it is active.
+      float activity = fbm(vec3(cos(ang) * 2.6, sin(ang) * 2.6, uTime * 0.07));
+      float reach = 0.035 + 0.3 * smoothstep(0.5, 0.82, activity);
+      float ragged = vnoise(vec3(ang * 14.0, o * 22.0 - uTime * 0.5, 3.0));
+      float tongue = (1.0 - smoothstep(reach * (0.35 + 0.65 * ragged), reach, o)) * smoothstep(0.42, 0.6, activity);
+      float skin = exp(-o * 60.0);
+      rgb += vec3(0.4, 1.0, 0.72) * (tongue * 0.5 + skin * 0.28) * (1.0 - core) * (0.35 + 0.65 * min(n, 1.3));
+    }
+    // Corona: a tight bright skirt, uneven streamers, and a wide faint bloom.
+    // It flares when the star is hovered or opened.
+    float rays = 0.5 + 0.5 * vnoise(vec3(cos(ang) * 2.4, sin(ang) * 2.4, uTime * 0.1));
+    float streamers = vnoise(vec3(cos(ang) * 7.0, sin(ang) * 7.0, uTime * 0.06 + 5.0));
+    float corona = exp(-o * 7.0) * 0.6 + exp(-o * 1.7) * 0.34 * rays * (0.6 + 0.8 * streamers) + exp(-o * 0.6) * 0.085;
+    corona *= (1.0 - core) * (1.0 - smoothstep(4.2, 6.0, d)) * (1.0 + 0.5 * sel);
+    rgb += mix(vec3(0.16, 0.84, 0.58), vec3(0.88, 1.0, 0.94), exp(-o * 4.5)) * corona * (0.3 + 0.7 * min(n, 1.4));
+
+    float lock = reticle(P, d, 1.42 + 0.02 * sin(uTime * 4.0) * step(0.8, sel), clamp(aa * 1.1, 0.004, 0.02), aa, uTime * 0.14);
+    rgb += vec3(0.75, 1.0, 0.88) * lock * sel * 0.85;
     gl_FragColor = vec4(rgb * vBody.z, core * vBody.z);
   }
 `;
@@ -488,7 +535,9 @@ const PLANET_FRAGMENT = /* glsl */ `
   uniform vec3 uE1;       // with uE2 and uAxis: the globe's own frame (longitude 0 along uE1)
   uniform vec3 uE2;
   uniform float uSeed;
-  uniform float uSpin;    // the visitor's own turn of the globe, in radians
+  uniform float uSpin;    // how far the globe has turned (its day + the visitor's own spin), radians
+  uniform vec3 uSunDir;   // system space, from the planet towards the star
+  uniform vec4 uMoons[MAX_MOONS]; // each moon from the planet's centre, in planet radii (w = its radius, 0 = none)
   uniform sampler2D uMap;
   uniform float uMapMix;
   #if PLANET_KIND == 1
@@ -553,7 +602,7 @@ const PLANET_FRAGMENT = /* glsl */ `
     float by = dFdy(lonB);
     vec2 gx = vec2(abs(ax) < abs(bx) ? ax : bx, dFdx(lat));
     vec2 gy = vec2(abs(ay) < abs(by) ? ay : by, dFdy(lat));
-    vec2 uv = vec2(lonA - (uTime * 0.045 + uSpin) / 6.2831853 - uSeed, lat);
+    vec2 uv = vec2(lonA - uSpin / 6.2831853 - uSeed, lat);
     // 0 from afar, 1 when the globe fills the stage: how much fine detail to add.
     float detail = smoothstep(110.0, 520.0, 1.0 / (fw + 1e-5));
 
@@ -563,6 +612,16 @@ const PLANET_FRAGMENT = /* glsl */ `
     if (d < 1.0 + aa) {
       float ndl = dot(nv, L);
       float day = smoothstep(-0.22, 0.5, ndl);
+      // Transits: a moon between this point and the star drops its shadow here.
+      float transit = 0.0;
+      for (int m = 0; m < MAX_MOONS; m++) {
+        vec3 toMoon = uMoons[m].xyz - sl;
+        float along = dot(toMoon, uSunDir);
+        float miss = length(toMoon - along * uSunDir);
+        transit += step(0.0, along) * step(0.001, uMoons[m].w)
+          * (1.0 - smoothstep(uMoons[m].w * 0.72, uMoons[m].w * 1.12, miss));
+      }
+      day *= 1.0 - 0.82 * min(transit, 1.0);
       float fres = pow(1.0 - z, 3.0);
       float specB = max(dot(nv, normalize(L + vec3(0.0, 0.0, 1.0))), 0.0);
       vec3 flat0 = uColor * 0.42;
@@ -705,6 +764,7 @@ interface BigBody {
   /** glow, select, entrance delay */
   state: THREE.Vector3;
   spin: { value: number };
+  moons: THREE.Vector4[];
 }
 
 function makeBig(
@@ -719,6 +779,7 @@ function makeBig(
 ): BigBody {
   const state = new THREE.Vector3(1, 0, enter);
   const spin = { value: 0 };
+  const moons = Array.from({ length: MAX_MOONS }, () => new THREE.Vector4());
   const c = cluster >= 0 ? CLUSTERS[cluster] : null;
   const axis = c ? c.axis : [0, 1, 0];
   const uniforms: Record<string, THREE.IUniform> = {
@@ -740,6 +801,9 @@ function makeBig(
     uniforms.uE1 = { value: new THREE.Vector3(c.u[0], c.u[1], c.u[2]) };
     uniforms.uE2 = { value: new THREE.Vector3(c.v[0], c.v[1], c.v[2]) };
     uniforms.uSpin = spin;
+    uniforms.uMoons = { value: moons };
+    // The star sits at the origin of the system.
+    uniforms.uSunDir = { value: new THREE.Vector3(-center[0], -center[1], -center[2]).normalize() };
     uniforms.uMap = PLANET_SLOTS[cluster].map;
     uniforms.uMapMix = PLANET_SLOTS[cluster].mix;
     if (c.planet === 'terran') {
@@ -749,7 +813,7 @@ function makeBig(
   }
   const material = new THREE.ShaderMaterial({
     uniforms,
-    defines: c ? { PLANET_KIND: PLANET_DEFINE[c.planet] } : {},
+    defines: c ? { PLANET_KIND: PLANET_DEFINE[c.planet], MAX_MOONS } : {},
     vertexShader: BIG_VERTEX,
     fragmentShader,
     ...LAYER_MATERIAL,
@@ -757,7 +821,7 @@ function makeBig(
   const mesh = new THREE.Mesh(BIG_GEOMETRY, material);
   mesh.position.set(center[0], center[1], center[2]);
   mesh.frustumCulled = false; // the quad is expanded in the shader
-  return { mesh, state, spin };
+  return { mesh, state, spin, moons };
 }
 
 /** Index 0 is the star; 1 + c is the planet of cluster c. */
@@ -786,9 +850,17 @@ export function setBigState(index: number, glow: number, select: number): void {
   BIG[index].state.y = select;
 }
 
-/** The visitor's own turn of a planet's globe (radians), on top of its slow rotation. */
+/** How far a planet's globe has turned (radians): its own day plus the visitor's spin. */
 export function setPlanetSpin(cluster: number, angle: number): void {
   BIG[1 + cluster].spin.value = angle;
+}
+
+/**
+ * Where one of a planet's moons is, from the planet's centre and in planet
+ * radii (`radius` likewise) — the planet uses it to draw the moon's shadow.
+ */
+export function setPlanetMoon(cluster: number, slot: number, x: number, y: number, z: number, radius: number): void {
+  if (slot < MAX_MOONS) BIG[1 + cluster].moons[slot].set(x, y, z, radius);
 }
 
 /** View depth of each large body (written by the scene) and the scratch used to rank them. */
@@ -811,13 +883,14 @@ const SPRITE_STATION = 3;
 const SPRITE_SATELLITE = 4;
 
 /**
- * 16 floats per record:
+ * 20 floats per record:
  *   0-2 position (system-local) · 3 radius (a craft's half-length)
  *   4-6 colour · 7 kind (KIND_MOON, or the craft's atlas cell)
- *   8-10 heading (craft) · 11 seed
+ *   8-10 heading (craft) / the vector to its planet's centre (moon) · 11 seed
  *   12 glow · 13 select · 14 entrance delay · 15 extra (ship thrust)
+ *   16-18 the normal of its orbit (moon) · 19 its planet's radius (moon)
  */
-const STRIDE = 16;
+const STRIDE = 20;
 const SOURCE = new Float32Array(SMALL_COUNT * STRIDE);
 /** View depth per record, and whether a large body covers it (both written by the scene). */
 export const SMALL_DEPTH = new Float32Array(SMALL_COUNT);
@@ -841,6 +914,7 @@ function initSmall(index: number, kind: number, radius: number, color: ArrayLike
     if (IS_HUB[i]) continue;
     const c = CLUSTER_OF[i];
     MOON_SLOT[i] = slot;
+    SOURCE.set([...CLUSTERS[c].axis, CLUSTERS[c].radius], slot * STRIDE + 16);
     initSmall(slot++, KIND_MOON, LEAF_RADIUS_W, CLUSTER_RGB.subarray(c * 3, c * 3 + 3), (i * 0.61803) % 1, NODE_ENTER[i]);
   }
 }
@@ -864,6 +938,7 @@ export function setSmallPosition(index: number, x: number, y: number, z: number)
   SOURCE[o + 1] = y;
   SOURCE[o + 2] = z;
 }
+/** A craft's heading, or for a moon the vector from it to its planet's centre. */
 export function setSmallHeading(index: number, x: number, y: number, z: number): void {
   const o = index * STRIDE;
   SOURCE[o + 8] = x;
@@ -887,6 +962,7 @@ const MOON_VERTEX = /* glsl */ `
   attribute vec4 iColK;
   attribute vec4 iAuxS;
   attribute vec4 iState;
+  attribute vec4 iOrbit; // xyz: the normal of its orbit · w: its planet's radius
   uniform float uTime;
   uniform float uEnter;
   uniform vec3 uSunView;
@@ -894,7 +970,7 @@ const MOON_VERTEX = /* glsl */ `
   ${PING_GLSL}
   varying vec2 vP;       // quad coords in body radii
   varying vec3 vColor;
-  varying vec2 vMisc;    // depth fade, seed
+  varying vec3 vMisc;    // depth fade, seed, how deep in its planet's shadow
   varying vec3 vState;   // glow, select, reveal
   varying vec3 vLight;   // view space, towards the star
   varying mat3 vToLocal;
@@ -916,15 +992,27 @@ const MOON_VERTEX = /* glsl */ `
 
     vLight = normalize(uSunView - mv.xyz + vec3(0.0, 0.0, 1e-4));
     vToLocal = transpose(mat3(modelViewMatrix));
-    vPole = normalize(vec3(sin(seed * 91.0), 0.9, cos(seed * 57.0)));
-    vPrime = normalize(cross(vPole, vec3(0.31, 0.2, 0.93)));
+    // Tidally locked: the moon turns once per orbit, so the same face always
+    // looks at its planet. Its pole is the orbit's normal, its prime meridian
+    // the direction of the planet.
+    vec3 toPlanet = iAuxS.xyz;
+    vPole = normalize(iOrbit.xyz);
+    vPrime = normalize(toPlanet - vPole * dot(toPlanet, vPole) + vec3(1e-5, 0.0, 0.0));
+
+    // Eclipse: the planet's shadow is a cylinder pointing away from the star
+    // (which sits at the origin). A moon inside it gets no direct light.
+    vec3 planet = pos + toPlanet;
+    vec3 downSun = normalize(planet);
+    float behind = dot(-toPlanet, downSun);
+    float off = length(-toPlanet - behind * downSun);
+    float eclipse = step(0.0, behind) * (1.0 - smoothstep(iOrbit.w * 0.88, iOrbit.w * 1.14, off));
 
     // Quad half-extent in body radii: room for the halo and the reticle.
     const float ext = 3.6;
     mv.xy += position.xy * ext * iPosR.w * scale;
     gl_Position = nearK > 0.001 ? projectionMatrix * mv : vec4(2.0, 2.0, 2.0, 1.0);
     vP = position.xy * ext;
-    vMisc = vec2(depthFade(-mv.z), seed);
+    vMisc = vec3(depthFade(-mv.z), seed, eclipse);
     vState = vec3(glow, iState.y, reveal * nearK);
   }
 `;
@@ -935,7 +1023,7 @@ const MOON_FRAGMENT = /* glsl */ `
   uniform float uMapMix;
   varying vec2 vP;
   varying vec3 vColor;
-  varying vec2 vMisc;
+  varying vec3 vMisc;
   varying vec3 vState;
   varying vec3 vLight;
   varying mat3 vToLocal;
@@ -984,18 +1072,19 @@ const MOON_FRAGMENT = /* glsl */ `
       float hx = mix(0.5, luma(textureGrad(uMap, uv + gx, gx, gy).rgb), uMapMix);
       float hy = mix(0.5, luma(textureGrad(uMap, uv + gy, gx, gy).rgb), uMapMix);
       float relief = reliefTerm(nv, dPx, dPy, L, (hx - h0) * 0.05, (hy - h0) * 0.05);
-      float day = smoothstep(-0.25, 0.55, dot(nv, L));
+      float eclipse = vMisc.z;
+      float day = smoothstep(-0.25, 0.55, dot(nv, L)) * (1.0 - eclipse);
       // A skill has to read from the overview, so a moon never goes fully dark:
-      // the star only shapes it.
+      // the star only shapes it, and its planet's shadow dims it.
       vec3 base = mix(vColor * 0.5, mix(vColor, vec3(1.0), 0.55), smoothstep(0.22, 0.85, h0));
-      vec3 col = base * (0.52 + 0.66 * day * clamp(1.0 + relief * 2.6, 0.3, 1.8));
+      vec3 col = base * (mix(0.52, 0.2, eclipse) + 0.66 * day * clamp(1.0 + relief * 2.6, 0.3, 1.8));
       col += vColor * pow(1.0 - z, 2.0) * 0.35;
       col += vec3(1.0) * pow(z, 5.0) * 0.5 * clamp(n - 0.8, 0.0, 0.9);
       rgb = col * lum * core;
     }
 
     float halo = exp(-max(d - 1.0, 0.0) * 1.9) * 0.3 + exp(-d * d * 0.35) * 0.16;
-    rgb += vColor * halo * (1.0 - core) * n * (1.0 - smoothstep(2.6, 3.5, d));
+    rgb += vColor * halo * (1.0 - core) * n * (1.0 - smoothstep(2.6, 3.5, d)) * (1.0 - 0.6 * vMisc.z);
     // The stroke is sized in pixels, so it stays a hairline in a close-up.
     float lock = reticle(P, d, 2.3 + 0.1 * sin(uTime * 4.0) * pinned, clamp(aa * 1.8, 0.012, 0.085), aa, uTime * 0.14);
     rgb += mix(vColor, vec3(1.0), 0.35) * lock * sel;
@@ -1259,6 +1348,7 @@ function makeSmallPass(material: THREE.ShaderMaterial, capacity: number, renderO
   geometry.setAttribute('iColK', new THREE.InterleavedBufferAttribute(buffer, 4, 4));
   geometry.setAttribute('iAuxS', new THREE.InterleavedBufferAttribute(buffer, 4, 8));
   geometry.setAttribute('iState', new THREE.InterleavedBufferAttribute(buffer, 4, 12));
+  geometry.setAttribute('iOrbit', new THREE.InterleavedBufferAttribute(buffer, 4, 16));
   geometry.instanceCount = 0;
   const mesh = new THREE.Mesh(geometry, material);
   mesh.frustumCulled = false; // instances live in the shader

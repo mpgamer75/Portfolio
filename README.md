@@ -23,7 +23,7 @@ Ce portfolio est :
 - Design cybersécurité (non, il n'y a pas de Matrix scrolling text).
 - Animations fluides (60 FPS constant, je promets que j'ai `killall -9 chrome`).
 - Background animé "Prism" (GPU goes brrr).
-- Carte 3D des compétences : un système stellaire en WebGL (shaders maison) — chaque domaine est une planète, chaque compétence une lune, chaque projet un vaisseau. Glisser pour tourner, cliquer une planète, une lune ou un vaisseau, double-cliquer pour plonger en gros plan, faire tourner le globe d'une planète ouverte (`components/three/`).
+- Carte 3D des compétences : un système stellaire en WebGL (shaders maison) — l'étoile est mon profil, chaque domaine une planète, chaque compétence une lune, chaque projet un vaisseau. Le tout obéit à de la vraie mécanique : orbites de Kepler, lunes en rotation synchrone, éclipses, transits à poussée constante avec retournement à mi-parcours, et les chiffres affichés sortent des mêmes équations. Glisser pour tourner, cliquer l'étoile, une planète, une lune ou un vaisseau, double-cliquer pour plonger en gros plan, mettre le temps en pause ou l'accélérer (`components/three/`).
 - Navigation responsive (fonctionne même sur ton Nokia 3310).
 - Sections : Hero, About, Experience, Projects, Skills, Contact.
 - Timeline interactive (comme `git log --graph` mais en mieux).

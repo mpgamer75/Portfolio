@@ -1,4 +1,5 @@
 import { GRAPH } from './skillsGraph';
+import { PLANET_PHYSICS, meanMotion, transitBetween, type Transit } from './orbitalMechanics';
 import { projects } from '@/components/sections/projectsData';
 
 /*
@@ -92,19 +93,35 @@ export interface Ship {
   /** Start offset (0..1 of a round trip) and sideways bow of this ship's own path. */
   offset: number;
   bow: number;
-  /** Seconds for a full round trip. */
-  period: number;
   /** Hull model (CRAFT_*) and its half-length in scene units. */
   craft: number;
   size: number;
 }
 
+/**
+ * The transit each lane stands for: a constant-thrust leg between its two
+ * planets, at their real distances from the star and the angle the map draws
+ * between them. Its duration on screen follows from that.
+ */
+export const LANE_TRANSITS: Transit[] = LANES.map((lane) => {
+  const a = CLUSTERS[lane.a];
+  const b = CLUSTERS[lane.b];
+  const cos =
+    (a.center[0] * b.center[0] + a.center[1] * b.center[1] + a.center[2] * b.center[2]) /
+    (Math.hypot(...a.center) * Math.hypot(...b.center));
+  return transitBetween(
+    PLANET_PHYSICS[a.planet].orbitAU,
+    PLANET_PHYSICS[b.planet].orbitAU,
+    Math.acos(Math.max(-1, Math.min(1, cos))),
+  );
+});
+/** Scene seconds a ship stays docked at each end of its lane. */
+export const DOCK_SECONDS = 4;
+
 export const SHIPS: Ship[] = [];
 projects.forEach((p, i) => {
   const r = ROUTES[p.title];
-  if (r) {
-    SHIPS.push({ project: i, label: p.title, period: 46 + SHIPS.length * 5, size: CRAFT_HALF_LENGTH[r.craft], ...r });
-  }
+  if (r) SHIPS.push({ project: i, label: p.title, size: CRAFT_HALF_LENGTH[r.craft], ...r });
 });
 export const SHIP_COUNT = SHIPS.length;
 
@@ -172,23 +189,23 @@ export interface Satellite {
   radius: number;
   u: [number, number, number];
   v: [number, number, number];
-  /** Angular speed (rad/s) and start angle. */
+  /** Angular speed (rad per scene second, from the planet's mass) and start angle. */
   speed: number;
   phase: number;
   station: boolean;
 }
 
-/** cluster, orbit radius in planet radii, inclination to the moons' plane (deg), speed, phase, station */
+/** cluster, orbit radius in planet radii, inclination to the moons' plane (deg), direction, phase, station */
 const SAT_SPECS: [number, number, number, number, number, boolean][] = [
-  [0, 1.42, 62, 0.55, 0.4, false],
-  [0, 1.72, -48, -0.4, 2.1, false],
-  [1, 1.5, 70, 0.5, 1.2, false],
-  [2, 2.2, 80, 0.34, 3.0, false],
-  [3, 1.45, -58, -0.52, 5.0, false],
-  [3, 1.85, 28, 0.16, 0.8, true],
+  [0, 1.42, 62, 1, 0.4, false],
+  [0, 1.72, -48, -1, 2.1, false],
+  [1, 1.5, 70, 1, 1.2, false],
+  [2, 2.2, 80, 1, 3.0, false],
+  [3, 1.45, -58, -1, 5.0, false],
+  [3, 1.85, 28, 1, 0.8, true],
 ];
 
-export const SATELLITES: Satellite[] = SAT_SPECS.map(([cluster, r, inc, speed, phase, station]) => {
+export const SATELLITES: Satellite[] = SAT_SPECS.map(([cluster, r, inc, dir, phase, station]) => {
   const c = CLUSTERS[cluster];
   const i = (inc * Math.PI) / 180;
   const v: [number, number, number] = [
@@ -196,6 +213,8 @@ export const SATELLITES: Satellite[] = SAT_SPECS.map(([cluster, r, inc, speed, p
     c.v[1] * Math.cos(i) + c.axis[1] * Math.sin(i),
     c.v[2] * Math.cos(i) + c.axis[2] * Math.sin(i),
   ];
+  // A circular orbit: its angular speed is the mean motion for that radius.
+  const speed = dir * meanMotion(PLANET_PHYSICS[c.planet], r);
   return { cluster, radius: r * c.radius, u: c.u, v, speed, phase, station };
 });
 export const SAT_COUNT = SATELLITES.length;
