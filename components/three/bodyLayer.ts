@@ -5,9 +5,9 @@ import {
   CLUSTER_OF,
   CLUSTER_RGB,
   IS_HUB,
-  LEAF_RADIUS_W,
   NODE_COUNT,
   NODE_ENTER,
+  NODE_RADIUS,
   SATELLITES,
   SAT_COUNT,
   SHIPS,
@@ -33,9 +33,12 @@ import type { PlanetKind } from './skillsGraph';
  *                  A moon that passes between a planet and the star drops its
  *                  shadow on the globe
  *   MOON_MESHES    two instanced draws of the moons (one per skill): the same
- *                  kind of impostor, all sharing one cratered map, each
- *                  tinted by its domain, keeping one face turned to its
- *                  planet (tidally locked) and going dark in its shadow
+ *                  kind of impostor. Each planet has its own kind of moon
+ *                  (cratered rock, fractured ice, ridged and hazy, volcanic),
+ *                  from four maps stacked in one texture, and every moon
+ *                  its own size, shade and face. They are tinted by their
+ *                  domain, keep one face turned to their planet (tidally
+ *                  locked) and go dark in its shadow
  *   CRAFT_MESHES   two instanced draws of sprites from one atlas: the ships,
  *                  the satellites and the station, lit from the star, the ships
  *                  with engine plumes that follow the throttle
@@ -274,7 +277,7 @@ export function loadBodyTextures(anisotropy: number): void {
     });
   });
   loadSlot(CLOUD_SLOT, 'clouds.webp', true, false);
-  loadSlot(MOON_SLOT_MAP, 'moon.webp', true, false);
+  loadSlot(MOON_SLOT_MAP, 'moons.webp', true, false);
   loadSlot(CRAFT_SLOT, 'craft.webp', false, true);
 }
 
@@ -877,15 +880,30 @@ export const SAT_BASE = LEAF_COUNT;
 export const SHIP_BASE = SAT_BASE + SAT_COUNT;
 export const SMALL_COUNT = SHIP_BASE + SHIP_COUNT;
 
-/** A record's `kind`: a moon, or a cell of the craft atlas. */
-const KIND_MOON = -1;
+/**
+ * A record's `kind`: a cell of the craft atlas (0 and up), or a moon
+ * (negative: -1 - the band of the moon map it wears).
+ */
+const MOON_BANDS = 4;
+/** Which kind of moon each kind of planet has (the band of moons.webp, top to bottom). */
+const MOON_BAND: Record<PlanetKind, number> = { terran: 0, ice: 1, gas: 2, forge: 3 };
+/**
+ * What makes each kind of moon look like itself: how deep its relief reads,
+ * how glossy it is, how much its dark ground glows, how hazy it is.
+ */
+const MOON_STYLES = [
+  new THREE.Vector4(1.0, 0.0, 0.0, 0.0), // cratered rock
+  new THREE.Vector4(0.6, 0.85, 0.0, 0.0), // fractured ice
+  new THREE.Vector4(1.2, 0.1, 0.0, 0.9), // ridged, under a thin haze
+  new THREE.Vector4(0.9, 0.0, 1.0, 0.0), // volcanic
+];
 const SPRITE_STATION = 3;
 const SPRITE_SATELLITE = 4;
 
 /**
  * 20 floats per record:
  *   0-2 position (system-local) · 3 radius (a craft's half-length)
- *   4-6 colour · 7 kind (KIND_MOON, or the craft's atlas cell)
+ *   4-6 colour · 7 kind (the craft's atlas cell, or negative for a moon)
  *   8-10 heading (craft) / the vector to its planet's centre (moon) · 11 seed
  *   12 glow · 13 select · 14 entrance delay · 15 extra (ship thrust)
  *   16-18 the normal of its orbit (moon) · 19 its planet's radius (moon)
@@ -915,7 +933,14 @@ function initSmall(index: number, kind: number, radius: number, color: ArrayLike
     const c = CLUSTER_OF[i];
     MOON_SLOT[i] = slot;
     SOURCE.set([...CLUSTERS[c].axis, CLUSTERS[c].radius], slot * STRIDE + 16);
-    initSmall(slot++, KIND_MOON, LEAF_RADIUS_W, CLUSTER_RGB.subarray(c * 3, c * 3 + 3), (i * 0.61803) % 1, NODE_ENTER[i]);
+    initSmall(
+      slot++,
+      -1 - MOON_BAND[CLUSTERS[c].planet],
+      NODE_RADIUS[i],
+      CLUSTER_RGB.subarray(c * 3, c * 3 + 3),
+      (i * 0.61803) % 1,
+      NODE_ENTER[i],
+    );
   }
 }
 SATELLITES.forEach((s, i) => {
@@ -966,21 +991,27 @@ const MOON_VERTEX = /* glsl */ `
   uniform float uTime;
   uniform float uEnter;
   uniform vec3 uSunView;
+  uniform vec4 uStyles[${MOON_BANDS}];
   ${FOG_GLSL}
   ${PING_GLSL}
   varying vec2 vP;       // quad coords in body radii
   varying vec3 vColor;
-  varying vec3 vMisc;    // depth fade, seed, how deep in its planet's shadow
+  varying vec4 vMisc;    // depth fade, seed, how deep in its planet's shadow, map band
   varying vec3 vState;   // glow, select, reveal
   varying vec3 vLight;   // view space, towards the star
   varying mat3 vToLocal;
-  varying vec3 vPole;    // this moon's own pole and prime meridian: which face
-  varying vec3 vPrime;   // of the shared map it shows
+  varying vec3 vPole;    // this moon's pole and prime meridian: which way it faces
+  varying vec3 vPrime;
+  varying vec4 vStyle;   // relief, gloss, glow, haze
 
   void main() {
     vec3 pos = iPosR.xyz;
     float seed = iAuxS.w;
-    vColor = iColK.rgb;
+    float band = -iColK.w - 1.0;
+    vStyle = uStyles[int(band + 0.5)];
+    // Its domain's colour, in its own shade: some moons paler, some deeper.
+    float shade = fract(seed * 13.7);
+    vColor = mix(iColK.rgb * (0.78 + 0.34 * shade), vec3(1.0), 0.22 * fract(seed * 7.3));
     vec4 mv = modelViewMatrix * vec4(pos, 1.0);
     float reveal = smoothstep(iState.z, iState.z + 0.3, uEnter);
     float nearK = ${NEAR_SMALL};
@@ -1012,7 +1043,7 @@ const MOON_VERTEX = /* glsl */ `
     mv.xy += position.xy * ext * iPosR.w * scale;
     gl_Position = nearK > 0.001 ? projectionMatrix * mv : vec4(2.0, 2.0, 2.0, 1.0);
     vP = position.xy * ext;
-    vMisc = vec3(depthFade(-mv.z), seed, eclipse);
+    vMisc = vec4(depthFade(-mv.z), seed, eclipse, band);
     vState = vec3(glow, iState.y, reveal * nearK);
   }
 `;
@@ -1023,12 +1054,13 @@ const MOON_FRAGMENT = /* glsl */ `
   uniform float uMapMix;
   varying vec2 vP;
   varying vec3 vColor;
-  varying vec3 vMisc;
+  varying vec4 vMisc;
   varying vec3 vState;
   varying vec3 vLight;
   varying mat3 vToLocal;
   varying vec3 vPole;
   varying vec3 vPrime;
+  varying vec4 vStyle;
   ${RETICLE_GLSL}
   ${SPHERE_GLSL}
 
@@ -1048,42 +1080,63 @@ const MOON_FRAGMENT = /* glsl */ `
     float core = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, d);
     float z = sqrt(max(1.0 - d * d, 0.0));
     vec3 nv = vec3(P, z);
+    float seed = vMisc.y;
+    float gloss = vStyle.y;
+    float haze = vStyle.w;
 
+    // Where this pixel is on the moon, then in the map: the four kinds of moon
+    // are stacked top to bottom in one texture, and each moon reads its band
+    // from its own starting meridian, half of them mirrored — so no two moons
+    // of a system show the same ground.
     vec3 nl = vToLocal * nv;
     vec3 pole = normalize(vPole);
     vec3 prime = normalize(vPrime);
-    float lonA = atan(dot(nl, cross(pole, prime)), dot(nl, prime)) / 6.2831853;
+    float mirror = step(0.5, fract(seed * 3.3)) * 2.0 - 1.0;
+    float lonA = mirror * atan(dot(nl, cross(pole, prime)), dot(nl, prime)) / 6.2831853;
     float lonB = fract(lonA + 0.5);
     float lat = asin(clamp(dot(nl, pole), -1.0, 1.0)) / 3.14159265 + 0.5;
     float ax = dFdx(lonA);
     float bx = dFdx(lonB);
     float ay = dFdy(lonA);
     float by = dFdy(lonB);
-    vec2 gx = vec2(abs(ax) < abs(bx) ? ax : bx, dFdx(lat));
-    vec2 gy = vec2(abs(ay) < abs(by) ? ay : by, dFdy(lat));
-    vec2 uv = vec2(lonA + vMisc.y * 7.0, lat);
+    const float bands = ${MOON_BANDS}.0;
+    vec2 gx = vec2(abs(ax) < abs(bx) ? ax : bx, dFdx(lat) / bands);
+    vec2 gy = vec2(abs(ay) < abs(by) ? ay : by, dFdy(lat) / bands);
+    // Band 0 is the top of the image. The poles stay just inside their band.
+    vec2 uv = vec2(lonA + seed * 7.0, (bands - 1.0 - vMisc.w + clamp(lat, 0.015, 0.985)) / bands);
 
     vec3 rgb = vec3(0.0);
     float a = core * mix(0.55, 1.0, lum);
 
     if (d < 1.0 + aa) {
-      // A small cratered world, tinted by its domain.
       float h0 = mix(0.5, luma(textureGrad(uMap, uv, gx, gy).rgb), uMapMix);
       float hx = mix(0.5, luma(textureGrad(uMap, uv + gx, gx, gy).rgb), uMapMix);
       float hy = mix(0.5, luma(textureGrad(uMap, uv + gy, gx, gy).rgb), uMapMix);
-      float relief = reliefTerm(nv, dPx, dPy, L, (hx - h0) * 0.05, (hy - h0) * 0.05);
+      float depth = 0.05 * vStyle.x;
+      float relief = reliefTerm(nv, dPx, dPy, L, (hx - h0) * depth, (hy - h0) * depth);
       float eclipse = vMisc.z;
       float day = smoothstep(-0.25, 0.55, dot(nv, L)) * (1.0 - eclipse);
       // A skill has to read from the overview, so a moon never goes fully dark:
-      // the star only shapes it, and its planet's shadow dims it.
-      vec3 base = mix(vColor * 0.5, mix(vColor, vec3(1.0), 0.55), smoothstep(0.22, 0.85, h0));
+      // the star only shapes it, and its planet's shadow dims it. Ice is paler.
+      vec3 base = mix(vColor * 0.5, mix(vColor, vec3(1.0), 0.55 + 0.25 * gloss), smoothstep(0.22, 0.85, h0));
       vec3 col = base * (mix(0.52, 0.2, eclipse) + 0.66 * day * clamp(1.0 + relief * 2.6, 0.3, 1.8));
-      col += vColor * pow(1.0 - z, 2.0) * 0.35;
+      // Ice glints where it faces half-way between the star and the viewer.
+      float glint = pow(max(dot(nv, normalize(L + vec3(0.0, 0.0, 1.0))), 0.0), 36.0);
+      col += vec3(0.95, 1.0, 0.98) * glint * gloss * day * 0.42;
+      // Volcanic ground: the dark calderas are lava lakes, and they glow —
+      // most of all at night and in eclipse.
+      float lava = smoothstep(0.36, 0.14, h0) * uMapMix * vStyle.z;
+      col += mix(vColor, vec3(0.8, 1.0, 0.86), 0.45) * lava * (0.75 + 0.25 * sin(uTime * 1.3 + seed * 30.0 + h0 * 20.0)) * 0.95;
+      // Haze: a thin atmosphere flattens the ground and brightens the limb.
+      col = mix(col, vColor * (0.42 + 0.5 * day), haze * 0.22);
+      col += vColor * pow(1.0 - z, mix(2.0, 3.2, haze)) * (0.35 + 0.4 * haze * (0.4 + 0.6 * day));
       col += vec3(1.0) * pow(z, 5.0) * 0.5 * clamp(n - 0.8, 0.0, 0.9);
       rgb = col * lum * core;
     }
 
     float halo = exp(-max(d - 1.0, 0.0) * 1.9) * 0.3 + exp(-d * d * 0.35) * 0.16;
+    // A hazy moon also wears a tight bright ring of air.
+    halo += exp(-max(d - 1.0, 0.0) * 16.0) * 0.5 * haze;
     rgb += vColor * halo * (1.0 - core) * n * (1.0 - smoothstep(2.6, 3.5, d)) * (1.0 - 0.6 * vMisc.z);
     // The stroke is sized in pixels, so it stays a hairline in a close-up.
     float lock = reticle(P, d, 2.3 + 0.1 * sin(uTime * 4.0) * pinned, clamp(aa * 1.8, 0.012, 0.085), aa, uTime * 0.14);
@@ -1307,7 +1360,12 @@ const smallUniforms = () => ({
 });
 
 const MOON_MATERIAL = new THREE.ShaderMaterial({
-  uniforms: { ...smallUniforms(), uMap: MOON_SLOT_MAP.map, uMapMix: MOON_SLOT_MAP.mix },
+  uniforms: {
+    ...smallUniforms(),
+    uMap: MOON_SLOT_MAP.map,
+    uMapMix: MOON_SLOT_MAP.mix,
+    uStyles: { value: MOON_STYLES },
+  },
   vertexShader: MOON_VERTEX,
   fragmentShader: MOON_FRAGMENT,
   ...LAYER_MATERIAL,
@@ -1402,7 +1460,7 @@ export function uploadBodies(): void {
   for (let i = 0; i < SMALL_COUNT; i++) {
     const index = SMALL_ORDER[i];
     const src = index * STRIDE;
-    const moon = SOURCE[src + 7] === KIND_MOON;
+    const moon = SOURCE[src + 7] < 0;
     const pass = SMALL_BEHIND[index] === 1 ? (moon ? MOON_BACK : CRAFT_BACK) : moon ? MOON_FRONT : CRAFT_FRONT;
     const dst = pass.count++ * STRIDE;
     // Plain copy loop: no per-record typed-array views, so no garbage per frame.

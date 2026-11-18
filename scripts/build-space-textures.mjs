@@ -3,10 +3,11 @@
  * the generated source images. Not part of the app build: run it by hand when
  * a source changes.
  *
- *   node scripts/build-space-textures.mjs <source-dir>
+ *   node scripts/build-space-textures.mjs <source-dir> [planets|moons|craft]
  *
  * Sources (PNG): terran, clouds, ice, gas, forge (3840x1920 equirectangular
- * maps, each written as a 2048-wide base map and a "-4k" one), moon (2048x1024), and the cut-out sprites ship_courier,
+ * maps, each written as a 2048-wide base map and a "-4k" one), moon, moon_ice,
+ * moon_ridged, moon_volcanic (2048x1024, stacked into moons.webp), and the cut-out sprites ship_courier,
  * ship_freighter, ship_explorer (1536x1024), station, satellite (1024x1024).
  *
  * What the shaders rely on (components/three/bodyLayer.ts):
@@ -21,8 +22,11 @@ import path from 'node:path';
 import sharp from 'sharp';
 
 const SRC = process.argv[2];
+/** Optional: build only one group ('planets', 'moons' or 'craft'). */
+const ONLY = process.argv[3];
+const wanted = (group) => !ONLY || ONLY === group;
 if (!SRC) {
-  console.error('usage: node scripts/build-space-textures.mjs <source-dir>');
+  console.error('usage: node scripts/build-space-textures.mjs <source-dir> [planets|moons|craft]');
   process.exit(1);
 }
 const OUT = path.resolve('public/images/space');
@@ -141,9 +145,39 @@ async function buildCraftAtlas() {
   console.log(`craft.webp  2048x1024  ${(info.size / 1024).toFixed(0)} KB`);
 }
 
+/**
+ * The four kinds of moon, one band each, stacked top to bottom in one
+ * greyscale texture (the shader only reads their brightness). The order is
+ * MOON_BAND in bodyLayer.ts: cratered rock, fractured ice, ridged, volcanic.
+ */
+const MOON_SOURCES = ['moon', 'moon_ice', 'moon_ridged', 'moon_volcanic'];
+const MOON_BAND_W = 1280;
+const MOON_BAND_H = 640;
+
+async function buildMoonAtlas() {
+  const layers = [];
+  for (const [band, name] of MOON_SOURCES.entries()) {
+    const rgb = wrapSeam(await loadRgb(name));
+    settlePoles(rgb, 0.05);
+    const input = await sharp(rgb.data, { raw: { width: rgb.w, height: rgb.h, channels: 3 } })
+      .resize(MOON_BAND_W, MOON_BAND_H, { fit: 'fill', kernel: 'lanczos3' })
+      .greyscale()
+      .normalise({ lower: 1, upper: 99 })
+      .png()
+      .toBuffer();
+    layers.push({ input, left: 0, top: band * MOON_BAND_H });
+  }
+  const height = MOON_BAND_H * MOON_SOURCES.length;
+  const info = await sharp({ create: { width: MOON_BAND_W, height, channels: 3, background: '#808080' } })
+    .composite(layers)
+    .webp({ quality: 66, effort: 6 })
+    .toFile(path.join(OUT, 'moons.webp'));
+  console.log(`moons.webp  ${MOON_BAND_W}x${height}  ${(info.size / 1024).toFixed(0)} KB`);
+}
+
 await mkdir(OUT, { recursive: true });
 
-for (const kind of ['terran', 'ice', 'gas', 'forge']) {
+for (const kind of wanted('planets') ? ['terran', 'ice', 'gas', 'forge'] : []) {
   const rgb = wrapSeam(await loadRgb(kind), kind === 'terran' ? 0.02 : 0.045);
   settlePoles(rgb);
   // The base map is what the overview shows; the 4K one is fetched when a
@@ -151,14 +185,10 @@ for (const kind of ['terran', 'ice', 'gas', 'forge']) {
   await writeMap(kind, rgb, 2048, kind === 'ice' ? 66 : 74);
   await writeMap(`${kind}-4k`, rgb, 3840, kind === 'ice' ? 66 : 78);
 }
-{
+if (wanted('planets')) {
   const rgb = wrapSeam(await loadRgb('clouds'));
   settlePoles(rgb);
   await writeMap('clouds', rgb, 2048, 70);
 }
-{
-  const rgb = wrapSeam(await loadRgb('moon'));
-  settlePoles(rgb);
-  await writeMap('moon', rgb, 1536, 72);
-}
-await buildCraftAtlas();
+if (wanted('moons')) await buildMoonAtlas();
+if (wanted('craft')) await buildCraftAtlas();

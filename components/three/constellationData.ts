@@ -37,8 +37,16 @@ export const CLUSTER_COUNTS = CLUSTERS.map(
 export const CLUSTER_HUB: number[] = [];
 export const CLUSTER_SKILLS: string[][] = CLUSTERS.map(() => []);
 
-/** World-space radius of a moon (scene units). Planet radii live on the cluster. */
+/**
+ * Typical radius of a moon (scene units); each moon's own is in NODE_RADIUS,
+ * between 0.8 and 1.25 times this. Planet radii live on the cluster.
+ */
 export const LEAF_RADIUS_W = 0.125;
+/** A fixed pseudo-random 0..1 per node, so the same moon is the same size on every load. */
+const sizeSeed = (i: number) => {
+  const x = Math.sin(i * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+};
 
 /** Live node positions: planets are fixed, moons are rewritten every frame. */
 export const NODE_POSITIONS = new Float32Array(NODE_COUNT * 3);
@@ -53,7 +61,7 @@ NODES.forEach((node, i) => {
   NODE_POSITIONS[i * 3 + 2] = node.position[2];
   CLUSTER_OF[i] = node.cluster;
   IS_HUB[i] = node.isHub ? 1 : 0;
-  NODE_RADIUS[i] = node.isHub ? CLUSTERS[node.cluster].radius : LEAF_RADIUS_W;
+  NODE_RADIUS[i] = node.isHub ? CLUSTERS[node.cluster].radius : LEAF_RADIUS_W * (0.8 + 0.45 * sizeSeed(i));
   if (node.isHub) {
     CLUSTER_HUB[node.cluster] = i;
     NODE_ENTER[i] = 0.1 + 0.03 * node.cluster;

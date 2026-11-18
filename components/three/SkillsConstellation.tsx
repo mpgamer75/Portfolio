@@ -18,7 +18,6 @@ import {
   LANES,
   LANE_COUNT,
   LANE_TRANSITS,
-  LEAF_RADIUS_W,
   NODES,
   NODE_COUNT,
   NODE_POSITIONS,
@@ -1025,7 +1024,7 @@ function Scene({
       // tell when it is in its shadow. The planet in turn knows where the moon
       // is, to carry its shadow.
       setSmallHeading(MOON_SLOT[i], -rx, -ry, -rz);
-      setPlanetMoon(node.cluster, MOON_INDEX[i], rx / c.radius, ry / c.radius, rz / c.radius, LEAF_RADIUS_W / c.radius);
+      setPlanetMoon(node.cluster, MOON_INDEX[i], rx / c.radius, ry / c.radius, rz / c.radius, NODE_RADIUS[i] / c.radius);
       // The trail is the arc the moon has just covered; it shortens as its
       // system slows down, and is gone while time is paused.
       const turn = E / TAU;
@@ -2222,7 +2221,7 @@ export default function SkillsConstellation({
       ? 'cursor-pointer'
       : 'cursor-grab';
   const zoomButton =
-    'flex h-11 w-11 items-center justify-center rounded-full text-cyber-secondary transition-colors duration-200 hover:bg-white/10 hover:text-white active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand disabled:pointer-events-none disabled:opacity-30';
+    'flex h-11 w-11 items-center justify-center rounded-full text-cyber-secondary transition-colors duration-200 hover:bg-white/10 hover:text-white active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-cyber-secondary disabled:active:scale-100';
 
   return (
     <div ref={rootRef} className="relative w-full h-full">
@@ -2356,7 +2355,10 @@ export default function SkillsConstellation({
         <span aria-hidden="true" className="mx-1 h-4 w-px bg-white/15" />
       </div>
 
-      {/* Zoom — the same control the +/- keys and Ctrl/⌘ + scroll drive. */}
+      {/* Zoom — the same control the +/- keys and Ctrl/⌘ + scroll drive. Its
+          buttons keep pointer events while disabled: a click on one at the end
+          of its range must not fall through to the stage (which would read it
+          as a click on empty space and close whatever is open). */}
       <div
         role="group"
         aria-label="Zoom"
@@ -2376,7 +2378,7 @@ export default function SkillsConstellation({
           aria-label={`Reset zoom, currently ${zoom.toFixed(1)} times`}
           disabled={zoom <= ZOOM_MIN + 0.001}
           onClick={() => applyZoom(1)}
-          className={`h-11 min-w-[3.25rem] rounded-full px-1 text-center font-mono text-xs tabular-nums text-cyber-accent transition-colors duration-200 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand disabled:pointer-events-none ${TEXT_HALO}`}
+          className={`h-11 min-w-[3.25rem] rounded-full px-1 text-center font-mono text-xs tabular-nums text-cyber-accent transition-colors duration-200 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-brand disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-cyber-accent ${TEXT_HALO}`}
         >
           {zoom.toFixed(1)}×
         </button>
