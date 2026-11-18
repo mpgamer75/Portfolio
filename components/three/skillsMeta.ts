@@ -24,6 +24,16 @@ const R = (label: string): SkillUsage => ({ label, kind: 'role' });
 
 export const SKILL_META: Record<string, SkillMeta> = {
   // ── Security & Systems ──
+  'Vulnerability Management': {
+    blurb:
+      'Asset inventory, scan coverage and risk-based prioritisation of remediation: what I worked on at Airbus Helicopters, and my focus as a consultant.',
+    usedIn: [R('Airbus Helicopters · Vulnerability management'), R('HeadMind Partners')],
+  },
+  Qualys: {
+    blurb:
+      'Vulnerability scanning with Qualys VMDR. I hold the Qualys Certified Specialist certification in Vulnerability Management, Detection & Response.',
+    usedIn: [R('Qualys Certified Specialist · VMDR')],
+  },
   'Kali Linux': {
     blurb: "My offensive Linux distro — the toolset behind pentest labs and the Security Scanner's recon and exploitation modules.",
     usedIn: [P('Security Scanner'), R('Pentest labs · TryHackMe & Hack The Box')],
@@ -75,8 +85,8 @@ export const SKILL_META: Record<string, SkillMeta> = {
     usedIn: [P('SABER')],
   },
   TypeScript: {
-    blurb: 'Typed end-to-end — this portfolio and the Mi SaludRD SaaS platform.',
-    usedIn: [R('This portfolio'), R('Mi SaludRD · SaaS')],
+    blurb: 'Typed end-to-end: Mi SaludRD, the Lisa Tejada storefront and this portfolio.',
+    usedIn: [P('Mi SaludRD'), P('Lisa Tejada Boutique'), R('This portfolio')],
   },
   PowerShell: {
     blurb: 'Windows automation and Active Directory audit scripting at the SOC.',
@@ -84,11 +94,11 @@ export const SKILL_META: Record<string, SkillMeta> = {
   },
   Python: {
     blurb: 'Built the IoC correlation app at AlticeDo and predictive vulnerability analytics at Airbus.',
-    usedIn: [P('IoC App Altice'), R('Airbus · Analytics')],
+    usedIn: [R('AlticeDo · SOC'), R('Airbus · Analytics')],
   },
   SQL: {
     blurb: 'Relational data modelling and queries behind app back-ends.',
-    usedIn: [R('Mi SaludRD · SaaS'), R('Engineering coursework')],
+    usedIn: [P('Mi SaludRD'), P('Lisa Tejada Boutique'), R('Engineering coursework')],
   },
   Bash: {
     blurb: 'My first reach for security tooling — the Security Scanner and the Encryptor are both Bash-first.',
@@ -97,24 +107,32 @@ export const SKILL_META: Record<string, SkillMeta> = {
 
   // ── Web Development ──
   'Next.js': {
-    blurb: 'App-router React powering SABER, Mi SaludRD and this portfolio.',
-    usedIn: [P('SABER'), R('This portfolio'), R('Mi SaludRD · SaaS')],
+    blurb: 'App-router React powering Mi SaludRD, lisatejada.com, SABER and this portfolio.',
+    usedIn: [P('Mi SaludRD'), P('Lisa Tejada Boutique'), P('SABER'), R('This portfolio')],
   },
   React: {
-    blurb: "Component-driven UIs — including the interactive 3D layer you're exploring right now.",
+    blurb: "Component-driven UIs, including the interactive star system you're exploring right now.",
     usedIn: [R('This portfolio')],
   },
   'Node.js': {
     blurb: 'Server-side JavaScript for tooling, APIs and build pipelines.',
     usedIn: [P('SABER'), R('This portfolio')],
   },
+  Supabase: {
+    blurb: 'Postgres, auth and row-level security: the backend behind Mi SaludRD and the Lisa Tejada storefront.',
+    usedIn: [P('Mi SaludRD'), P('Lisa Tejada Boutique')],
+  },
+  Stripe: {
+    blurb: "Subscription billing for the doctors' paid plans on Mi SaludRD.",
+    usedIn: [P('Mi SaludRD')],
+  },
   Vercel: {
-    blurb: 'Edge hosting and CI/CD — where SABER and this portfolio are deployed.',
-    usedIn: [P('SABER'), R('This portfolio')],
+    blurb: 'Hosting and CI/CD: where lisatejada.com, SABER and this portfolio are deployed.',
+    usedIn: [P('Lisa Tejada Boutique'), P('SABER'), R('This portfolio')],
   },
   'REST API': {
     blurb: 'Designing and consuming HTTP APIs across my web projects.',
-    usedIn: [P('SABER'), R('Mi SaludRD · SaaS')],
+    usedIn: [P('SABER'), P('Mi SaludRD')],
   },
 
   // ── Tools & Platforms ──
@@ -129,6 +147,14 @@ export const SKILL_META: Record<string, SkillMeta> = {
   Docker: {
     blurb: 'Containerised, reproducible environments for labs and deployments.',
     usedIn: [R('Labs & deployment')],
+  },
+  Flutter: {
+    blurb: 'Cross-platform mobile: the Mi SaludRD app, on the same backend as the web platform.',
+    usedIn: [P('Mi SaludRD')],
+  },
+  Tauri: {
+    blurb: 'Desktop apps on a web stack: the point-of-sale app for the Lisa Tejada boutique.',
+    usedIn: [P('Lisa Tejada Boutique')],
   },
   TryHackMe: {
     blurb: 'Continuous hands-on offensive-security practice and challenges.',
