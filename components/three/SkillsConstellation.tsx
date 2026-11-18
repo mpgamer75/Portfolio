@@ -413,6 +413,14 @@ const GOV_SLOW = 0.02; // s — median frame time that triggers a step down
 const GOV_GAP = 0.1; // s — a delta this long is a one-off hitch, not a slow frame: ignored
 const GOV_PAUSE = 0.5; // s — a delta this long means the loop was paused: restart the window
 const GOV_COOLDOWN = 2; // s between steps
+/**
+ * This many frames in a row between GOV_GAP and GOV_PAUSE long (2 to 10 fps)
+ * are not hitches: the GPU is overloaded. Step down at once — such frames are
+ * never sampled, so the window below would never fill. (Frames longer than
+ * GOV_PAUSE do not count: a covered or background window is throttled to
+ * about 1 fps, which says nothing about the GPU.)
+ */
+const GOV_CRAWL_FRAMES = 5;
 /** Above this many device pixels the canvas starts one DPR step lower. */
 const GOV_MAX_PIXELS = 4.6e6;
 const GOV = {
@@ -420,6 +428,8 @@ const GOV = {
   n: 0,
   skip: GOV_SKIP,
   sinceStep: GOV_COOLDOWN,
+  /** Consecutive frames between GOV_GAP and GOV_PAUSE long. */
+  crawl: 0,
   /** Fastest frame seen (s) — approximates the display refresh interval. */
   fast: Infinity,
   buf: new Float32Array(GOV_WINDOW),
@@ -476,6 +486,7 @@ function resetSceneState() {
   WARM.wait = 0;
   GOV.n = 0;
   GOV.skip = GOV_SKIP;
+  GOV.crawl = 0;
   ZOOM.target = 1;
   ZOOM.max = ZOOM_MAX_FREE;
   ZOOM.nx = 0;
@@ -701,7 +712,16 @@ function Scene({
 
     // ── Quality governor (raw delta: the clamp above would hide slow frames) ──
     GOV.sinceStep += delta;
-    if (delta > GOV_PAUSE) {
+    GOV.crawl = delta > GOV_GAP && delta <= GOV_PAUSE ? GOV.crawl + 1 : 0;
+    if (GOV.crawl >= GOV_CRAWL_FRAMES && GOV.tier < MAX_TIER) {
+      // Crawling: drop a tier without waiting for a window.
+      GOV.crawl = 0;
+      GOV.n = 0;
+      GOV.skip = GOV_SKIP;
+      GOV.tier++;
+      GOV.sinceStep = 0;
+      onTier(GOV.tier);
+    } else if (delta > GOV_PAUSE) {
       // The loop was paused (scrolled away / tab hidden): start a fresh window.
       GOV.n = 0;
       GOV.skip = GOV_SKIP;
