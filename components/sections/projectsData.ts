@@ -50,20 +50,33 @@ export const projects: Project[] = [
     imagePaths: ['/images/projects/Saber.png'],
   },
   {
-    title: 'IoC App Altice',
+    title: 'Mi SaludRD',
+    tagline:
+      'Medical appointment platform for the Dominican Republic: patients find a verified doctor and book in a few taps.',
     description:
-      'Built during my AlticeDo SOC internship: a Python application to ingest, normalise and correlate Indicators of Compromise (IPs, hashes, domains) so analysts can triage alerts and respond to incidents faster.',
-    tech: ['Python', 'Web Development', 'Cybersecurity'],
-    github: 'https://github.com/mpgamer75/IoC-app-altice',
-    featured: false,
+      'Medical appointment platform for the Dominican Republic. Patients search verified doctors by specialty, location and insurer, then book online; doctors run their practice from their own panel on a paid plan. I built the Next.js web app on Supabase with Stripe subscriptions, and a Flutter mobile app on the same backend.',
+    tech: ['Next.js', 'TypeScript', 'Supabase', 'Stripe', 'Tailwind CSS', 'Flutter'],
+    demo: 'https://mi-saludrd.com',
+    featured: true,
     imagePaths: [
-      '/images/projects/IoC1.png',
-      '/images/projects/IoC2.png',
-      '/images/projects/IoC3.png',
-      '/images/projects/IoC4.png',
-      '/images/projects/IoC5.png',
-      '/images/projects/IoC6.png',
-      '/images/projects/IoC7.png',
+      '/images/projects/misaludrd1.jpg',
+      '/images/projects/misaludrd2.jpg',
+      '/images/projects/misaludrd3.jpg',
+    ],
+  },
+  {
+    title: 'Lisa Tejada Boutique',
+    tagline:
+      "Online storefront for a women's fashion boutique in Santiago, with a cart that checks out over WhatsApp.",
+    description:
+      "Storefront for a women's fashion boutique in Santiago de los Caballeros: catalog, lookbook, wishlist and a cart that hands the order to WhatsApp, backed by an admin for products, stock and orders. Built as a Turborepo monorepo: a Next.js site on Supabase, plus a Tauri desktop point-of-sale app that shares the same pricing and order logic.",
+    tech: ['Next.js', 'TypeScript', 'Supabase', 'Tauri', 'Turborepo', 'Vercel'],
+    demo: 'https://lisatejada.com',
+    featured: true,
+    imagePaths: [
+      '/images/projects/lisatejada1.jpg',
+      '/images/projects/lisatejada2.jpg',
+      '/images/projects/lisatejada3.jpg',
     ],
   },
   {

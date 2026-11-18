@@ -1,10 +1,10 @@
-import { GRAPH, ORBIT_RADIUS, planeBasis } from './skillsGraph';
+import { GRAPH } from './skillsGraph';
+import { projects } from '@/components/sections/projectsData';
 
 /*
- * Flat, typed views of the baked skills graph, shared by the scene and its
- * render layers (nodes / links / rings). Everything here is computed once at
- * module load and never mutated — except NODE_POSITIONS, whose leaf entries are
- * rewritten every frame by orbitSim (the skills ride rings around their hub).
+ * Flat, typed views of the baked star system, shared by the scene and its
+ * render layers. Everything is computed once at module load; the only arrays
+ * the scene mutates are the live positions (moons orbit, ships fly).
  * Client-only (lazy chunk), no three.
  */
 
@@ -12,19 +12,12 @@ export const NODES = GRAPH.nodes;
 export const NODE_COUNT = NODES.length;
 export const CLUSTERS = GRAPH.clusters;
 export const CLUSTER_COUNT = CLUSTERS.length;
-export const LINKS = GRAPH.links;
-export const LINK_COUNT = LINKS.length;
-export { ORBIT_RADIUS };
-
-/** Index of the core node (the system's centre). */
-export const CORE = NODES.findIndex((n) => n.kind === 'core');
-/** The core's tint: the signature emerald pushed towards white. */
-export const CORE_RGB = [0.72, 1.0, 0.88] as const;
-export const CORE_COLOR = '#B8FFE0';
+export const LANES = GRAPH.lanes;
+export const LANE_COUNT = LANES.length;
 
 /**
  * Cluster colours as plain sRGB floats (r,g,b per cluster). The shaders output
- * these untouched, so a node is exactly the colour of its legend chip — parsing
+ * these untouched, so a body is exactly the colour of its legend chip — parsing
  * through THREE.Color would hand back linear values and darken them.
  */
 export const CLUSTER_RGB = new Float32Array(CLUSTER_COUNT * 3);
@@ -35,119 +28,174 @@ CLUSTERS.forEach((c, i) => {
   CLUSTER_RGB[i * 3 + 2] = (v & 255) / 255;
 });
 
-/** Writes node `i`'s tint (its domain's, or the core's) into `out` at `offset`. */
-export function nodeRgb(i: number, out: Float32Array, offset: number): void {
-  const c = NODES[i].cluster;
-  if (c < 0) out.set(CORE_RGB, offset);
-  else out.set(CLUSTER_RGB.subarray(c * 3, c * 3 + 3), offset);
-}
-
-/** Leaf count per cluster (the number shown on legend chips and hub labels). */
+/** Moon count per cluster (the number shown on legend chips and hub labels). */
 export const CLUSTER_COUNTS = CLUSTERS.map(
-  (_, ci) => NODES.filter((n) => n.cluster === ci && n.kind === 'leaf').length,
+  (_, ci) => NODES.filter((n) => n.cluster === ci && !n.isHub).length,
 );
-/** Total number of skills (leaves) in the graph. */
-export const SKILL_COUNT = CLUSTER_COUNTS.reduce((a, b) => a + b, 0);
-/** Hub node index per cluster + the leaf skill labels per cluster (for the domain card). */
+/** Hub node index per cluster + the skill labels per cluster (for the domain card). */
 export const CLUSTER_HUB: number[] = [];
 export const CLUSTER_SKILLS: string[][] = CLUSTERS.map(() => []);
-/** Outermost skill-ring radius per cluster (scene units). */
-export const CLUSTER_REACH = CLUSTERS.map((c) => c.rings[c.rings.length - 1]);
 
-/** World-space radius of the core, of a hub's plate and of a leaf's bead (scene units). */
-export const CORE_RADIUS_W = 0.92;
-export const HUB_RADIUS_W = 0.5;
-export const LEAF_RADIUS_W = 0.115;
+/** World-space radius of a moon (scene units). Planet radii live on the cluster. */
+export const LEAF_RADIUS_W = 0.125;
 
-/** Graph-local positions. Hubs and the core are fixed; leaves are driven by orbitSim. */
+/** Live node positions: planets are fixed, moons are rewritten every frame. */
 export const NODE_POSITIONS = new Float32Array(NODE_COUNT * 3);
-/** Domain index per node (-1 for the core). */
 export const CLUSTER_OF = new Int16Array(NODE_COUNT);
-/** 1 for "anchor" nodes — the domain hubs and the core: always labelled, big targets. */
 export const IS_HUB = new Uint8Array(NODE_COUNT);
 export const NODE_RADIUS = new Float32Array(NODE_COUNT);
-/** Entrance delay (0..1 of the reveal) — core, then hubs, then each cluster's leaves fan in. */
+/** Entrance delay (0..1 of the reveal) — planets first, then each system's moons fan in. */
 export const NODE_ENTER = new Float32Array(NODE_COUNT);
-/** Leaves: ring radius and resting angle on the ring (0 for hubs / core). */
-export const LEAF_RING = new Float32Array(NODE_COUNT);
-export const LEAF_ANGLE = new Float32Array(NODE_COUNT);
-/** Leaf node indices, grouped by cluster. */
-export const CLUSTER_LEAVES: number[][] = CLUSTERS.map(() => []);
-
 NODES.forEach((node, i) => {
   NODE_POSITIONS[i * 3] = node.position[0];
   NODE_POSITIONS[i * 3 + 1] = node.position[1];
   NODE_POSITIONS[i * 3 + 2] = node.position[2];
   CLUSTER_OF[i] = node.cluster;
-  IS_HUB[i] = node.kind === 'leaf' ? 0 : 1;
-  LEAF_RING[i] = node.ringRadius;
-  LEAF_ANGLE[i] = node.ringAngle;
-  if (node.kind === 'core') {
-    NODE_RADIUS[i] = CORE_RADIUS_W;
-    NODE_ENTER[i] = 0;
-  } else if (node.kind === 'hub') {
-    NODE_RADIUS[i] = HUB_RADIUS_W;
+  IS_HUB[i] = node.isHub ? 1 : 0;
+  NODE_RADIUS[i] = node.isHub ? CLUSTERS[node.cluster].radius : LEAF_RADIUS_W;
+  if (node.isHub) {
     CLUSTER_HUB[node.cluster] = i;
-    NODE_ENTER[i] = 0.26 + 0.035 * node.cluster;
+    NODE_ENTER[i] = 0.1 + 0.03 * node.cluster;
   } else {
-    NODE_RADIUS[i] = LEAF_RADIUS_W;
     const li = CLUSTER_SKILLS[node.cluster].length;
     CLUSTER_SKILLS[node.cluster].push(node.label);
-    CLUSTER_LEAVES[node.cluster].push(i);
-    NODE_ENTER[i] = 0.5 + 0.03 * li + 0.025 * node.cluster;
+    NODE_ENTER[i] = 0.38 + 0.028 * li + 0.02 * node.cluster;
   }
 });
 
-/** Resting ring-plane frame per cluster: normal + in-plane basis (u × v = n). */
-export const CLUSTER_N0 = new Float32Array(CLUSTER_COUNT * 3);
-export const CLUSTER_U0 = new Float32Array(CLUSTER_COUNT * 3);
-export const CLUSTER_V0 = new Float32Array(CLUSTER_COUNT * 3);
-/** Ring angular speed per cluster (rad/s). */
-export const CLUSTER_SPIN = new Float32Array(CLUSTER_COUNT);
-/** Each hub's angle on the shared orbit (graph-local, atan2(z, x)). */
-export const CLUSTER_AZIMUTH = new Float32Array(CLUSTER_COUNT);
-CLUSTERS.forEach((c, i) => {
-  const { u, v } = planeBasis(c.normal);
-  CLUSTER_N0.set(c.normal, i * 3);
-  CLUSTER_U0.set(u, i * 3);
-  CLUSTER_V0.set(v, i * 3);
-  CLUSTER_SPIN[i] = c.spin;
-  CLUSTER_AZIMUTH[i] = Math.atan2(c.center[2], c.center[0]);
-});
+/** Hull models, in the order of their cells in the craft atlas (see bodyLayer.ts). */
+export const CRAFT_COURIER = 0;
+export const CRAFT_FREIGHTER = 1;
+export const CRAFT_EXPLORER = 2;
+/** Half-length of each hull model (scene units). */
+const CRAFT_HALF_LENGTH = [0.17, 0.215, 0.2];
 
-export const LINK_TRUNK = 0;
-export const LINK_SPOKE = 1;
-export const LINK_CROSS = 2;
+/**
+ * Ships: every highlighted project is a ship on the lane between the two
+ * domains it draws on most ("shipped work"). Hovering one names the project,
+ * clicking flies alongside it. A project without a route here simply has no ship.
+ */
+const ROUTES: Record<string, { lane: number; offset: number; bow: number; craft: number }> = {
+  'Security Scanner': { lane: 0, offset: 0.0, bow: 0.55, craft: CRAFT_COURIER },
+  'Warhammer 40k Terminal Display': { lane: 0, offset: 0.5, bow: -0.5, craft: CRAFT_FREIGHTER },
+  SABER: { lane: 1, offset: 0.2, bow: 0.55, craft: CRAFT_EXPLORER },
+  'Lisa Tejada Boutique': { lane: 1, offset: 0.7, bow: -0.5, craft: CRAFT_FREIGHTER },
+  'Mi SaludRD': { lane: 2, offset: 0.35, bow: 0.5, craft: CRAFT_EXPLORER },
+  Encryptor: { lane: 3, offset: 0.1, bow: 0.5, craft: CRAFT_COURIER },
+};
 
-export const LINK_A = new Int16Array(LINK_COUNT);
-export const LINK_B = new Int16Array(LINK_COUNT);
-/** LINK_TRUNK (core → hub) · LINK_SPOKE (hub → skill) · LINK_CROSS (skill ↔ skill). */
-export const LINK_KIND = new Uint8Array(LINK_COUNT);
-/** Resting brightness per link: trunks lead, spokes follow, cross links whisper. */
-export const LINK_REST = new Float32Array(LINK_COUNT);
-/** Entrance timing per link (0..1): trunks shoot out first, spokes fan out, cross links last. */
-export const LINK_ENTER = new Float32Array(LINK_COUNT);
-/** Cross-link partners per node (skills this one is used with, in another domain). */
-export const RELATED: number[][] = NODES.map(() => []);
-{
-  let cross = 0;
-  LINKS.forEach((link, l) => {
-    LINK_A[l] = link.a;
-    LINK_B[l] = link.b;
-    if (link.kind === 'trunk') {
-      LINK_KIND[l] = LINK_TRUNK;
-      LINK_REST[l] = 0.62;
-      LINK_ENTER[l] = 0.08 + 0.035 * NODES[link.b].cluster;
-    } else if (link.kind === 'spoke') {
-      LINK_KIND[l] = LINK_SPOKE;
-      LINK_REST[l] = 0.44;
-      LINK_ENTER[l] = NODE_ENTER[link.b] - 0.06;
-    } else {
-      LINK_KIND[l] = LINK_CROSS;
-      LINK_REST[l] = 0.13;
-      LINK_ENTER[l] = 0.74 + 0.012 * cross++;
-      RELATED[link.a].push(link.b);
-      RELATED[link.b].push(link.a);
-    }
-  });
+export interface Ship {
+  /** Index into `projects`. */
+  project: number;
+  label: string;
+  lane: number;
+  /** Start offset (0..1 of a round trip) and sideways bow of this ship's own path. */
+  offset: number;
+  bow: number;
+  /** Seconds for a full round trip. */
+  period: number;
+  /** Hull model (CRAFT_*) and its half-length in scene units. */
+  craft: number;
+  size: number;
 }
+
+export const SHIPS: Ship[] = [];
+projects.forEach((p, i) => {
+  const r = ROUTES[p.title];
+  if (r) {
+    SHIPS.push({ project: i, label: p.title, period: 46 + SHIPS.length * 5, size: CRAFT_HALF_LENGTH[r.craft], ...r });
+  }
+});
+export const SHIP_COUNT = SHIPS.length;
+
+/* ── Curves: lanes between planets, and each ship's own path along its lane ── */
+
+/** Quadratic Bezier per lane: A(3) Ctrl(3) B(3) t0 t1 (trimmed at both planets). */
+export const CURVE_STRIDE = 11;
+export const LANE_CURVES = new Float32Array(LANE_COUNT * CURVE_STRIDE);
+export const SHIP_CURVES = new Float32Array(SHIP_COUNT * CURVE_STRIDE);
+
+/** How far a lane bows away from the star, and where curves stop short of a planet (in radii). */
+const LANE_BOW = 0.7;
+const LANE_TRIM = 1.3;
+const SHIP_TRIM = 2.0;
+
+function writeCurve(out: Float32Array, o: number, lane: number, side: number, trim: number) {
+  const a = CLUSTERS[LANES[lane].a];
+  const b = CLUSTERS[LANES[lane].b];
+  const [ax, ay, az] = a.center;
+  const [bx, by, bz] = b.center;
+  const dx = bx - ax;
+  const dy = by - ay;
+  const dz = bz - az;
+  const len = Math.hypot(dx, dy, dz) || 1;
+  const mx = (ax + bx) / 2;
+  const my = (ay + by) / 2;
+  const mz = (az + bz) / 2;
+  // Bow away from the star, plus an optional sideways offset (ships fly beside the lane).
+  const m = Math.hypot(mx, my, mz) || 1;
+  const ox = mx / m;
+  const oy = my / m;
+  const oz = mz / m;
+  let sx = dy * oz - dz * oy;
+  let sy = dz * ox - dx * oz;
+  let sz = dx * oy - dy * ox;
+  const sl = Math.hypot(sx, sy, sz) || 1;
+  sx /= sl;
+  sy /= sl;
+  sz /= sl;
+  out.set(
+    [
+      ax,
+      ay,
+      az,
+      mx + ox * LANE_BOW + sx * side,
+      my + oy * LANE_BOW + sy * side,
+      mz + oz * LANE_BOW + sz * side,
+      bx,
+      by,
+      bz,
+      (a.radius * trim) / len,
+      1 - (b.radius * trim) / len,
+    ],
+    o,
+  );
+}
+for (let l = 0; l < LANE_COUNT; l++) writeCurve(LANE_CURVES, l * CURVE_STRIDE, l, 0, LANE_TRIM);
+SHIPS.forEach((s, i) => writeCurve(SHIP_CURVES, i * CURVE_STRIDE, s.lane, s.bow, SHIP_TRIM));
+
+/* ── Satellites and the orbital station ─────────────────────────────────── */
+
+export interface Satellite {
+  cluster: number;
+  /** Orbit radius (scene units) and the orthonormal basis of its (inclined) orbital plane. */
+  radius: number;
+  u: [number, number, number];
+  v: [number, number, number];
+  /** Angular speed (rad/s) and start angle. */
+  speed: number;
+  phase: number;
+  station: boolean;
+}
+
+/** cluster, orbit radius in planet radii, inclination to the moons' plane (deg), speed, phase, station */
+const SAT_SPECS: [number, number, number, number, number, boolean][] = [
+  [0, 1.42, 62, 0.55, 0.4, false],
+  [0, 1.72, -48, -0.4, 2.1, false],
+  [1, 1.5, 70, 0.5, 1.2, false],
+  [2, 2.2, 80, 0.34, 3.0, false],
+  [3, 1.45, -58, -0.52, 5.0, false],
+  [3, 1.85, 28, 0.16, 0.8, true],
+];
+
+export const SATELLITES: Satellite[] = SAT_SPECS.map(([cluster, r, inc, speed, phase, station]) => {
+  const c = CLUSTERS[cluster];
+  const i = (inc * Math.PI) / 180;
+  const v: [number, number, number] = [
+    c.v[0] * Math.cos(i) + c.axis[0] * Math.sin(i),
+    c.v[1] * Math.cos(i) + c.axis[1] * Math.sin(i),
+    c.v[2] * Math.cos(i) + c.axis[2] * Math.sin(i),
+  ];
+  return { cluster, radius: r * c.radius, u: c.u, v, speed, phase, station };
+});
+export const SAT_COUNT = SATELLITES.length;

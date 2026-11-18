@@ -1,297 +1,283 @@
 /**
- * Deterministic node-graph for the 3D Skills Constellation.
+ * Deterministic layout for the 3D Skills star system.
  *
- * Pure data + a stable layout (trig only, no runtime randomness), so the
- * constellation starts identically on every load. No React, no three here.
- *
- * The graph is an orrery: one core in the middle, the four domain hubs on a
- * shared orbit around it (the XZ plane — the scene tilts it towards the camera),
- * and each domain's skills on one or two rings around their hub. The rings turn
- * at run time (see orbitSim.ts); the positions baked here are the t = 0 pose.
+ * Each skill domain is a planet; its skills are moons on two equatorial orbits.
+ * Shipping lanes join neighbouring planets. Pure data + a stable layout (trig
+ * only, no runtime randomness), so the system looks identical on every load.
+ * No React, no three here.
  *
  * NOTE: the skill lists mirror `skillCategories` in components/sections/SkillsSection.tsx
  * (which is the accessible, on-page source of truth). Keep the two in sync.
  */
 
-export type NodeKind = 'core' | 'hub' | 'leaf';
+export type Vec3 = [number, number, number];
 
 export interface SkillNode {
   id: string;
   label: string;
-  /** Domain index, or -1 for the core. */
   cluster: number;
-  /** Position at t = 0, graph-local. Leaves move at run time. */
-  position: [number, number, number];
-  kind: NodeKind;
-  /** Domain hubs only (the core is not a hub). */
+  /** Planet centre for a hub; the moon's position at orbit phase 0 for a leaf. */
+  position: Vec3;
   isHub: boolean;
-  /** Leaves: radius of the ring it rides around its hub, and its angle on it at t = 0. */
-  ringRadius: number;
-  ringAngle: number;
-}
-
-export type LinkKind = 'trunk' | 'spoke' | 'cross';
-
-/** Link between two nodes, stored as indices into `GraphData.nodes`. */
-export interface SkillLink {
-  a: number;
-  b: number;
-  /** trunk: core → hub · spoke: hub → skill · cross: two skills that work together. */
-  kind: LinkKind;
+  /** Leaves only: orbit radius (scene units), start angle and angular speed (rad/s). */
+  orbitRadius: number;
+  orbitPhase: number;
+  orbitSpeed: number;
+  /** Leaves only: 0 = inner orbit, 1 = outer orbit. */
+  orbit: number;
 }
 
 /** Hub emblem — each domain gets its own outline shape as well as its own tint. */
 export type ClusterGlyph = 'circle' | 'diamond' | 'hexagon' | 'triangle';
+
+/** Surface model drawn for a domain's planet (see bodyLayer.ts). */
+export type PlanetKind = 'terran' | 'ice' | 'gas' | 'forge';
 
 export interface Cluster {
   index: number;
   title: string;
   color: string;
   glyph: ClusterGlyph;
-  center: [number, number, number];
-  /** Unit normal of the plane this domain's skills orbit in (resting pose). */
-  normal: [number, number, number];
-  /** Radii of the skill rings around the hub (one or two). */
-  rings: number[];
-  /** Angular speed of the rings, rad/s (sign = direction). */
-  spin: number;
+  planet: PlanetKind;
+  center: Vec3;
+  /** Planet radius (scene units). */
+  radius: number;
+  /** Spin axis = normal of the moons' orbital plane (unit vector). */
+  axis: Vec3;
+  /** Orthonormal basis of the orbital plane. */
+  u: Vec3;
+  v: Vec3;
+  /** Inner and outer moon orbit radii (scene units). */
+  orbits: [number, number];
+}
+
+/** Shipping lane between two neighbouring planets (indices into `clusters`). */
+export interface Lane {
+  a: number;
+  b: number;
 }
 
 export interface GraphData {
   nodes: SkillNode[];
-  links: SkillLink[];
   clusters: Cluster[];
+  lanes: Lane[];
+}
+
+interface Category {
+  title: string;
+  color: string;
+  glyph: ClusterGlyph;
+  planet: PlanetKind;
+  /** Planet radius (scene units). */
+  radius: number;
+  /**
+   * Orbital-plane tilt away from the line of sight (0 = seen face-on, as a
+   * circle; 90 = edge-on), and the screen direction it leans towards (degrees).
+   */
+  tilt: number;
+  lean: number;
+  /** Orbit radii in planet radii. */
+  orbits: [number, number];
+  items: string[];
 }
 
 /**
- * Four domains. Each is keyed two ways so they're tellable apart at a glance:
- * a distinct luminance step within the emerald/teal family (light mint → deep
- * green, signature emerald leading), and a distinct hub glyph shape that repeats
- * in the legend, hub labels and detail card.
+ * Four domains. Each is keyed three ways so they're tellable apart at a glance:
+ * a distinct luminance step within the emerald/teal family (signature emerald
+ * leading), a distinct glyph shape (legend, hub labels, detail card) and a
+ * distinct kind of world.
  */
-const CATEGORIES: { title: string; color: string; glyph: ClusterGlyph; items: string[] }[] = [
+const CATEGORIES: Category[] = [
   {
     title: 'Security & Systems',
     color: '#34D399', // signature emerald
     glyph: 'circle',
-    items: ['Kali Linux', 'Linux', 'Nmap', 'Wireshark', 'Metasploit', 'Fortinet', 'Trellix EDR', 'OSINT'],
+    planet: 'terran',
+    radius: 0.62,
+    tilt: 55,
+    lean: 58,
+    orbits: [2.15, 3.1],
+    items: [
+      'Vulnerability Management',
+      'Qualys',
+      'Kali Linux',
+      'Linux',
+      'Nmap',
+      'Wireshark',
+      'Metasploit',
+      'Fortinet',
+      'Trellix EDR',
+      'OSINT',
+    ],
   },
   {
     title: 'Programming',
     color: '#A7F3D0', // light mint
     glyph: 'diamond',
+    planet: 'ice',
+    radius: 0.56,
+    tilt: 57,
+    lean: 108,
+    orbits: [2.25, 3.3],
     items: ['C', 'C#', 'Java', 'JavaScript', 'TypeScript', 'PowerShell', 'Python', 'SQL', 'Bash'],
   },
   {
     title: 'Web Development',
     color: '#2DD4BF', // teal
     glyph: 'hexagon',
-    items: ['Next.js', 'React', 'Node.js', 'Vercel', 'REST API'],
+    planet: 'gas',
+    radius: 0.68,
+    tilt: 64,
+    lean: 80,
+    orbits: [2.4, 3.15],
+    items: ['Next.js', 'React', 'Node.js', 'Supabase', 'Stripe', 'Vercel', 'REST API'],
   },
   {
     title: 'Tools & Platforms',
     color: '#059669', // deep emerald
     glyph: 'triangle',
-    items: ['Git', 'GitHub', 'Docker', 'TryHackMe', 'Hack The Box', 'Active Directory'],
+    planet: 'forge',
+    radius: 0.58,
+    tilt: 54,
+    lean: 148,
+    orbits: [2.2, 3.2],
+    items: ['Git', 'GitHub', 'Docker', 'Flutter', 'Tauri', 'TryHackMe', 'Hack The Box', 'Active Directory'],
   },
 ];
 
 /**
- * Skills from different domains that are used together (same project or role in
- * skillsMeta.ts). Drawn as faint arcs across the system; they light up with
- * either end. Labels must match the item names above exactly.
+ * Layout. The four planets keep their XY compass positions around the star
+ * (the home view stays familiar) but sit at strongly alternating depths with a
+ * vertical stagger — so the system is a volume, not a disc, and never collapses
+ * into a sliver as it turns.
  */
-const CROSS_LINKS: [string, string][] = [
-  ['Bash', 'Linux'], // Security Scanner, Encryptor
-  ['Bash', 'GitHub'], // Encryptor's GitHub Actions packaging
-  ['Python', 'OSINT'], // IoC correlation at the SOC
-  ['PowerShell', 'Active Directory'], // AD audit scripting
-  ['Trellix EDR', 'Active Directory'], // automated AD audit reports
-  ['Kali Linux', 'Hack The Box'], // pentest labs
-  ['Kali Linux', 'TryHackMe'],
-  ['Metasploit', 'Hack The Box'],
-  ['JavaScript', 'Next.js'], // SABER
-  ['JavaScript', 'Node.js'],
-  ['TypeScript', 'React'], // this portfolio
-  ['TypeScript', 'Next.js'],
-  ['SQL', 'REST API'], // Mi SaludRD
-  ['Vercel', 'GitHub'], // deploy pipeline
-  ['Docker', 'Linux'], // labs
-];
-
-export const CORE_LABEL = '<CL />';
-
-/** Radius of the orbit the four hubs share. */
-export const ORBIT_RADIUS = 5.4;
-/** First hub's angle on the orbit: 45° puts the hubs on the diagonals of the home view. */
-const ORBIT_PHASE = Math.PI / 4;
-/** Hubs ride a little above / below the orbital plane so the system has volume. */
-const HUB_LIFT = [0.55, -0.5, 0.4, -0.6];
-/**
- * How far each domain's ring plane leans off the orbital plane (tan of the
- * angle). Kept well under the scene's tilt, so no ring is ever seen edge-on.
- */
-const RING_LEAN = 0.24;
-const RING_SPIN = [0.1, -0.085, 0.12, -0.095];
-
-/** Ring radii by skill count: up to six ride one ring, more are split over two. */
-function ringPlan(count: number): { radii: number[]; sizes: number[] } {
-  if (count <= 5) return { radii: [1.35], sizes: [count] };
-  if (count <= 6) return { radii: [1.5], sizes: [count] };
-  const inner = Math.floor((count - 1) / 2);
-  return { radii: [1.05, 1.75], sizes: [inner, count - inner] };
-}
+const HUB_RADIUS = 3.7;
+/** Alternating planet depth (left/right come forward, top/bottom recede). */
+const HUB_DEPTH = 2.2;
+/** Vertical stagger: pulls the top/bottom planets in and tilts the left/right pair. */
+const HUB_STAGGER = 0.6;
+const HUB_STAGGER_SIGN = [1, -1, -1, 1];
+/** Share of a domain's moons that ride the inner orbit. */
+const INNER_SHARE = 0.4;
+/** Angular speed (rad/s) of a moon one scene unit from its planet; falls off as r^-1.5. */
+const ORBIT_RATE = 0.115;
 
 /**
- * Angular offset of the inner ring that keeps its skills as far as possible (in
- * angle) from the outer ring's — the two rings turn together, so the spacing
- * found here holds for good.
+ * Where the home camera sits (must match HOME_Z in sceneShared.ts). Each
+ * orbital plane is tilted relative to the line of sight from here to its own
+ * planet, so every system opens towards the viewer by the same amount — a
+ * plane tilted relative to the stage axis instead would read edge-on for the
+ * planets off to the sides.
  */
-function interleave(inner: number, outer: number): number {
-  let best = 0;
-  let bestGap = -1;
-  const STEPS = 90;
-  for (let s = 0; s < STEPS; s++) {
-    const offset = (s / STEPS) * ((Math.PI * 2) / inner);
-    let gap = Infinity;
-    for (let i = 0; i < inner; i++) {
-      const a = offset + (i / inner) * Math.PI * 2;
-      for (let o = 0; o < outer; o++) {
-        const b = (o / outer) * Math.PI * 2;
-        const d = Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
-        gap = Math.min(gap, d);
-      }
-    }
-    if (gap > bestGap + 1e-9) {
-      bestGap = gap;
-      best = offset;
-    }
-  }
-  return best;
-}
+const HOME_EYE: Vec3 = [0, 0, 11.5];
 
-type Vec3 = [number, number, number];
+const DEG = Math.PI / 180;
+
 const cross = (a: Vec3, b: Vec3): Vec3 => [
   a[1] * b[2] - a[2] * b[1],
   a[2] * b[0] - a[0] * b[2],
   a[0] * b[1] - a[1] * b[0],
 ];
-const normalize = (v: Vec3): Vec3 => {
-  const l = Math.hypot(v[0], v[1], v[2]) || 1;
-  return [v[0] / l, v[1] / l, v[2] / l];
+const normalize = (a: Vec3): Vec3 => {
+  const l = Math.hypot(a[0], a[1], a[2]) || 1;
+  return [a[0] / l, a[1] / l, a[2] / l];
 };
 
-/** Orthonormal basis (u, v) of the plane with unit normal `n`; u × v = n. */
-export function planeBasis(n: Vec3): { u: Vec3; v: Vec3 } {
-  const ref: Vec3 = Math.abs(n[0]) < 0.8 ? [1, 0, 0] : [0, 0, 1];
-  const u = normalize(cross(ref, n));
-  const v = cross(n, u);
-  return { u, v };
+/** Point on a cluster's orbital plane at `radius` and `angle`. */
+export function orbitPoint(c: Cluster, radius: number, angle: number): Vec3 {
+  const cs = Math.cos(angle) * radius;
+  const sn = Math.sin(angle) * radius;
+  return [
+    c.center[0] + c.u[0] * cs + c.v[0] * sn,
+    c.center[1] + c.u[1] * cs + c.v[1] * sn,
+    c.center[2] + c.u[2] * cs + c.v[2] * sn,
+  ];
 }
 
 export function buildSkillsGraph(): GraphData {
   const nodes: SkillNode[] = [];
-  const links: SkillLink[] = [];
   const clusters: Cluster[] = [];
-  const hubIndices: number[] = [];
-  const byLabel = new Map<string, number>();
   const n = CATEGORIES.length;
 
   CATEGORIES.forEach((cat, ci) => {
-    const angle = ORBIT_PHASE + (ci / n) * Math.PI * 2;
+    const angle = (ci / n) * Math.PI * 2;
     const center: Vec3 = [
-      Math.cos(angle) * ORBIT_RADIUS,
-      HUB_LIFT[ci % HUB_LIFT.length],
-      Math.sin(angle) * ORBIT_RADIUS,
+      Math.cos(angle) * HUB_RADIUS,
+      Math.sin(angle) * HUB_RADIUS + HUB_STAGGER * HUB_STAGGER_SIGN[ci % HUB_STAGGER_SIGN.length],
+      (ci % 2 === 0 ? 1 : -1) * HUB_DEPTH,
     ];
-    // Ring plane: the orbital plane, leaned along the orbit's tangent (alternating
-    // sides), so the four domains read as four differently tilted little systems.
-    const lean = RING_LEAN * (ci % 2 === 0 ? 1 : -1);
-    const normal = normalize([-Math.sin(angle) * lean, 1, Math.cos(angle) * lean]);
-    const plan = ringPlan(cat.items.length);
-    clusters.push({
+    const tilt = cat.tilt * DEG;
+    const lean = cat.lean * DEG;
+    // Frame facing the home camera: w points at the eye, e1/e2 span the screen.
+    const w = normalize([HOME_EYE[0] - center[0], HOME_EYE[1] - center[1], HOME_EYE[2] - center[2]]);
+    const e1 = normalize(cross([0, 1, 0], w));
+    const e2 = cross(w, e1);
+    const st = Math.sin(tilt);
+    const ct = Math.cos(tilt);
+    const axis: Vec3 = normalize([
+      w[0] * ct + (e1[0] * Math.cos(lean) + e2[0] * Math.sin(lean)) * st,
+      w[1] * ct + (e1[1] * Math.cos(lean) + e2[1] * Math.sin(lean)) * st,
+      w[2] * ct + (e1[2] * Math.cos(lean) + e2[2] * Math.sin(lean)) * st,
+    ]);
+    const u = normalize(cross(axis, w));
+    const v = normalize(cross(axis, u));
+    const cluster: Cluster = {
       index: ci,
       title: cat.title,
       color: cat.color,
       glyph: cat.glyph,
+      planet: cat.planet,
       center,
-      normal,
-      rings: plan.radii,
-      spin: RING_SPIN[ci % RING_SPIN.length],
-    });
+      radius: cat.radius,
+      axis,
+      u,
+      v,
+      orbits: [cat.orbits[0] * cat.radius, cat.orbits[1] * cat.radius],
+    };
+    clusters.push(cluster);
 
-    const hubIdx = nodes.length;
-    hubIndices.push(hubIdx);
     nodes.push({
       id: `${ci}-hub`,
       label: cat.title,
       cluster: ci,
       position: center,
-      kind: 'hub',
       isHub: true,
-      ringRadius: 0,
-      ringAngle: 0,
+      orbitRadius: 0,
+      orbitPhase: 0,
+      orbitSpeed: 0,
+      orbit: 0,
     });
 
-    const { u, v } = planeBasis(normal);
-    const innerOffset = plan.sizes.length > 1 ? interleave(plan.sizes[0], plan.sizes[1]) : 0;
-    let li = 0;
-    plan.sizes.forEach((size, ring) => {
-      const r = plan.radii[ring];
-      for (let k = 0; k < size; k++, li++) {
-        const a = (ring === 0 && plan.sizes.length > 1 ? innerOffset : 0) + (k / size) * Math.PI * 2;
-        const cx = Math.cos(a) * r;
-        const sx = Math.sin(a) * r;
-        const pos: Vec3 = [
-          center[0] + u[0] * cx + v[0] * sx,
-          center[1] + u[1] * cx + v[1] * sx,
-          center[2] + u[2] * cx + v[2] * sx,
-        ];
-        const leafIdx = nodes.length;
-        const label = cat.items[li];
-        byLabel.set(label, leafIdx);
-        nodes.push({
-          id: `${ci}-${li}`,
-          label,
-          cluster: ci,
-          position: pos,
-          kind: 'leaf',
-          isHub: false,
-          ringRadius: r,
-          ringAngle: a,
-        });
-        links.push({ a: hubIdx, b: leafIdx, kind: 'spoke' });
-      }
+    // Moons: evenly spaced on two coplanar orbits, the inner one faster (Kepler-ish).
+    // Neighbouring systems turn in opposite directions.
+    const count = cat.items.length;
+    const inner = Math.max(1, Math.round(count * INNER_SHARE));
+    const dir = ci % 2 === 0 ? 1 : -1;
+    cat.items.forEach((item, li) => {
+      const orbit = li < inner ? 0 : 1;
+      const onOrbit = orbit === 0 ? inner : count - inner;
+      const slot = orbit === 0 ? li : li - inner;
+      const radius = cluster.orbits[orbit];
+      const phase = (slot / onOrbit) * Math.PI * 2 + ci * 1.3 + orbit * 0.9;
+      nodes.push({
+        id: `${ci}-${li}`,
+        label: item,
+        cluster: ci,
+        position: orbitPoint(cluster, radius, phase),
+        isHub: false,
+        orbitRadius: radius,
+        orbitPhase: phase,
+        orbitSpeed: (dir * ORBIT_RATE) / Math.pow(radius, 1.5),
+        orbit,
+      });
     });
   });
 
-  // The core comes last, so hubs still precede their leaves and node 0 is a hub.
-  const coreIdx = nodes.length;
-  nodes.push({
-    id: 'core',
-    label: CORE_LABEL,
-    cluster: -1,
-    position: [0, 0, 0],
-    kind: 'core',
-    isHub: false,
-    ringRadius: 0,
-    ringAngle: 0,
-  });
-  for (const hub of hubIndices) links.push({ a: coreIdx, b: hub, kind: 'trunk' });
+  // Lanes join each planet to the next one round the star.
+  const lanes: Lane[] = [];
+  for (let i = 0; i < n; i++) lanes.push({ a: i, b: (i + 1) % n });
 
-  for (const [from, to] of CROSS_LINKS) {
-    const a = byLabel.get(from);
-    const b = byLabel.get(to);
-    if (a === undefined || b === undefined) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn(`skillsGraph: cross link "${from}" – "${to}" names an unknown skill`);
-      }
-      continue;
-    }
-    links.push({ a, b, kind: 'cross' });
-  }
-
-  return { nodes, links, clusters };
+  return { nodes, clusters, lanes };
 }
 
 /** Baked once at module load. */

@@ -35,7 +35,18 @@ const skillCategories: SkillCategory[] = [
     context: 'Applied across SOC and vulnerability-management work',
     glyph: 'circle',
     color: '#34D399',
-    items: ['Kali Linux', 'Linux', 'Nmap', 'Wireshark', 'Metasploit', 'Fortinet', 'Trellix EDR', 'OSINT'],
+    items: [
+      'Vulnerability Management',
+      'Qualys',
+      'Kali Linux',
+      'Linux',
+      'Nmap',
+      'Wireshark',
+      'Metasploit',
+      'Fortinet',
+      'Trellix EDR',
+      'OSINT',
+    ],
   },
   {
     title: 'Programming',
@@ -46,17 +57,17 @@ const skillCategories: SkillCategory[] = [
   },
   {
     title: 'Web Development',
-    context: 'Shipped SABER and this portfolio',
+    context: 'Shipped Mi SaludRD, lisatejada.com and SABER',
     glyph: 'hexagon',
     color: '#2DD4BF',
-    items: ['Next.js', 'React', 'Node.js', 'Vercel', 'REST API'],
+    items: ['Next.js', 'React', 'Node.js', 'Supabase', 'Stripe', 'Vercel', 'REST API'],
   },
   {
     title: 'Tools & Platforms',
     context: 'Daily drivers for builds, labs and AD',
     glyph: 'triangle',
     color: '#059669',
-    items: ['Git', 'GitHub', 'Docker', 'TryHackMe', 'Hack The Box', 'Active Directory'],
+    items: ['Git', 'GitHub', 'Docker', 'Flutter', 'Tauri', 'TryHackMe', 'Hack The Box', 'Active Directory'],
   },
 ];
 
@@ -185,7 +196,7 @@ export default function SkillsSection() {
         <SkillsConstellationGate onModeChange={handleModeChange} />
         {show3D && (
           <p className="text-center text-cyber-accent font-mono text-xs sm:text-sm mt-3 mb-12 md:mb-16 px-4">
-            drag to spin · hover a domain to unfold it · click to bring it forward
+            drag to orbit · click a planet, a moon or a ship · double-click to dive in
           </p>
         )}
 
