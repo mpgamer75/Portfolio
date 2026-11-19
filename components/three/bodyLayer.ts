@@ -63,7 +63,7 @@ import type { PlanetKind } from './skillsGraph';
 const PLANET_DEFINE: Record<PlanetKind, number> = { terran: 1, ice: 2, gas: 3, forge: 4 };
 
 const ATMOS_CLUSTER_RADIUS = 3.0;
-const ATMOS_BACKDROP_RADIUS = 15;
+const ATMOS_BACKDROP_RADIUS = 24;
 export const SUN_RADIUS = 0.85;
 const SATELLITE_HALF = 0.085;
 const STATION_HALF = 0.2;
@@ -76,7 +76,7 @@ export const PLANET_COVER: Record<PlanetKind, number> = { terran: 1, ice: 1, gas
  * and picking.
  */
 /** A ship is never drawn with a half-length below this many CSS px. */
-export const SHIP_MIN_PX = 20;
+export const SHIP_MIN_PX = 17;
 export const NEAR_FADE_BIG: [number, number] = [0.55, 1.0];
 export const NEAR_FADE_SMALL: [number, number] = [0.4, 0.75];
 /** Most moons a planet can have (each can drop a shadow on it). */

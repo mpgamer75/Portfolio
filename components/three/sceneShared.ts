@@ -12,12 +12,12 @@ import * as THREE from 'three';
  * of the outer orbit swung below the stage while the far side shrank away.
  */
 export const FOV = 26;
-export const HOME_Z = 28;
+export const HOME_Z = 36;
 export const FOCAL_F = 1 / Math.tan(((FOV / 2) * Math.PI) / 180);
 
 /** View-space depth range of the fog ramp at the home camera distance. */
-export const FOG_NEAR = HOME_Z - 10.0;
-export const FOG_FAR = HOME_Z + 12.0;
+export const FOG_NEAR = HOME_Z - 16.0;
+export const FOG_FAR = HOME_Z + 20.0;
 /** Brightness of something at (or beyond) the far end of the ramp. */
 export const FOG_FLOOR = 0.55;
 

@@ -31,6 +31,10 @@ import type { PlanetKind } from './skillsGraph';
  *     drawn thousands of times too large for their orbits, as in any orrery.
  *   - Planets do not pull on each other, and ships ignore the star's pull
  *     (about a tenth of their thrust at most).
+ *   - Because the planets are drawn so large, their orbits are spaced so that
+ *     each one, with its moons, keeps a ring of space to itself: at their
+ *     closest, two neighbours' outermost moons still pass clear of each other,
+ *     and the innermost planet's moons clear the star (see PLANET_SPECS).
  */
 
 export const G = 6.6743e-11; // m^3 kg^-1 s^-2
@@ -40,11 +44,11 @@ export const SOLAR_MASS = 1.98847e30; // kg
 export const G0 = 9.80665; // m s^-2
 
 /** Simulated seconds per scene second for whatever orbits the star. */
-export const HELIO_WARP = 120_000;
+export const HELIO_WARP = 150_000;
 /** Simulated seconds per scene second for whatever orbits a planet. */
 export const MOON_WARP = 400;
 /** Astronomical units per scene unit, for distances from the star. */
-export const AU_PER_UNIT = 0.27;
+export const AU_PER_UNIT = 0.2;
 /** Mass of the star, and its gravitational parameter. */
 export const STAR_MASS = SOLAR_MASS;
 const STAR_MU = G * STAR_MASS;
@@ -75,22 +79,35 @@ interface PlanetSpec {
   type: string;
 }
 
+/*
+ * Each planet has an orbit of its own: its own distance (so its own year), its
+ * own eccentricity and perihelion (so its own off-centre ellipse), and its own
+ * inclination and node (so its own plane; the ocean world's is the reference).
+ *
+ * The spacing is not arbitrary. With the moon systems in skillsGraph.ts (the
+ * outermost moon reaches about 1.5 scene units from a rocky planet, 2.0 from
+ * the giant), every perihelion lies beyond the next planet in's aphelion by
+ * more than the two systems' reach added together, and the inner planet's
+ * perihelion keeps its moons off the star. Change a distance, an eccentricity
+ * or a moon orbit and that has to be checked again, or at the next conjunction
+ * one planet's moons will sweep through its neighbour.
+ */
 const PLANET_SPECS: Record<PlanetKind, PlanetSpec> = {
   forge: {
     radiusKm: 5400, density: 6400, dayHours: 18, type: 'Volcanic world',
-    orbitAU: 0.75, ecc: 0.09, periDeg: 40, inclDeg: 3.2, nodeDeg: 20, startDeg: 205,
+    orbitAU: 0.64, ecc: 0.1, periDeg: 40, inclDeg: 6, nodeDeg: 20, startDeg: 205,
   },
   terran: {
     radiusKm: 6200, density: 5500, dayHours: 24, type: 'Ocean world',
-    orbitAU: 1.25, ecc: 0.03, periDeg: 110, inclDeg: 0, nodeDeg: 0, startDeg: 330,
+    orbitAU: 1.4, ecc: 0.03, periDeg: 120, inclDeg: 0, nodeDeg: 0, startDeg: 330,
   },
   ice: {
     radiusKm: 2600, density: 1900, dayHours: 40, type: 'Ice world',
-    orbitAU: 1.8, ecc: 0.07, periDeg: 250, inclDeg: 2.1, nodeDeg: 140, startDeg: 95,
+    orbitAU: 2.18, ecc: 0.04, periDeg: 250, inclDeg: 3.5, nodeDeg: 140, startDeg: 95,
   },
   gas: {
     radiusKm: 58_000, density: 690, dayHours: 10.6, type: 'Ringed gas giant',
-    orbitAU: 2.5, ecc: 0.05, periDeg: 15, inclDeg: 1.3, nodeDeg: 250, startDeg: 160,
+    orbitAU: 3.1, ecc: 0.03, periDeg: 330, inclDeg: 2, nodeDeg: 250, startDeg: 160,
   },
 };
 

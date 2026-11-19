@@ -438,6 +438,9 @@ const CARD = { on: false, left: 0, top: 0, right: 0, bottom: 0 };
 const HUB_BOX = new Float32Array(CLUSTER_COUNT * 4);
 /** How far each planet's name currently sits from its usual place above the globe (px, eased). */
 const HUB_SHIFT = new Float32Array(CLUSTER_COUNT);
+/** The boxes of the ship names placed so far this frame, and how far each sits from its usual place (px, eased). */
+const SHIP_BOX = new Float32Array(SHIP_COUNT * 4);
+const SHIP_SHIFT = new Float32Array(SHIP_COUNT);
 /** How far the star's name currently sits from its usual place above the star (px, eased). */
 const STAR_SHIFT = { v: 0 };
 /** The star's disc on screen this frame, with a margin (radius 0 while it is out of sight). */
@@ -516,22 +519,22 @@ function writeLabel(i: number, opacity: number, interactive: boolean, mode: numb
  * this far from the star, so below a ~2:1 aspect the home camera backs off
  * just enough to keep it in frame.
  */
-const HALF_SPAN_X = 11.6;
+const HALF_SPAN_X = 17.6;
 /** Headroom kept round the outer orbit when it is the stage's height that limits the view. */
 const SPAN_FIT = 1.08;
 /** View depth at which the fog ramp is "clear": what the camera frames is kept this side of it. */
-const CLEAR_DEPTH = HOME_Z - 11;
+const CLEAR_DEPTH = HOME_Z - 17;
 /**
  * The ecliptic is tipped towards the viewer by this much (radians) at rest:
  * a planetary system seen from a little above its plane.
  */
-const ECLIPTIC_TILT = 0.5;
+const ECLIPTIC_TILT = 0.35;
 /**
  * The home camera sits a little below the star's level, which lifts the star
  * above the middle of the stage: the near half of the system (larger, and
  * lower on screen) needs more room than the far half.
  */
-const HOME_DROP = 1.1;
+const HOME_DROP = 2.3;
 
 /** Stage C4 switch: domain glows + backdrop (extra instances of the body draw). */
 const ATMOS_ENABLED = true;
@@ -540,12 +543,14 @@ const PROJ_VEC = new THREE.Vector3();
 const CAM_TARGET = new THREE.Vector3(0, 0, HOME_Z);
 /** Camera spring velocity (critically damped — eases in and out, never snaps). */
 const CAM_VEL = new THREE.Vector3();
+/** What the camera framed last frame, and where it was (world space): see the framing block. */
+const FOLLOW = { key: -2, x: 0, y: 0, z: 0 };
 const CAM_TIME_IN = 0.6; // s, towards a pinned target
 const CAM_TIME_OUT = 0.7; // s, back home
 const CAM_TIME_ENTER = 1.2; // s, the entrance push-in
 const CAM_TIME_ZOOM = 0.26; // s, while the visitor is zooming
 /** The camera starts this far back and pushes in while the system assembles. */
-const ENTER_DOLLY = 14;
+const ENTER_DOLLY = 18;
 /** Camera distance from the framed point: a whole system, a single moon, a ship. */
 const ZOOM_DIST_SYSTEM = 10.0;
 const ZOOM_DIST_MOON = 8.0;
@@ -573,7 +578,7 @@ const PING_SECONDS = 0.8;
 const ZOOM = { target: 1, max: 2.2, nx: 0, ny: 0, kick: 0 };
 const ZOOM_MIN = 1;
 /** Zoom limit of the overview; a pin has its own (see zoomMaxFor). */
-const ZOOM_MAX_FREE = 2.4;
+const ZOOM_MAX_FREE = 3.2;
 const ZOOM_STEP = 1.3;
 /** 0 at a pin's normal framing, 1 at its closest: how far into a close-up the camera is. */
 const CLOSE = { k: 0 };
@@ -716,8 +721,8 @@ const SWAY_RATE = 0.1; // rad/s (phase)
 /** The system turns freely round the ecliptic's axis; this stays only as a far backstop. */
 const YAW_LIMIT = 1e6; // rad
 /** How far the visitor can tip the view, either side of the resting tilt. */
-const PITCH_MIN = -0.2; // rad: low over the plane, never edge-on
-const PITCH_MAX = 0.7; // rad: almost from above
+const PITCH_MIN = -0.12; // rad: low over the plane, never edge-on
+const PITCH_MAX = 0.85; // rad: almost from above
 const clampPitch = (v: number) => (v < PITCH_MIN ? PITCH_MIN : v > PITCH_MAX ? PITCH_MAX : v);
 const DRAG_YAW = 0.0055; // rad per px
 const DRAG_PITCH = 0.0038;
@@ -1515,6 +1520,20 @@ function Scene({
       }
       spin.current.updateWorldMatrix(true, false);
       spin.current.localToWorld(PROJ_VEC);
+      // Everything here moves. The camera is carried along with whatever it
+      // frames, and the spring only has to close the distance that is left: on
+      // its own it would trail a moving target by its speed times its own time
+      // constant, and a ship at full burn would slide out of the frame.
+      const followKey = starPinned ? STAR_PICK : chaseShip !== null ? NODE_COUNT + chaseShip : (zoomTarget as number);
+      if (FOLLOW.key === followKey) {
+        cam.position.x += PROJ_VEC.x - FOLLOW.x;
+        cam.position.y += PROJ_VEC.y - FOLLOW.y;
+        cam.position.z += PROJ_VEC.z - FOLLOW.z;
+      }
+      FOLLOW.key = followKey;
+      FOLLOW.x = PROJ_VEC.x;
+      FOLLOW.y = PROJ_VEC.y;
+      FOLLOW.z = PROJ_VEC.z;
       const nx = -0.28;
       const ny = 0.04 * (1 - CLOSE.k);
       // Narrow stages keep a little more distance so the system clears the card.
@@ -1526,6 +1545,7 @@ function Scene({
       );
       fogShift = dist - CLEAR_DEPTH;
     } else {
+      FOLLOW.key = -2;
       // Before the entrance the camera holds further back, then pushes in with it.
       const z = homeZ / zoom + (ENTER.t > 0 ? 0 : ENTER_DOLLY);
       // Zooming keeps the point under the pointer where it was.
@@ -1867,6 +1887,7 @@ function Scene({
       writeLabel(i, opacity, interactive, mode, ax, ay);
     }
 
+    let shipBoxes = 0;
     // ── Ships: projection, pick target and the label that names the project ──
     for (let s = 0; s < SHIP_COUNT; s++) {
       const ship = SHIPS[s];
@@ -1886,10 +1907,49 @@ function Scene({
 
       let opacity = !inFront || ORBIT.dragging ? 0 : activeShip === s || chaseShip === s ? 1 : fleet ? 0.92 : 0;
       opacity *= nearK;
-      // Above the hull, clear of its reticle (1.55 half-lengths).
-      const ay = PROJ.y - rPx * 1.7 - 6;
+      // Above the hull, clear of its reticle (1.55 half-lengths)...
+      const usual = PROJ.y - rPx * 1.7 - 6;
+      let ay = usual;
       const half = LBL_W[p] / 2;
       const ax = Math.max(STAGE_PAD + half, Math.min(size.width - STAGE_PAD - half, PROJ.x));
+      // ...unless that lands on the star, on a planet's name or on another
+      // ship's (a parked ship sits right by its planet, and the fleet is named
+      // all at once): then below the hull, then further out either way.
+      const reach = half + LABEL_GAP;
+      const taken = (y: number) => {
+        if (nameBlocked(ax, reach, y, hubBoxes)) return true;
+        for (let b = 0; b < shipBoxes; b++) {
+          if (ax - reach < SHIP_BOX[b * 4 + 1] && ax + reach > SHIP_BOX[b * 4] && y - LEAF_LABEL_H < SHIP_BOX[b * 4 + 3] && y > SHIP_BOX[b * 4 + 2]) {
+            return true;
+          }
+        }
+        return false;
+      };
+      if (taken(ay)) {
+        const step = LEAF_LABEL_H + LABEL_GAP;
+        const below = PROJ.y + rPx * 1.7 + 6 + LEAF_LABEL_H;
+        for (let k = 0; k < 5; k++) {
+          if (!taken(below + k * step)) {
+            ay = below + k * step;
+            break;
+          }
+          if (!taken(usual - (k + 1) * step)) {
+            ay = usual - (k + 1) * step;
+            break;
+          }
+        }
+      }
+      if (opacity > 0) {
+        SHIP_BOX[shipBoxes * 4] = ax - reach;
+        SHIP_BOX[shipBoxes * 4 + 1] = ax + reach;
+        SHIP_BOX[shipBoxes * 4 + 2] = ay - LEAF_LABEL_H;
+        SHIP_BOX[shipBoxes * 4 + 3] = ay;
+        shipBoxes++;
+      }
+      // The name glides to its new place.
+      const shift = ay - usual;
+      SHIP_SHIFT[s] = opacity > 0 ? SHIP_SHIFT[s] + (shift - SHIP_SHIFT[s]) * fName : shift;
+      ay = usual + SHIP_SHIFT[s];
       if (opacity > 0 && CARD.on) {
         const left = ax - half;
         const top = ay - LEAF_LABEL_H;
