@@ -1,17 +1,17 @@
 /**
- * Deterministic layout for the 3D Skills star system.
+ * The bodies of the 3D Skills star system, and where they start.
  *
- * Each skill domain is a planet; its skills are moons on two Kepler orbits
- * (ellipses in the planet's equatorial plane, the planet at one focus).
- * Shipping lanes join neighbouring planets. Pure data + a stable layout (no
- * runtime randomness), so the system looks identical on every load. No React,
- * no three here; the mechanics are in orbitalMechanics.ts.
+ * Each skill domain is a planet on its own orbit round the star; its skills
+ * are moons on two Kepler orbits in the planet's equatorial plane (the planet
+ * at one focus). Each ship plies between two planets. Pure data (no runtime
+ * randomness), so the system starts identically on every load. No React, no
+ * three here; the mechanics, and each planet's orbit, are in orbitalMechanics.ts.
  *
  * NOTE: the skill lists mirror `skillCategories` in components/sections/SkillsSection.tsx
  * (which is the accessible, on-page source of truth). Keep the two in sync.
  */
 
-import { PLANET_PHYSICS, meanMotion, solveKepler } from './orbitalMechanics';
+import { PLANET_PHYSICS, helioState, meanMotion, solveKepler } from './orbitalMechanics';
 
 export type Vec3 = [number, number, number];
 
@@ -43,10 +43,15 @@ export interface Cluster {
   color: string;
   glyph: ClusterGlyph;
   planet: PlanetKind;
+  /**
+   * Where the planet is NOW (scene units, the star at the origin, the ecliptic
+   * as the XZ plane). The scene rewrites it every frame as the planet moves
+   * round its orbit; everything that hangs off the planet reads it from here.
+   */
   center: Vec3;
   /** Planet radius (scene units). */
   radius: number;
-  /** Spin axis = normal of the moons' orbital plane (unit vector). */
+  /** Spin axis = normal of the moons' orbital plane (unit vector, fixed in space). */
   axis: Vec3;
   /** Orthonormal basis of the orbital plane. */
   u: Vec3;
@@ -65,7 +70,7 @@ export interface Cluster {
   quarter: [Vec3, Vec3];
 }
 
-/** Shipping lane between two neighbouring planets (indices into `clusters`). */
+/** The two planets a ship plies between (indices into `clusters`). */
 export interface Lane {
   a: number;
   b: number;
@@ -85,11 +90,12 @@ interface Category {
   /** Planet radius (scene units). */
   radius: number;
   /**
-   * Orbital-plane tilt away from the line of sight (0 = seen face-on, as a
-   * circle; 90 = edge-on), and the screen direction it leans towards (degrees).
+   * Axial tilt: how far the spin axis leans from the ecliptic's north, and
+   * towards which direction in the ecliptic (degrees; 90 = towards the home
+   * camera, which opens the moons' orbits to the viewer).
    */
-  tilt: number;
-  lean: number;
+  obliquity: number;
+  azimuth: number;
   /** Semi-major axes of the two orbits, in planet radii. */
   orbits: [number, number];
   /** Their eccentricities, and where each periapsis lies in the orbital plane (degrees). */
@@ -111,9 +117,9 @@ const CATEGORIES: Category[] = [
     glyph: 'circle',
     planet: 'terran',
     radius: 0.62,
-    tilt: 55,
-    lean: 58,
-    orbits: [2.15, 3.1],
+    obliquity: 26,
+    azimuth: 70,
+    orbits: [1.7, 2.35],
     ecc: [0.1, 0.05],
     peri: [40, 205],
     items: [
@@ -135,9 +141,9 @@ const CATEGORIES: Category[] = [
     glyph: 'diamond',
     planet: 'ice',
     radius: 0.56,
-    tilt: 57,
-    lean: 108,
-    orbits: [2.25, 3.3],
+    obliquity: 20,
+    azimuth: 118,
+    orbits: [1.75, 2.45],
     ecc: [0.08, 0.06],
     peri: [300, 120],
     items: ['C', 'C#', 'Java', 'JavaScript', 'TypeScript', 'PowerShell', 'Python', 'SQL', 'Bash'],
@@ -148,9 +154,9 @@ const CATEGORIES: Category[] = [
     glyph: 'hexagon',
     planet: 'gas',
     radius: 0.68,
-    tilt: 64,
-    lean: 80,
-    orbits: [2.4, 3.15],
+    obliquity: 28,
+    azimuth: 96,
+    orbits: [2.2, 2.8],
     ecc: [0.06, 0.04],
     peri: [160, 20],
     items: ['Next.js', 'React', 'Node.js', 'Supabase', 'Stripe', 'Vercel', 'REST API'],
@@ -161,38 +167,17 @@ const CATEGORIES: Category[] = [
     glyph: 'triangle',
     planet: 'forge',
     radius: 0.58,
-    tilt: 54,
-    lean: 148,
-    orbits: [2.2, 3.2],
+    obliquity: 16,
+    azimuth: 52,
+    orbits: [1.7, 2.35],
     ecc: [0.12, 0.07],
     peri: [250, 75],
     items: ['Git', 'GitHub', 'Docker', 'Flutter', 'Tauri', 'TryHackMe', 'Hack The Box', 'Active Directory'],
   },
 ];
 
-/**
- * Layout. The four planets keep their XY compass positions around the star
- * (the home view stays familiar) but sit at strongly alternating depths with a
- * vertical stagger — so the system is a volume, not a disc, and never collapses
- * into a sliver as it turns.
- */
-const HUB_RADIUS = 3.7;
-/** Alternating planet depth (left/right come forward, top/bottom recede). */
-const HUB_DEPTH = 2.2;
-/** Vertical stagger: pulls the top/bottom planets in and tilts the left/right pair. */
-const HUB_STAGGER = 0.6;
-const HUB_STAGGER_SIGN = [1, -1, -1, 1];
 /** Share of a domain's moons that ride the inner orbit. */
 const INNER_SHARE = 0.4;
-
-/**
- * Where the home camera sits (must match HOME_Z in sceneShared.ts). Each
- * orbital plane is tilted relative to the line of sight from here to its own
- * planet, so every system opens towards the viewer by the same amount — a
- * plane tilted relative to the stage axis instead would read edge-on for the
- * planets off to the sides.
- */
-const HOME_EYE: Vec3 = [0, 0, 11.5];
 
 const DEG = Math.PI / 180;
 
@@ -233,26 +218,16 @@ export function buildSkillsGraph(): GraphData {
   const n = CATEGORIES.length;
 
   CATEGORIES.forEach((cat, ci) => {
-    const angle = (ci / n) * Math.PI * 2;
-    const center: Vec3 = [
-      Math.cos(angle) * HUB_RADIUS,
-      Math.sin(angle) * HUB_RADIUS + HUB_STAGGER * HUB_STAGGER_SIGN[ci % HUB_STAGGER_SIGN.length],
-      (ci % 2 === 0 ? 1 : -1) * HUB_DEPTH,
-    ];
-    const tilt = cat.tilt * DEG;
-    const lean = cat.lean * DEG;
-    // Frame facing the home camera: w points at the eye, e1/e2 span the screen.
-    const w = normalize([HOME_EYE[0] - center[0], HOME_EYE[1] - center[1], HOME_EYE[2] - center[2]]);
-    const e1 = normalize(cross([0, 1, 0], w));
-    const e2 = cross(w, e1);
-    const st = Math.sin(tilt);
-    const ct = Math.cos(tilt);
-    const axis: Vec3 = normalize([
-      w[0] * ct + (e1[0] * Math.cos(lean) + e2[0] * Math.sin(lean)) * st,
-      w[1] * ct + (e1[1] * Math.cos(lean) + e2[1] * Math.sin(lean)) * st,
-      w[2] * ct + (e1[2] * Math.cos(lean) + e2[2] * Math.sin(lean)) * st,
-    ]);
-    const u = normalize(cross(axis, w));
+    const physics = PLANET_PHYSICS[cat.planet];
+    // Where its orbit round the star puts it at time 0.
+    const center: Vec3 = [0, 0, 0];
+    helioState(physics, 0, center);
+    // The spin axis leans from the ecliptic's north (+Y) and stays put in
+    // space while the planet goes round the star, as a real one does.
+    const lean = cat.obliquity * DEG;
+    const towards = cat.azimuth * DEG;
+    const axis: Vec3 = [Math.sin(lean) * Math.cos(towards), Math.cos(lean), Math.sin(lean) * Math.sin(towards)];
+    const u = normalize(cross(axis, [0, 0, 1]));
     const v = normalize(cross(axis, u));
     const cluster: Cluster = {
       index: ci,
@@ -288,7 +263,6 @@ export function buildSkillsGraph(): GraphData {
     // mean anomaly), so they bunch up where the orbit is slow and spread out
     // where it is fast. Each orbit's period comes from the planet's mass.
     // Neighbouring systems turn in opposite directions.
-    const physics = PLANET_PHYSICS[cat.planet];
     const count = cat.items.length;
     const inner = Math.max(1, Math.round(count * INNER_SHARE));
     const dir = ci % 2 === 0 ? 1 : -1;
@@ -311,7 +285,7 @@ export function buildSkillsGraph(): GraphData {
     });
   });
 
-  // Lanes join each planet to the next one round the star.
+  // Each lane joins a planet to the next in the list; a ship plies each lane.
   const lanes: Lane[] = [];
   for (let i = 0; i < n; i++) lanes.push({ a: i, b: (i + 1) % n });
 

@@ -1,11 +1,11 @@
 import { GRAPH } from './skillsGraph';
-import { PLANET_PHYSICS, meanMotion, transitBetween, type Transit } from './orbitalMechanics';
+import { PLANET_PHYSICS, meanMotion } from './orbitalMechanics';
 import { projects } from '@/components/sections/projectsData';
 
 /*
- * Flat, typed views of the baked star system, shared by the scene and its
- * render layers. Everything is computed once at module load; the only arrays
- * the scene mutates are the live positions (moons orbit, ships fly).
+ * Flat, typed views of the star system, shared by the scene and its render
+ * layers. Everything is computed once at module load; what the scene rewrites
+ * every frame are the live positions (planets, moons, ships).
  * Client-only (lazy chunk), no three.
  */
 
@@ -48,7 +48,7 @@ const sizeSeed = (i: number) => {
   return x - Math.floor(x);
 };
 
-/** Live node positions: planets are fixed, moons are rewritten every frame. */
+/** Live node positions, rewritten every frame as the planets and their moons move. */
 export const NODE_POSITIONS = new Float32Array(NODE_COUNT * 3);
 export const CLUSTER_OF = new Int16Array(NODE_COUNT);
 export const IS_HUB = new Uint8Array(NODE_COUNT);
@@ -80,17 +80,19 @@ export const CRAFT_EXPLORER = 2;
 const CRAFT_HALF_LENGTH = [0.17, 0.215, 0.2];
 
 /**
- * Ships: every highlighted project is a ship on the lane between the two
+ * Ships: every highlighted project is a ship that plies between the two
  * domains it draws on most ("shipped work"). Hovering one names the project,
  * clicking flies alongside it. A project without a route here simply has no ship.
+ * `home` is the end of its lane it starts at (0 or 1), `wait` how long it
+ * stays in parking orbit before its first departure (scene seconds).
  */
-const ROUTES: Record<string, { lane: number; offset: number; bow: number; craft: number }> = {
-  'Security Scanner': { lane: 0, offset: 0.0, bow: 0.55, craft: CRAFT_COURIER },
-  'Warhammer 40k Terminal Display': { lane: 0, offset: 0.5, bow: -0.5, craft: CRAFT_FREIGHTER },
-  SABER: { lane: 1, offset: 0.2, bow: 0.55, craft: CRAFT_EXPLORER },
-  'Lisa Tejada Boutique': { lane: 1, offset: 0.7, bow: -0.5, craft: CRAFT_FREIGHTER },
-  'Mi SaludRD': { lane: 2, offset: 0.35, bow: 0.5, craft: CRAFT_EXPLORER },
-  Encryptor: { lane: 3, offset: 0.1, bow: 0.5, craft: CRAFT_COURIER },
+const ROUTES: Record<string, { lane: number; home: number; wait: number; craft: number }> = {
+  'Security Scanner': { lane: 0, home: 0, wait: 0.5, craft: CRAFT_COURIER },
+  'Warhammer 40k Terminal Display': { lane: 0, home: 1, wait: 9, craft: CRAFT_FREIGHTER },
+  SABER: { lane: 1, home: 0, wait: 4, craft: CRAFT_EXPLORER },
+  'Lisa Tejada Boutique': { lane: 1, home: 1, wait: 13, craft: CRAFT_FREIGHTER },
+  'Mi SaludRD': { lane: 2, home: 0, wait: 2, craft: CRAFT_EXPLORER },
+  Encryptor: { lane: 3, home: 1, wait: 6.5, craft: CRAFT_COURIER },
 };
 
 export interface Ship {
@@ -98,33 +100,18 @@ export interface Ship {
   project: number;
   label: string;
   lane: number;
-  /** Start offset (0..1 of a round trip) and sideways bow of this ship's own path. */
-  offset: number;
-  bow: number;
+  /** Which end of its lane it starts at, and how long before it first leaves. */
+  home: number;
+  wait: number;
   /** Hull model (CRAFT_*) and its half-length in scene units. */
   craft: number;
   size: number;
 }
 
-/**
- * The transit each lane stands for: a constant-thrust leg between its two
- * planets, at their real distances from the star and the angle the map draws
- * between them. Its duration on screen follows from that.
- */
-export const LANE_TRANSITS: Transit[] = LANES.map((lane) => {
-  const a = CLUSTERS[lane.a];
-  const b = CLUSTERS[lane.b];
-  const cos =
-    (a.center[0] * b.center[0] + a.center[1] * b.center[1] + a.center[2] * b.center[2]) /
-    (Math.hypot(...a.center) * Math.hypot(...b.center));
-  return transitBetween(
-    PLANET_PHYSICS[a.planet].orbitAU,
-    PLANET_PHYSICS[b.planet].orbitAU,
-    Math.acos(Math.max(-1, Math.min(1, cos))),
-  );
-});
-/** Scene seconds a ship stays docked at each end of its lane. */
-export const DOCK_SECONDS = 4;
+/** Scene seconds a ship spends in parking orbit between two transits. */
+export const DOCK_SECONDS = 7;
+/** Radius of that parking orbit, in planet radii (inside the innermost moon). */
+export const PARK_RADII = 1.34;
 
 export const SHIPS: Ship[] = [];
 projects.forEach((p, i) => {
@@ -132,62 +119,6 @@ projects.forEach((p, i) => {
   if (r) SHIPS.push({ project: i, label: p.title, size: CRAFT_HALF_LENGTH[r.craft], ...r });
 });
 export const SHIP_COUNT = SHIPS.length;
-
-/* ── Curves: lanes between planets, and each ship's own path along its lane ── */
-
-/** Quadratic Bezier per lane: A(3) Ctrl(3) B(3) t0 t1 (trimmed at both planets). */
-export const CURVE_STRIDE = 11;
-export const LANE_CURVES = new Float32Array(LANE_COUNT * CURVE_STRIDE);
-export const SHIP_CURVES = new Float32Array(SHIP_COUNT * CURVE_STRIDE);
-
-/** How far a lane bows away from the star, and where curves stop short of a planet (in radii). */
-const LANE_BOW = 0.7;
-const LANE_TRIM = 1.3;
-const SHIP_TRIM = 2.0;
-
-function writeCurve(out: Float32Array, o: number, lane: number, side: number, trim: number) {
-  const a = CLUSTERS[LANES[lane].a];
-  const b = CLUSTERS[LANES[lane].b];
-  const [ax, ay, az] = a.center;
-  const [bx, by, bz] = b.center;
-  const dx = bx - ax;
-  const dy = by - ay;
-  const dz = bz - az;
-  const len = Math.hypot(dx, dy, dz) || 1;
-  const mx = (ax + bx) / 2;
-  const my = (ay + by) / 2;
-  const mz = (az + bz) / 2;
-  // Bow away from the star, plus an optional sideways offset (ships fly beside the lane).
-  const m = Math.hypot(mx, my, mz) || 1;
-  const ox = mx / m;
-  const oy = my / m;
-  const oz = mz / m;
-  let sx = dy * oz - dz * oy;
-  let sy = dz * ox - dx * oz;
-  let sz = dx * oy - dy * ox;
-  const sl = Math.hypot(sx, sy, sz) || 1;
-  sx /= sl;
-  sy /= sl;
-  sz /= sl;
-  out.set(
-    [
-      ax,
-      ay,
-      az,
-      mx + ox * LANE_BOW + sx * side,
-      my + oy * LANE_BOW + sy * side,
-      mz + oz * LANE_BOW + sz * side,
-      bx,
-      by,
-      bz,
-      (a.radius * trim) / len,
-      1 - (b.radius * trim) / len,
-    ],
-    o,
-  );
-}
-for (let l = 0; l < LANE_COUNT; l++) writeCurve(LANE_CURVES, l * CURVE_STRIDE, l, 0, LANE_TRIM);
-SHIPS.forEach((s, i) => writeCurve(SHIP_CURVES, i * CURVE_STRIDE, s.lane, s.bow, SHIP_TRIM));
 
 /* ── Satellites and the orbital station ─────────────────────────────────── */
 

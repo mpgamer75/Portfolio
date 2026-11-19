@@ -6,13 +6,18 @@ import * as THREE from 'three';
  * reference, so a single write per frame updates every material at once.
  */
 
-export const FOV = 50;
-export const HOME_Z = 11.5;
+/**
+ * A long lens, a long way back. The system is a wide flat disc seen from just
+ * above its plane: a short lens would have to sit so close that the near side
+ * of the outer orbit swung below the stage while the far side shrank away.
+ */
+export const FOV = 26;
+export const HOME_Z = 28;
 export const FOCAL_F = 1 / Math.tan(((FOV / 2) * Math.PI) / 180);
 
 /** View-space depth range of the fog ramp at the home camera distance. */
-export const FOG_NEAR = HOME_Z - 3.0;
-export const FOG_FAR = HOME_Z + 6.5;
+export const FOG_NEAR = HOME_Z - 10.0;
+export const FOG_FAR = HOME_Z + 12.0;
 /** Brightness of something at (or beyond) the far end of the ramp. */
 export const FOG_FLOOR = 0.55;
 
@@ -48,7 +53,7 @@ export const FOG_GLSL = /* glsl */ `
 export const PING_GLSL = /* glsl */ `
   uniform vec4 uPing;
   float pingAt(vec3 p) {
-    float r = distance(p, uPing.xyz) - uPing.w * 7.5;
+    float r = distance(p, uPing.xyz) - uPing.w * 9.0;
     return exp(-r * r * 2.2) * (1.0 - uPing.w) * step(0.0005, uPing.w);
   }
 `;

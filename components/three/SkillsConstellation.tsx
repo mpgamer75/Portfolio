@@ -12,21 +12,18 @@ import {
   CLUSTER_HUB,
   CLUSTER_OF,
   CLUSTER_SKILLS,
-  CURVE_STRIDE,
   DOCK_SECONDS,
   IS_HUB,
   LANES,
-  LANE_COUNT,
-  LANE_TRANSITS,
   NODES,
   NODE_COUNT,
   NODE_POSITIONS,
   NODE_RADIUS,
+  PARK_RADII,
   SATELLITES,
   SAT_COUNT,
   SHIPS,
   SHIP_COUNT,
-  SHIP_CURVES,
 } from './constellationData';
 import { FOCAL_F, FOG_FAR, FOG_FLOOR, FOG_NEAR, FOV, HOME_Z, SHARED, depthFade } from './sceneShared';
 import {
@@ -51,6 +48,7 @@ import {
   setBigState,
   setGlow,
   setPlanetMoon,
+  setPlanetPosition,
   setPlanetSpin,
   setSmallHeading,
   setSmallPosition,
@@ -59,16 +57,20 @@ import {
   uploadBodies,
 } from './bodyLayer';
 import {
-  LANE_BASE,
   LINE_COUNT,
   LINE_MESH,
   ORBIT_BASE,
+  PLANET_ORBIT_BASE,
+  PLANET_TRAIL_BASE,
+  ROUTE_BASE,
   TRAIL_OF_NODE,
   WAKE_BASE,
   flushLines,
+  setClusterOrigin,
   setLineIntensity,
   setLineRange,
   setLineSkirt,
+  setShipCurve,
 } from './lineLayer';
 import {
   NEBULA_MESH,
@@ -81,19 +83,29 @@ import {
 } from './starLayer';
 import {
   AU_KM,
+  AU_PER_UNIT,
   FLIGHT_DOCKED,
   FLIGHT_LABELS,
+  HELIO,
+  HELIO_WARP,
+  MOON_WARP,
   PLANET_PHYSICS,
   SHIP_THRUST_G,
-  TIME_WARP,
-  TRANSIT_WARP,
   flightAt,
   formatDuration,
   formatKm,
   formatSpeed,
+  helioSpeed,
+  helioState,
+  lightSeconds,
+  lorentzLag,
+  meanMotion,
   orbitRadius,
   orbitalPeriod,
   solveKepler,
+  transitPeakKmS,
+  transitSceneSeconds,
+  transitSeconds,
   visViva,
   type FlightState,
 } from './orbitalMechanics';
@@ -121,11 +133,13 @@ import { socialLinks } from '@/lib/links';
  * each skill is a moon on one of its planet's two orbits; every highlighted
  * project is a ship flying a lane between the two domains it draws on.
  *
- * What moves is worked out, not keyframed (see orbitalMechanics.ts): moons and
- * satellites follow Kepler ellipses with periods set by their planet's mass,
+ * What moves is worked out, not keyframed (see orbitalMechanics.ts): planets
+ * ride Kepler ellipses round the star (their perihelion advancing as general
+ * relativity has it), moons and satellites ride theirs round the planets,
  * planets turn at their own day length, and ships fly constant-thrust
- * transits (burn, flip at the midpoint, brake). The figures in the detail
- * panel come out of the same equations.
+ * transits aimed at where their destination will be (burn, flip at the
+ * midpoint, brake, park). The figures in the detail panel come out of the
+ * same equations.
  */
 
 /**
@@ -159,7 +173,20 @@ const SIM = { warp: 1, eased: 1, t: 0 };
 /** The speeds the time control steps through. */
 const WARP_STEPS = [1, 4, 10];
 /** A system in focus runs in slow motion, so its moons can be caught and read. */
-const FOCUS_RATE = 0.25;
+const FOCUS_RATE = 0.4;
+/**
+ * Everything slows a little while something is open, and a lot while the
+ * pointer is on a body, so a moving target can be caught. It is the whole
+ * simulation that slows (never one body), so a ship still meets its planet.
+ */
+const PINNED_RATE = 0.7;
+const HOVER_RATE = 0.3;
+/** Heliocentric time, scene seconds: what the planets and the ships run on. */
+const HELIO_CLOCK = { t: 0 };
+/** Each planet's eccentric anomaly round the star this frame. */
+const PLANET_E = new Float64Array(CLUSTER_COUNT);
+/** Length of a planet's trail, in turns of its orbit. */
+const PLANET_TRAIL = 0.05;
 
 /**
  * Orbital clocks. Each domain has its own, so a system can drop into slow
@@ -168,14 +195,145 @@ const FOCUS_RATE = 0.25;
  */
 const CLUSTER_TIME = new Float64Array(CLUSTER_COUNT);
 const CLUSTER_RATE = new Float32Array(CLUSTER_COUNT).fill(1);
-const SHIP_TIME = new Float64Array(SHIP_COUNT);
-const SHIP_RATE = new Float32Array(SHIP_COUNT).fill(1);
 /** Live ship positions (system-local), for the chase camera. */
 const SHIP_POS = new Float32Array(SHIP_COUNT * 3);
-/** Each ship's flight state, whether it is on the way back, and how far through its leg it is. */
-const FLIGHT: FlightState[] = SHIPS.map(() => ({ progress: 0, speed: 0, mode: 0, turn: 0, thrust: 0 }));
-const SHIP_INBOUND = new Uint8Array(SHIP_COUNT);
+/** Each ship's flight state, and how far through its leg it is. */
+const FLIGHT: FlightState[] = SHIPS.map(() => ({ progress: 0, speed: 0, mode: FLIGHT_DOCKED, turn: 0, thrust: 0 }));
 const SHIP_TAU = new Float32Array(SHIP_COUNT);
+/**
+ * A ship is either parked (on a low circular orbit round `SHIP_AT`, at angle
+ * `SHIP_PARK`, with `SHIP_TIMER` seconds before it may leave) or in transit
+ * to `SHIP_TO` along the cubic Bezier in `SHIP_CURVE` (P0 P1 P2 P3), having
+ * left at heliocentric time `SHIP_T0` for a leg `SHIP_LEG` seconds long.
+ */
+const PARKED = 0;
+const TRANSIT = 1;
+const SHIP_STATE = new Uint8Array(SHIP_COUNT);
+const SHIP_AT = new Uint8Array(SHIP_COUNT);
+const SHIP_TO = new Uint8Array(SHIP_COUNT);
+const SHIP_PARK = new Float64Array(SHIP_COUNT);
+const SHIP_ARRIVE = new Float32Array(SHIP_COUNT);
+const SHIP_TIMER = new Float32Array(SHIP_COUNT);
+const SHIP_T0 = new Float64Array(SHIP_COUNT);
+const SHIP_LEG = new Float32Array(SHIP_COUNT);
+/** Length of the current leg (scene units), and the ship's clock lag over it so far (seconds). */
+const SHIP_DIST = new Float32Array(SHIP_COUNT);
+const SHIP_LAG = new Float64Array(SHIP_COUNT);
+const SHIP_CURVE = new Float32Array(SHIP_COUNT * 12);
+/** Eased heading, so a change of attitude is a turn and never a snap. */
+const SHIP_HEAD = new Float32Array(SHIP_COUNT * 3);
+SHIPS.forEach((ship, i) => {
+  const lane = LANES[ship.lane];
+  SHIP_AT[i] = ship.home ? lane.b : lane.a;
+  SHIP_TO[i] = ship.home ? lane.a : lane.b;
+  SHIP_TIMER[i] = ship.wait;
+  SHIP_PARK[i] = i * 1.7;
+  SHIP_HEAD[i * 3] = 1;
+});
+/**
+ * Each planet's parking orbit: its radius in planet radii (the ringed giant's
+ * lies outside its rings), its angular speed (radians per scene second) and
+ * its speed in km/s.
+ */
+const PARK_AT = CLUSTERS.map((c) => (c.planet === 'gas' ? 2.04 : PARK_RADII));
+const PARK_MOTION = CLUSTERS.map((c, i) => meanMotion(PLANET_PHYSICS[c.planet], PARK_AT[i]));
+const PARK_KMS = CLUSTERS.map((c, i) => visViva(PLANET_PHYSICS[c.planet], PARK_AT[i], PARK_AT[i]));
+/** A route keeps at least this far from the star (scene units). */
+const STAR_KEEP = 2.3;
+const PLAN = [0, 0, 0];
+
+/** Position on a ship's curve at parameter t, into PLAN. */
+function curveAt(o: number, t: number): void {
+  const k = 1 - t;
+  const a = k * k * k;
+  const b = 3 * k * k * t;
+  const c = 3 * k * t * t;
+  const d = t * t * t;
+  for (let i = 0; i < 3; i++) {
+    PLAN[i] = a * SHIP_CURVE[o + i] + b * SHIP_CURVE[o + 3 + i] + c * SHIP_CURVE[o + 6 + i] + d * SHIP_CURVE[o + 9 + i];
+  }
+}
+
+/**
+ * Plans a transit for ship `s` from where it is (position p, heading h) to a
+ * parking orbit round planet `target`.
+ *
+ * The destination is moving, so the ship aims at where it WILL be: the leg's
+ * length sets its duration (constant thrust, so t goes as the root of the
+ * distance), and the duration sets where the planet will be. A few rounds of
+ * that settle on the intercept. The path leaves along the ship's own orbit,
+ * arrives along the parking orbit it will join, and swings wide of the star.
+ */
+function planTransit(s: number, target: number, px: number, py: number, pz: number, hx: number, hy: number, hz: number) {
+  const c = CLUSTERS[target];
+  const physics = PLANET_PHYSICS[c.planet];
+  const r = c.radius * PARK_AT[target];
+  const o = s * 12;
+  let leg = SHIP_LEG[s] > 0 ? SHIP_LEG[s] : 20;
+  let length = 1;
+  let angle = 0;
+  for (let round = 0; round < 6; round++) {
+    helioState(physics, HELIO_CLOCK.t + leg, PLAN);
+    // Join the parking orbit on the side the ship is coming from.
+    const dx = px - PLAN[0];
+    const dy = py - PLAN[1];
+    const dz = pz - PLAN[2];
+    angle = Math.atan2(dx * c.v[0] + dy * c.v[1] + dz * c.v[2], dx * c.u[0] + dy * c.u[1] + dz * c.u[2]);
+    const cs = Math.cos(angle);
+    const sn = Math.sin(angle);
+    const ex = PLAN[0] + (c.u[0] * cs + c.v[0] * sn) * r;
+    const ey = PLAN[1] + (c.u[1] * cs + c.v[1] * sn) * r;
+    const ez = PLAN[2] + (c.u[2] * cs + c.v[2] * sn) * r;
+    const handle = Math.hypot(ex - px, ey - py, ez - pz) * 0.3;
+    SHIP_CURVE.set(
+      [
+        px, py, pz,
+        px + hx * handle, py + hy * handle, pz + hz * handle,
+        ex - (-c.u[0] * sn + c.v[0] * cs) * handle,
+        ey - (-c.u[1] * sn + c.v[1] * cs) * handle,
+        ez - (-c.u[2] * sn + c.v[2] * cs) * handle,
+        ex, ey, ez,
+      ],
+      o,
+    );
+    // Too close to the star at its nearest? Push the middle of the path outwards.
+    curveAt(o, 0.5);
+    const near = Math.hypot(PLAN[0], PLAN[1], PLAN[2]);
+    if (near < STAR_KEEP) {
+      // Straight through the star: there is no "outwards", so go round in the ecliptic.
+      const ox = near > 0.05 ? PLAN[0] / near : -(ez - pz);
+      const oz = near > 0.05 ? PLAN[2] / near : ex - px;
+      const ol = Math.hypot(ox, oz) || 1;
+      // Moving both handles by d moves the midpoint by 0.75*d.
+      const push = (STAR_KEEP - near) / 0.75;
+      for (const k of [3, 6]) {
+        SHIP_CURVE[o + k] += (ox / ol) * push;
+        SHIP_CURVE[o + k + 2] += (oz / ol) * push;
+      }
+    }
+    // Length of the path, by walking it.
+    length = 0;
+    let lx = px;
+    let ly = py;
+    let lz = pz;
+    for (let step = 1; step <= 16; step++) {
+      curveAt(o, step / 16);
+      length += Math.hypot(PLAN[0] - lx, PLAN[1] - ly, PLAN[2] - lz);
+      lx = PLAN[0];
+      ly = PLAN[1];
+      lz = PLAN[2];
+    }
+    if (round < 5) leg = transitSceneSeconds(length);
+  }
+  SHIP_STATE[s] = TRANSIT;
+  SHIP_TO[s] = target;
+  SHIP_ARRIVE[s] = angle;
+  SHIP_T0[s] = HELIO_CLOCK.t;
+  SHIP_LEG[s] = leg;
+  SHIP_DIST[s] = length;
+  SHIP_LAG[s] = 0;
+  setShipCurve(s, SHIP_CURVE, o, o + 3, o + 6, o + 9);
+}
 /** How far each planet has turned on its axis (radians). */
 const DAY = new Float64Array(CLUSTER_COUNT);
 /** Each moon's eccentric anomaly this frame, and its slot among its planet's moons. */
@@ -276,6 +434,29 @@ const labelTop = (mode: number, y: number, h: number) =>
  * Measured from layout on pin, so it costs nothing per frame.
  */
 const CARD = { on: false, left: 0, top: 0, right: 0, bottom: 0 };
+/** The boxes of the planet names placed so far this frame: left, right, top, bottom. */
+const HUB_BOX = new Float32Array(CLUSTER_COUNT * 4);
+/** How far each planet's name currently sits from its usual place above the globe (px, eased). */
+const HUB_SHIFT = new Float32Array(CLUSTER_COUNT);
+/** How far the star's name currently sits from its usual place above the star (px, eased). */
+const STAR_SHIFT = { v: 0 };
+/** The star's disc on screen this frame, with a margin (radius 0 while it is out of sight). */
+const STAR_DISC = { x: 0, y: 0, r: 0 };
+
+/** Would a planet's name, centred on x with its bottom edge at y, land on the star, its name, or an earlier planet's name? */
+function nameBlocked(x: number, half: number, y: number, placed: number): boolean {
+  const top = y - HUB_LABEL_H;
+  if (STAR_DISC.r > 0 && x - half < STAR_DISC.x + STAR_DISC.r && x + half > STAR_DISC.x - STAR_DISC.r && top < STAR_DISC.y + STAR_DISC.r && y > STAR_DISC.y - STAR_DISC.r) {
+    return true;
+  }
+  if (STAR_LABEL.on && x - half < STAR_LABEL.right && x + half > STAR_LABEL.left && top < STAR_LABEL.bottom && y > STAR_LABEL.top) {
+    return true;
+  }
+  for (let b = 0; b < placed; b++) {
+    if (x - half < HUB_BOX[b * 4 + 1] && x + half > HUB_BOX[b * 4] && top < HUB_BOX[b * 4 + 3] && y > HUB_BOX[b * 4 + 2]) return true;
+  }
+  return false;
+}
 /** The box of the star's own label this frame (other names keep clear of it). */
 const STAR_LABEL = { on: false, left: 0, top: 0, right: 0, bottom: 0 };
 
@@ -331,14 +512,26 @@ function writeLabel(i: number, opacity: number, interactive: boolean, mode: numb
 }
 
 /**
- * Narrow stages: the near (left/right) systems sit at z = +2.2 and reach about
- * 6 units from the axis, so below a ~2:1 aspect the home camera backs off just
- * enough to keep them in frame.
+ * Narrow stages: the outermost orbit, with its planet's moons, reaches about
+ * this far from the star, so below a ~2:1 aspect the home camera backs off
+ * just enough to keep it in frame.
  */
-const NEAR_PLANE_Z = 2.2;
-const HALF_SPAN_X = 6.0;
-/** View depth of the near systems from the home camera — where the fog ramp is "clear". */
-const CLEAR_DEPTH = HOME_Z - NEAR_PLANE_Z;
+const HALF_SPAN_X = 11.6;
+/** Headroom kept round the outer orbit when it is the stage's height that limits the view. */
+const SPAN_FIT = 1.08;
+/** View depth at which the fog ramp is "clear": what the camera frames is kept this side of it. */
+const CLEAR_DEPTH = HOME_Z - 11;
+/**
+ * The ecliptic is tipped towards the viewer by this much (radians) at rest:
+ * a planetary system seen from a little above its plane.
+ */
+const ECLIPTIC_TILT = 0.5;
+/**
+ * The home camera sits a little below the star's level, which lifts the star
+ * above the middle of the stage: the near half of the system (larger, and
+ * lower on screen) needs more room than the far half.
+ */
+const HOME_DROP = 1.1;
 
 /** Stage C4 switch: domain glows + backdrop (extra instances of the body draw). */
 const ATMOS_ENABLED = true;
@@ -352,21 +545,21 @@ const CAM_TIME_OUT = 0.7; // s, back home
 const CAM_TIME_ENTER = 1.2; // s, the entrance push-in
 const CAM_TIME_ZOOM = 0.26; // s, while the visitor is zooming
 /** The camera starts this far back and pushes in while the system assembles. */
-const ENTER_DOLLY = 4.2;
+const ENTER_DOLLY = 14;
 /** Camera distance from the framed point: a whole system, a single moon, a ship. */
-const ZOOM_DIST_SYSTEM = 5.6;
-const ZOOM_DIST_MOON = 4.0;
-const ZOOM_DIST_SHIP = 3.0;
-const ZOOM_DIST_STAR = 5.2;
+const ZOOM_DIST_SYSTEM = 10.0;
+const ZOOM_DIST_MOON = 8.0;
+const ZOOM_DIST_SHIP = 6.0;
+const ZOOM_DIST_STAR = 15;
 /**
  * How close the visitor's zoom can bring the camera to what is pinned: a planet
  * (in planet radii, so every globe ends up the same size on screen), a moon
  * and a ship (scene units).
  */
-const CLOSE_PLANET = 2.3;
-const CLOSE_MOON = 0.9;
-const CLOSE_SHIP = 1.15;
-const CLOSE_STAR = 1.7;
+const CLOSE_PLANET = 4.65;
+const CLOSE_MOON = 1.8;
+const CLOSE_SHIP = 2.3;
+const CLOSE_STAR = 5.6;
 /** Click shockwave progress (0 = idle) and the last pinned target, to detect a new pin. */
 const PING = { t: 0, last: -1 };
 const PING_SECONDS = 0.8;
@@ -380,7 +573,7 @@ const PING_SECONDS = 0.8;
 const ZOOM = { target: 1, max: 2.2, nx: 0, ny: 0, kick: 0 };
 const ZOOM_MIN = 1;
 /** Zoom limit of the overview; a pin has its own (see zoomMaxFor). */
-const ZOOM_MAX_FREE = 2.2;
+const ZOOM_MAX_FREE = 2.4;
 const ZOOM_STEP = 1.3;
 /** 0 at a pin's normal framing, 1 at its closest: how far into a close-up the camera is. */
 const CLOSE = { k: 0 };
@@ -520,8 +713,12 @@ const SWAY = { t: 0, v: 0 };
 const SWAY_AMP = 0.3; // rad
 const SWAY_RATE = 0.1; // rad/s (phase)
 /** Soft limit on the total yaw (user + sway); past it the drag rubber-bands. */
-const YAW_LIMIT = 1.1; // rad
-const PITCH_LIMIT = 0.55; // rad
+/** The system turns freely round the ecliptic's axis; this stays only as a far backstop. */
+const YAW_LIMIT = 1e6; // rad
+/** How far the visitor can tip the view, either side of the resting tilt. */
+const PITCH_MIN = -0.2; // rad: low over the plane, never edge-on
+const PITCH_MAX = 0.7; // rad: almost from above
+const clampPitch = (v: number) => (v < PITCH_MIN ? PITCH_MIN : v > PITCH_MAX ? PITCH_MAX : v);
 const DRAG_YAW = 0.0055; // rad per px
 const DRAG_PITCH = 0.0038;
 const DRAG_THRESHOLD = 4; // px before a press becomes a drag (so clicks still click)
@@ -583,7 +780,7 @@ function zoomMaxFor(pin: Pin | null): number {
 const CRAFT_CLASS = ['Courier', 'Freighter', 'Explorer'];
 const LEAF_TOTAL = NODE_COUNT - CLUSTER_COUNT;
 /** What the figures in a moon system's readout are. */
-const ORBIT_NOTE = `From the planet's mass (Kepler). Orbits are to scale with the planet; time runs ${TIME_WARP}× faster.`;
+const ORBIT_NOTE = `Kepler orbit, from the planet's mass. Orbits are to scale with the planet; round a planet, time runs ${MOON_WARP}× faster.`;
 
 function buildDomainCard(c: number): SkillCardData {
   const cluster = CLUSTERS[c];
@@ -599,12 +796,14 @@ function buildDomainCard(c: number): SkillCardData {
     facts: [
       { label: 'Radius', value: formatKm(p.radiusKm) },
       { label: 'Surface gravity', value: `${p.gravityG.toFixed(2)} g` },
-      { label: 'Day', value: formatDuration(p.dayHours * 3600) },
       { label: 'Year', value: `${formatDuration(p.yearDays * 86_400)} · ${p.orbitAU} AU` },
-      { label: 'Escape velocity', value: formatSpeed(p.escapeKmS) },
-      { label: 'Moons', value: String(CLUSTER_COUNTS[c]) },
+      { label: 'Day', value: formatDuration(p.dayHours * 3600) },
+      { label: 'From the star', value: '…', live: 'planet-distance' },
+      { label: 'Orbital speed', value: '…', live: 'planet-speed' },
+      { label: 'Sunlight takes', value: '…', live: 'planet-light' },
+      { label: 'Perihelion advance', value: `${p.precessionArcsecCentury.toFixed(1)}″ / century` },
     ],
-    factsNote: `From its radius and density. At ${TIME_WARP}× a year still takes hours, so the planet holds its place.`,
+    factsNote: `Kepler orbit round the star, shown ${HELIO_WARP.toLocaleString('en-US')}× faster; the perihelion advance is general relativity's, and so is the ${p.clockLagMicrosDay.toFixed(0)} µs a day its gravity takes off a clock on the surface.`,
   };
 }
 
@@ -637,7 +836,6 @@ function buildSkillCard(i: number): SkillCardData {
 function buildShipCard(s: number): SkillCardData {
   const ship = SHIPS[s];
   const project = projects[ship.project];
-  const transit = LANE_TRANSITS[ship.lane];
   const lane = LANES[ship.lane];
   return {
     kind: 'project',
@@ -654,9 +852,9 @@ function buildShipCard(s: number): SkillCardData {
       { label: 'Speed', value: '…', live: 'ship-speed' },
       { label: 'Arrives in', value: '…', live: 'ship-eta' },
       { label: 'To go', value: '…', live: 'ship-togo' },
-      { label: 'Transit', value: `${transit.distanceAU.toFixed(2)} AU · ${formatDuration(transit.seconds)}` },
+      { label: 'Clock lag', value: '…', live: 'ship-lag' },
     ],
-    factsNote: `Constant ${SHIP_THRUST_G} g: burn, flip at the midpoint (${formatSpeed(transit.peakKmS)}), brake. Shown ${TRANSIT_WARP.toLocaleString('en-US')}× faster than real time.`,
+    factsNote: `Constant ${SHIP_THRUST_G} g, aimed at where the planet will be: burn, flip at the midpoint, brake. Clock lag is special relativity's. Shown ${HELIO_WARP.toLocaleString('en-US')}× faster.`,
     links: [
       ...(project.demo ? [{ label: 'Live site', href: project.demo, kind: 'external' as const }] : []),
       ...(project.github ? [{ label: 'Source', href: project.github, kind: 'external' as const }] : []),
@@ -744,6 +942,8 @@ interface SceneProps {
   /** The star is hovered or open, and whether it is open. */
   starActive: boolean;
   starPinned: boolean;
+  /** The pointer (or the keyboard) is on a body: time slows so it can be caught. */
+  hovering: boolean;
   /** One-shot: the stage has been properly visible, so the entrance may start. */
   entered: boolean;
   /** Current quality tier (React copy of GOV.tier, so the DPR cap can follow it). */
@@ -770,6 +970,7 @@ function Scene({
   chaseShip,
   starActive,
   starPinned,
+  hovering,
   entered,
   tier,
   onTier,
@@ -935,14 +1136,14 @@ function Scene({
     const enterLeaf = easeOut((ENTER.t - 0.5) / 0.4);
     const enterCraft = easeOut((ENTER.t - 0.7) / 0.3);
 
-    // ── Orbit: drag inertia + a bounded idle sway (never a free spin) ──
+    // ── Orbit: drag inertia + a gentle idle sway round the star ──
     ORBIT.idle += dt;
     const autoBlend = pinned ? 0 : clamp01((ORBIT.idle - 1.5) / 1.5);
     SWAY.t += dt * autoBlend;
     SWAY.v = SWAY_AMP * Math.sin(SWAY.t * SWAY_RATE);
     if (!ORBIT.dragging) {
       ORBIT.yaw += ORBIT.vYaw * dt;
-      ORBIT.pitch = Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, ORBIT.pitch + ORBIT.vPitch * dt));
+      ORBIT.pitch = clampPitch(ORBIT.pitch + ORBIT.vPitch * dt);
       const damp = Math.exp(-dt * 2.4);
       ORBIT.vYaw *= damp;
       ORBIT.vPitch *= damp;
@@ -953,20 +1154,17 @@ function Scene({
         ORBIT.vYaw = 0;
         ORBIT.yaw -= over * (1 - Math.exp(-dt * 5));
       }
-      // While idle the view eases back home: pitch to level, user yaw to zero
-      // (the yaw stays put while something is pinned, so the framing holds).
-      if (ORBIT.idle > 2.5) {
-        ORBIT.pitch *= Math.exp(-dt * 0.6);
-        if (!pinned) ORBIT.yaw *= Math.exp(-dt * 0.25);
-      }
+      // While idle the view eases back to its resting tilt. The turn round
+      // the star stays where the visitor left it: every angle is a good one.
+      if (ORBIT.idle > 2.5) ORBIT.pitch *= Math.exp(-dt * 0.6);
     }
     const yaw = ORBIT.yaw + SWAY.v;
     if (spin.current) spin.current.rotation.y = yaw;
     let tiltX = 0;
     let tiltY = 0;
     if (parallax.current) {
-      const tx = (pinned ? 0 : -state.pointer.y * 0.14) + ORBIT.pitch;
-      const ty = pinned ? 0 : state.pointer.x * 0.18;
+      const tx = ECLIPTIC_TILT + (pinned ? 0 : -state.pointer.y * 0.08) + ORBIT.pitch;
+      const ty = pinned ? 0 : state.pointer.x * 0.1;
       const k = 1 - Math.exp(-dt * (pinned || ORBIT.dragging ? 8 : 2.5));
       parallax.current.rotation.x += (tx - parallax.current.rotation.x) * k;
       parallax.current.rotation.y += (ty - parallax.current.rotation.y) * k;
@@ -975,10 +1173,30 @@ function Scene({
     }
 
     // ── Time: the visitor's control (pause / faster) is eased in ──
-    SIM.eased += (SIM.warp - SIM.eased) * (1 - Math.exp(-dt * 8));
+    const pace = SIM.warp * (hovering ? HOVER_RATE : pinned ? PINNED_RATE : 1);
+    SIM.eased += (pace - SIM.eased) * (1 - Math.exp(-dt * 8));
     if (SIM.warp === 0 && SIM.eased < 0.01) SIM.eased = 0;
     const sim = dt * SIM.eased;
     SIM.t += sim;
+    HELIO_CLOCK.t += sim;
+
+    // ── Planets: each one's place on its ellipse round the star, from Kepler's
+    // equation (with the relativistic turn of the ellipse itself). Everything
+    // that hangs off a planet reads its centre from here on ──
+    for (let c = 0; c < CLUSTER_COUNT; c++) {
+      const cluster = CLUSTERS[c];
+      helioState(PLANET_PHYSICS[cluster.planet], HELIO_CLOCK.t, cluster.center);
+      PLANET_E[c] = HELIO.E;
+      const [x, y, z] = cluster.center;
+      const hub = CLUSTER_HUB[c] * 3;
+      NODE_POSITIONS[hub] = x;
+      NODE_POSITIONS[hub + 1] = y;
+      NODE_POSITIONS[hub + 2] = z;
+      setPlanetPosition(c, x, y, z);
+      setClusterOrigin(c, x, y, z);
+      const turn = PLANET_E[c] / TAU;
+      setLineRange(PLANET_TRAIL_BASE + c, turn - PLANET_TRAIL * Math.min(1.5, SIM.eased), turn);
+    }
 
     // ── Orbital motion: each system runs on its own clock, in slow motion
     // while it is in focus; each planet turns at its own day length ──
@@ -1028,15 +1246,15 @@ function Scene({
       // The trail is the arc the moon has just covered; it shortens as its
       // system slows down, and is gone while time is paused.
       const turn = E / TAU;
-      const pace = Math.min(1.5, CLUSTER_RATE[node.cluster] * SIM.eased);
-      setLineRange(TRAIL_OF_NODE[i], turn - MOON_TRAIL * pace * Math.sign(node.meanMotion), turn);
+      const moonPace = Math.min(1.5, CLUSTER_RATE[node.cluster] * SIM.eased);
+      setLineRange(TRAIL_OF_NODE[i], turn - MOON_TRAIL * moonPace * Math.sign(node.meanMotion), turn);
     }
 
     // ── Node glow + selection — active node white-hot, focused system lit, the
     // rest dimmed (harder when something is pinned, for a spotlight feel) ──
     const fNode = 1 - Math.exp(-dt * 9);
     const fSelect = 1 - Math.exp(-dt * 12);
-    const dimTarget = pinned ? 0.05 : 0.1;
+    const dimTarget = pinned ? 0.26 : 0.2;
     for (let i = 0; i < NODE_COUNT; i++) {
       let target: number;
       if (activeNode === i) target = 1.65;
@@ -1074,80 +1292,143 @@ function Scene({
       setSmallState(SAT_BASE + s, Math.min(GLOW[CLUSTER_HUB[sat.cluster]], 1), 0);
     }
 
-    // ── Ships fly their lane as a constant-thrust transit: burn to the
-    // midpoint, flip end over end, brake to arrive at rest, dock, and come
-    // back the same way. A hovered ship eases off so it can be caught ──
+    // ── Ships. Parked, a ship rides a low circular orbit round its planet.
+    // When its window opens it plans a constant-thrust transit to where the
+    // other planet WILL be, then flies it: burn, flip end over end at the
+    // midpoint, brake, and slip into parking orbit there ──
     const fShip = 1 - Math.exp(-dt * 6);
+    const fHead = 1 - Math.exp(-dt * 7);
     for (let s = 0; s < SHIP_COUNT; s++) {
       const ship = SHIPS[s];
       const chased = chaseShip === s;
       const active = activeShip === s || chased;
-      // A hovered ship all but stops; the one the camera follows keeps cruising.
-      const rate = chased ? 0.3 : active ? 0.08 : 1;
-      SHIP_RATE[s] += (rate - SHIP_RATE[s]) * (1 - Math.exp(-dt * 5));
-      SHIP_TIME[s] += sim * SHIP_RATE[s];
-      const leg = LANE_TRANSITS[ship.lane].sceneSeconds;
-      const cycle = 2 * (leg + DOCK_SECONDS);
-      let clock = (SHIP_TIME[s] + ship.offset * cycle) % cycle;
-      const inbound = clock >= leg + DOCK_SECONDS;
-      if (inbound) clock -= leg + DOCK_SECONDS;
       const flight = FLIGHT[s];
-      if (clock < leg) {
-        flightAt(clock / leg, flight);
-      } else {
+      const o = s * 12;
+      let px: number;
+      let py: number;
+      let pz: number;
+      let hx: number;
+      let hy: number;
+      let hz: number;
+      let curveT = 1;
+
+      if (SHIP_STATE[s] === TRANSIT && HELIO_CLOCK.t - SHIP_T0[s] >= SHIP_LEG[s]) {
+        // Arrived: the planet is where the plan said it would be.
+        SHIP_STATE[s] = PARKED;
+        SHIP_AT[s] = SHIP_TO[s];
+        SHIP_PARK[s] = SHIP_ARRIVE[s];
+        SHIP_TIMER[s] = DOCK_SECONDS;
+      }
+
+      if (SHIP_STATE[s] === PARKED) {
+        const at = SHIP_AT[s];
+        const c = CLUSTERS[at];
+        SHIP_PARK[s] += sim * PARK_MOTION[at];
+        const r = c.radius * PARK_AT[at];
+        const cs = Math.cos(SHIP_PARK[s]);
+        const sn = Math.sin(SHIP_PARK[s]);
+        px = c.center[0] + (c.u[0] * cs + c.v[0] * sn) * r;
+        py = c.center[1] + (c.u[1] * cs + c.v[1] * sn) * r;
+        pz = c.center[2] + (c.u[2] * cs + c.v[2] * sn) * r;
+        hx = -c.u[0] * sn + c.v[0] * cs;
+        hy = -c.u[1] * sn + c.v[1] * cs;
+        hz = -c.u[2] * sn + c.v[2] * cs;
         flight.progress = 1;
         flight.speed = 0;
         flight.mode = FLIGHT_DOCKED;
-        flight.turn = 1;
+        flight.turn = 0;
         flight.thrust = 0;
+        SHIP_TAU[s] = 1;
+        SHIP_TIMER[s] -= sim;
+        if (SHIP_TIMER[s] <= 0 && ENTER.done) {
+          // Departure window: leave when the orbit is carrying the ship
+          // towards its destination (or after a long wait, whatever the angle).
+          const lane = LANES[ship.lane];
+          const target = at === lane.a ? lane.b : lane.a;
+          const tc = CLUSTERS[target].center;
+          const dx = tc[0] - px;
+          const dy = tc[1] - py;
+          const dz = tc[2] - pz;
+          const facing = (hx * dx + hy * dy + hz * dz) / (Math.hypot(dx, dy, dz) || 1);
+          if (facing > 0.45 || SHIP_TIMER[s] < -40) planTransit(s, target, px, py, pz, hx, hy, hz);
+        }
+      } else {
+        const tau = (HELIO_CLOCK.t - SHIP_T0[s]) / SHIP_LEG[s];
+        flightAt(tau, flight);
+        SHIP_TAU[s] = tau;
+        const t = flight.progress;
+        curveT = t;
+        const k = 1 - t;
+        const wa = k * k * k;
+        const wb = 3 * k * k * t;
+        const wc = 3 * k * t * t;
+        const wd = t * t * t;
+        px = wa * SHIP_CURVE[o] + wb * SHIP_CURVE[o + 3] + wc * SHIP_CURVE[o + 6] + wd * SHIP_CURVE[o + 9];
+        py = wa * SHIP_CURVE[o + 1] + wb * SHIP_CURVE[o + 4] + wc * SHIP_CURVE[o + 7] + wd * SHIP_CURVE[o + 10];
+        pz = wa * SHIP_CURVE[o + 2] + wb * SHIP_CURVE[o + 5] + wc * SHIP_CURVE[o + 8] + wd * SHIP_CURVE[o + 11];
+        // Direction of travel = the curve's tangent.
+        const da = 3 * k * k;
+        const db = 6 * k * t;
+        const dc = 3 * t * t;
+        let tx = da * (SHIP_CURVE[o + 3] - SHIP_CURVE[o]) + db * (SHIP_CURVE[o + 6] - SHIP_CURVE[o + 3]) + dc * (SHIP_CURVE[o + 9] - SHIP_CURVE[o + 6]);
+        let ty = da * (SHIP_CURVE[o + 4] - SHIP_CURVE[o + 1]) + db * (SHIP_CURVE[o + 7] - SHIP_CURVE[o + 4]) + dc * (SHIP_CURVE[o + 10] - SHIP_CURVE[o + 7]);
+        let tz = da * (SHIP_CURVE[o + 5] - SHIP_CURVE[o + 2]) + db * (SHIP_CURVE[o + 8] - SHIP_CURVE[o + 5]) + dc * (SHIP_CURVE[o + 11] - SHIP_CURVE[o + 8]);
+        const tl = Math.hypot(tx, ty, tz) || 1;
+        tx /= tl;
+        ty /= tl;
+        tz /= tl;
+        // The nose points along it while accelerating and against it while
+        // braking (the engines always push against the motion they must shed);
+        // in between the ship turns end over end, in the plane of the ecliptic.
+        const turn = flight.turn * Math.PI;
+        const ct = Math.cos(turn);
+        const st = Math.sin(turn);
+        const flat = Math.hypot(tx, tz) || 1;
+        hx = tx * ct + (tz / flat) * st;
+        hy = ty * ct;
+        hz = tz * ct - (tx / flat) * st;
+        // Special relativity: the ship's clock falls behind by 1 - sqrt(1 - v²/c²).
+        SHIP_LAG[s] += lorentzLag(flight.speed * transitPeakKmS(SHIP_DIST[s])) * sim * HELIO_WARP;
       }
-      SHIP_INBOUND[s] = inbound ? 1 : 0;
-      SHIP_TAU[s] = Math.min(1, clock / leg);
-      const along = inbound ? 1 - flight.progress : flight.progress;
-      const dir = inbound ? -1 : 1;
-      const thrust = flight.thrust;
-      const o = s * CURVE_STRIDE;
-      const t0 = SHIP_CURVES[o + 9];
-      const t1 = SHIP_CURVES[o + 10];
-      const t = t0 + (t1 - t0) * along;
-      const k = 1 - t;
-      const wa = k * k;
-      const wc = 2 * k * t;
-      const wb = t * t;
-      const sx = wa * SHIP_CURVES[o] + wc * SHIP_CURVES[o + 3] + wb * SHIP_CURVES[o + 6];
-      const sy = wa * SHIP_CURVES[o + 1] + wc * SHIP_CURVES[o + 4] + wb * SHIP_CURVES[o + 7];
-      const sz = wa * SHIP_CURVES[o + 2] + wc * SHIP_CURVES[o + 5] + wb * SHIP_CURVES[o + 8];
-      SHIP_POS[s * 3] = sx;
-      SHIP_POS[s * 3 + 1] = sy;
-      SHIP_POS[s * 3 + 2] = sz;
-      setSmallPosition(SHIP_BASE + s, sx, sy, sz);
-      // Direction of travel = the curve's tangent, reversed on the way back.
-      let hx = 2 * k * (SHIP_CURVES[o + 3] - SHIP_CURVES[o]) + 2 * t * (SHIP_CURVES[o + 6] - SHIP_CURVES[o + 3]);
-      let hy = 2 * k * (SHIP_CURVES[o + 4] - SHIP_CURVES[o + 1]) + 2 * t * (SHIP_CURVES[o + 7] - SHIP_CURVES[o + 4]);
-      let hz = 2 * k * (SHIP_CURVES[o + 5] - SHIP_CURVES[o + 2]) + 2 * t * (SHIP_CURVES[o + 8] - SHIP_CURVES[o + 5]);
-      const hl = (Math.hypot(hx, hy, hz) || 1) * dir;
-      hx /= hl;
-      hy /= hl;
-      hz /= hl;
-      // The nose points along it while accelerating and against it while
-      // braking (the engines always push against the motion they must shed);
-      // in between the ship turns end over end, about the axis that faces the
-      // viewer so the flip can be seen.
-      const turn = flight.turn * Math.PI;
-      const ct = Math.cos(turn);
-      const st = Math.sin(turn);
-      const sl = Math.hypot(hx, hy) || 1;
-      setSmallHeading(SHIP_BASE + s, hx * ct - (hy / sl) * st, hy * ct + (hx / sl) * st, hz * ct);
+
+      SHIP_POS[s * 3] = px;
+      SHIP_POS[s * 3 + 1] = py;
+      SHIP_POS[s * 3 + 2] = pz;
+      setSmallPosition(SHIP_BASE + s, px, py, pz);
+      // The hull turns to its new attitude; it never snaps.
+      const h = s * 3;
+      let ex = SHIP_HEAD[h] + (hx - SHIP_HEAD[h]) * fHead;
+      let ey = SHIP_HEAD[h + 1] + (hy - SHIP_HEAD[h + 1]) * fHead;
+      let ez = SHIP_HEAD[h + 2] + (hz - SHIP_HEAD[h + 2]) * fHead;
+      const el = Math.hypot(ex, ey, ez);
+      if (el < 1e-3) {
+        ex = hx;
+        ey = hy;
+        ez = hz;
+      } else {
+        ex /= el;
+        ey /= el;
+        ez /= el;
+      }
+      SHIP_HEAD[h] = ex;
+      SHIP_HEAD[h + 1] = ey;
+      SHIP_HEAD[h + 2] = ez;
+      setSmallHeading(SHIP_BASE + s, ex, ey, ez);
 
       const glowTarget = active || fleet ? 1.5 : pinned ? 0.3 : focusCluster !== null ? 0.6 : 1;
       SHIP_GLOW[s] += (glowTarget - SHIP_GLOW[s]) * fShip;
       SHIP_SELECT[s] += ((chased ? 1 : active ? 0.7 : 0) - SHIP_SELECT[s]) * fSelect;
-      setSmallState(SHIP_BASE + s, SHIP_GLOW[s], SHIP_SELECT[s], thrust);
+      setSmallState(SHIP_BASE + s, SHIP_GLOW[s], SHIP_SELECT[s], flight.thrust);
 
-      // The wake is the stretch of path just flown: as long as the ship is fast.
-      const tail = Math.max(t0, Math.min(t1, t - dir * WAKE_LENGTH * (t1 - t0) * flight.speed));
-      setLineRange(WAKE_BASE + s, tail, t);
-      setLineIntensity(WAKE_BASE + s, 0.95 * Math.sqrt(flight.speed) * Math.min(SHIP_GLOW[s], 1.2) * enterCraft);
+      // In transit: the route still to fly, dashed, and the wake just flown
+      // (as long as the ship is fast). Parked: neither.
+      const flying = SHIP_STATE[s] === TRANSIT ? 1 : 0;
+      setLineRange(ROUTE_BASE + s, curveT, 1);
+      setLineRange(WAKE_BASE + s, Math.max(0, curveT - WAKE_LENGTH * flight.speed), curveT);
+      setLineIntensity(WAKE_BASE + s, 0.95 * Math.sqrt(flight.speed) * Math.min(SHIP_GLOW[s], 1.2) * enterCraft * flying);
+      const routeTarget = flying * (active || fleet ? 0.8 : pinned || focusCluster !== null ? 0.12 : 0.4);
+      LINE_INT[ROUTE_BASE + s] += (routeTarget - LINE_INT[ROUTE_BASE + s]) * fShip;
+      setLineIntensity(ROUTE_BASE + s, LINE_INT[ROUTE_BASE + s] * enterCraft);
     }
 
     // ── The star flares while it is hovered or open, and dims a little while
@@ -1188,11 +1469,13 @@ function Scene({
       if (IS_HUB[i]) continue;
       setLineIntensity(TRAIL_OF_NODE[i], 0.7 * Math.min(GLOW[i], 1.2) * CLUSTER_RATE[CLUSTER_OF[i]] * enterLeaf);
     }
-    for (let l = 0; l < LANE_COUNT; l++) {
-      const line = LANE_BASE + l;
-      const target = fleet || activeShip !== null || starActive ? 0.6 : focusCluster === null ? 0.3 : lineDim;
+    // The planets' own orbits round the star, and the trails they leave on them.
+    for (let c = 0; c < CLUSTER_COUNT; c++) {
+      const line = PLANET_ORBIT_BASE + c;
+      const target = starActive ? 0.5 : focusCluster === null ? 0.24 : focusCluster === c ? 0.42 : lineDim * 2;
       LINE_INT[line] += (target - LINE_INT[line]) * fLine;
       setLineIntensity(line, LINE_INT[line]);
+      setLineIntensity(PLANET_TRAIL_BASE + c, 0.85 * Math.min(GLOW[CLUSTER_HUB[c]], 1.2) * enterHub);
     }
 
     // ── Camera: frame the pinned target in the left-centre third (the detail
@@ -1203,7 +1486,13 @@ function Scene({
     const zoom = ZOOM.target;
     ZOOM.kick = Math.max(0, ZOOM.kick - dt);
     CLOSE.k = pinned && ZOOM.max > 1.01 ? clamp01((zoom - 1) / (ZOOM.max - 1)) : 0;
-    const homeZ = Math.max(HOME_Z, NEAR_PLANE_Z + (HALF_SPAN_X * FOCAL_F) / aspect);
+    // The outer orbit has to fit across the stage, and (the more the system is
+    // tipped up towards a plan view, the taller it stands) down it as well.
+    const homeZ = Math.max(
+      HOME_Z,
+      (HALF_SPAN_X * FOCAL_F) / aspect,
+      HALF_SPAN_X * Math.sin(Math.min(Math.abs(tiltX), Math.PI / 2)) * FOCAL_F * SPAN_FIT,
+    );
     let fogShift = homeZ / zoom - HOME_Z;
     const framing = zoomTarget !== null || chaseShip !== null || starPinned;
     if (framing && spin.current) {
@@ -1241,7 +1530,11 @@ function Scene({
       const z = homeZ / zoom + (ENTER.t > 0 ? 0 : ENTER_DOLLY);
       // Zooming keeps the point under the pointer where it was.
       const travel = homeZ - homeZ / zoom;
-      CAM_TARGET.set((ZOOM.nx * aspect * travel) / FOCAL_F, (ZOOM.ny * travel) / FOCAL_F, z);
+      CAM_TARGET.set(
+        (ZOOM.nx * aspect * travel) / FOCAL_F,
+        (ZOOM.ny * travel) / FOCAL_F - (HOME_DROP * z) / homeZ,
+        z,
+      );
       // Hovering a far system lifts the fog off it (last frame's depth is plenty).
       if (focusCluster !== null) {
         fogShift = Math.max(fogShift, PICK_DEPTH[CLUSTER_HUB[focusCluster]] - CLEAR_DEPTH);
@@ -1336,8 +1629,31 @@ function Scene({
       opacity *= enterHub * nearK;
       const half = LBL_W[STAR_PICK] / 2;
       const ax = Math.max(STAGE_PAD + half, Math.min(size.width - STAGE_PAD - half, PROJ.x));
-      const ay = Math.max(PROJ.y - BIG_R[0] * 1.5 - 8, HUB_LABEL_H + 14);
+      let ay = PROJ.y - BIG_R[0] * 1.5 - 8;
+      // Its name follows the star off the top of the stage, unless it is the star that is open.
+      if (starPinned) ay = Math.max(ay, HUB_LABEL_H + 14);
+      else if (ay - HUB_LABEL_H < TOP_BAND - 12 || PROJ.x < 0 || PROJ.x > size.width) opacity = 0;
+      // In the overview a planet passing behind the name would tangle with it:
+      // the name hangs below the star until the planet has moved on (the
+      // planets' places on screen are last frame's, which is near enough).
+      const usual = ay;
+      if (focusCluster === null && !pinned) {
+        const onPlanet = (y: number) => {
+          for (let b = 1; b <= CLUSTER_COUNT; b++) {
+            const r = BIG_R[b];
+            if (ax - half < BIG_X[b] + r && ax + half > BIG_X[b] - r && y - HUB_LABEL_H < BIG_Y[b] + r && y > BIG_Y[b] - r) return true;
+          }
+          return false;
+        };
+        const below = PROJ.y + BIG_R[0] * 1.5 + 8 + HUB_LABEL_H;
+        if (onPlanet(ay) && !onPlanet(below)) ay = below;
+      }
+      const starShift = ay - usual;
+      STAR_SHIFT.v = opacity > 0 ? STAR_SHIFT.v + (starShift - STAR_SHIFT.v) * (1 - Math.exp(-dt * 9)) : starShift;
       if (ay > size.height - LEGEND_BAND) opacity = 0;
+      STAR_DISC.x = PROJ.x;
+      STAR_DISC.y = PROJ.y;
+      STAR_DISC.r = PROJ.front && nearK > 0.5 ? BIG_R[0] * 1.12 : 0;
       STAR_LABEL.on = opacity > 0;
       STAR_LABEL.left = ax - half - LABEL_GAP;
       STAR_LABEL.right = ax + half + LABEL_GAP;
@@ -1348,7 +1664,7 @@ function Scene({
         const top = ay - HUB_LABEL_H;
         if (left < CARD.right && left + LBL_W[STAR_PICK] > CARD.left && top < CARD.bottom && ay > CARD.top) opacity = 0;
       }
-      writeLabel(STAR_PICK, opacity, interactive, ANCHOR_ABOVE, ax, ay);
+      writeLabel(STAR_PICK, opacity, interactive, ANCHOR_ABOVE, ax, usual + STAR_SHIFT.v);
     }
     for (let c = 0; c < CLUSTER_COUNT; c++) {
       const cluster = CLUSTERS[c];
@@ -1381,6 +1697,8 @@ function Scene({
 
     let sweep = 0;
     let waiting = 0;
+    let hubBoxes = 0;
+    const fName = 1 - Math.exp(-dt * 9);
     for (let i = 0; i < NODE_COUNT; i++) {
       project(NODE_POSITIONS[i * 3], NODE_POSITIONS[i * 3 + 1], NODE_POSITIONS[i * 3 + 2]);
       const depth = PROJ.depth;
@@ -1413,6 +1731,7 @@ function Scene({
       }
 
       if (!LABEL_ELS[i]) continue;
+      const onStage = sx > -rPx && sx < size.width + rPx && sy > -rPx && sy < size.height + rPx;
       const inFocus = focusCluster === null || CLUSTER_OF[i] === focusCluster;
       let opacity: number;
       if (!inFront || ORBIT.dragging) opacity = isHub && inFront ? 0.5 : 0;
@@ -1422,6 +1741,8 @@ function Scene({
       opacity *= (isHub ? enterHub : enterLeaf) * nearK;
       // A moon behind its planet takes its name with it (it would float on the globe).
       if (eclipsed && i !== activeNode) opacity = 0;
+      // So does a body that has left the stage.
+      if (!onStage && i !== activeNode) opacity = 0;
       // Depth cue: labels on the far side recede with their bodies — but never the
       // active one, nor the focused system's (those must stay fully legible).
       if (i !== activeNode && opacity > 0 && CLUSTER_OF[i] !== focusCluster) {
@@ -1438,8 +1759,38 @@ function Scene({
       let ax = sx;
       let ay = sy;
       if (isHub) {
-        // In a close-up the globe outgrows the stage: its label stays on it.
-        ay = Math.max(sy - rPx * HUB_LABEL_CLEAR - 6, HUB_LABEL_H + 14);
+        const c = CLUSTER_OF[i];
+        ay = sy - rPx * HUB_LABEL_CLEAR - 6;
+        // In a close-up the globe in focus outgrows the stage: its label stays
+        // on it. Any other planet whose label would leave the top goes unnamed.
+        if (c === focusCluster) ay = Math.max(ay, HUB_LABEL_H + 14);
+        else if (ay - HUB_LABEL_H < TOP_BAND - 12) opacity = 0;
+        const usual = ay;
+        const half = LBL_W[i] / 2 + LABEL_GAP;
+        // In the overview the planets pass in front of the star and of each
+        // other. A name that would land on the star, on its name or on another
+        // planet's hangs below its own planet instead...
+        if (focusCluster === null && !pinned && nameBlocked(sx, half, ay, hubBoxes)) {
+          const below = sy + rPx * HUB_LABEL_CLEAR + 6 + HUB_LABEL_H;
+          if (!nameBlocked(sx, half, below, hubBoxes)) ay = below;
+        }
+        // ...and failing that, steps above the earlier planet's name.
+        for (let b = 0; b < hubBoxes; b++) {
+          if (sx - half < HUB_BOX[b * 4 + 1] && sx + half > HUB_BOX[b * 4] && ay - HUB_LABEL_H < HUB_BOX[b * 4 + 3] && ay > HUB_BOX[b * 4 + 2]) {
+            ay = HUB_BOX[b * 4 + 2] - LABEL_GAP;
+          }
+        }
+        if (opacity > 0) {
+          HUB_BOX[hubBoxes * 4] = sx - half;
+          HUB_BOX[hubBoxes * 4 + 1] = sx + half;
+          HUB_BOX[hubBoxes * 4 + 2] = ay - HUB_LABEL_H;
+          HUB_BOX[hubBoxes * 4 + 3] = ay;
+          hubBoxes++;
+        }
+        // It glides to its new place; it does not jump there.
+        const shift = ay - usual;
+        HUB_SHIFT[c] = opacity > 0 ? HUB_SHIFT[c] + (shift - HUB_SHIFT[c]) * fName : shift;
+        ay = usual + HUB_SHIFT[c];
       } else {
         const h = CLUSTER_HUB[CLUSTER_OF[i]] * 3;
         const dx = sx - SCREEN[h];
@@ -1663,24 +2014,36 @@ function Scene({
           rz - (behind * c.center[2]) / cl,
         );
         setLiveReadout('moon-light', behind > 0 && off < c.radius ? 'In eclipse' : 'In sunlight');
+      } else if (pinned && zoomTarget !== null && IS_HUB[zoomTarget]) {
+        // A planet: where it is on its orbit round the star, by vis-viva.
+        const c = CLUSTER_OF[zoomTarget];
+        const physics = PLANET_PHYSICS[CLUSTERS[c].planet];
+        const rAU = physics.orbitAU * orbitRadius(PLANET_E[c], physics.ecc);
+        setLiveReadout('planet-distance', `${rAU.toFixed(3)} AU`);
+        setLiveReadout('planet-speed', formatSpeed(helioSpeed(rAU, physics.orbitAU)));
+        setLiveReadout('planet-light', formatDuration(lightSeconds(rAU)));
       } else if (chaseShip !== null) {
-        const ship = SHIPS[chaseShip];
-        const transit = LANE_TRANSITS[ship.lane];
-        const lane = LANES[ship.lane];
-        const flight = FLIGHT[chaseShip];
-        const inbound = SHIP_INBOUND[chaseShip] === 1;
-        const to = CLUSTERS[inbound ? lane.a : lane.b].title;
-        const docked = flight.mode === FLIGHT_DOCKED;
-        setLiveReadout('ship-status', FLIGHT_LABELS[flight.mode]);
-        // Docked, it has arrived at `to`: its next leg goes back the other way.
-        setLiveReadout('ship-to', docked ? CLUSTERS[inbound ? lane.b : lane.a].title : to);
-        setLiveReadout('ship-speed', formatSpeed(flight.speed * transit.peakKmS));
-        const toGo = (1 - flight.progress) * transit.distanceAU * AU_KM;
-        setLiveReadout('ship-togo', docked ? 'Arrived' : `${(toGo / 1e6).toFixed(1)} million km`);
-        setLiveReadout(
-          'ship-eta',
-          docked ? 'Arrived' : formatDuration((1 - SHIP_TAU[chaseShip]) * transit.seconds),
-        );
+        const s = chaseShip;
+        const lane = LANES[SHIPS[s].lane];
+        const flight = FLIGHT[s];
+        if (SHIP_STATE[s] === PARKED) {
+          const at = SHIP_AT[s];
+          setLiveReadout('ship-status', `${FLIGHT_LABELS[FLIGHT_DOCKED]} · ${CLUSTERS[at].title}`);
+          setLiveReadout('ship-to', CLUSTERS[at === lane.a ? lane.b : lane.a].title);
+          setLiveReadout('ship-speed', formatSpeed(PARK_KMS[at]));
+          setLiveReadout('ship-togo', '—');
+          setLiveReadout('ship-eta', SHIP_TIMER[s] > 0 ? 'Refuelling' : 'Waiting for its window');
+          setLiveReadout('ship-lag', '—');
+        } else {
+          const dist = SHIP_DIST[s];
+          setLiveReadout('ship-status', FLIGHT_LABELS[flight.mode]);
+          setLiveReadout('ship-to', CLUSTERS[SHIP_TO[s]].title);
+          setLiveReadout('ship-speed', formatSpeed(flight.speed * transitPeakKmS(dist)));
+          const toGo = (1 - flight.progress) * dist * AU_PER_UNIT * AU_KM;
+          setLiveReadout('ship-togo', `${(toGo / 1e6).toFixed(1)} million km`);
+          setLiveReadout('ship-eta', formatDuration((1 - SHIP_TAU[s]) * transitSeconds(dist)));
+          setLiveReadout('ship-lag', formatDuration(SHIP_LAG[s]));
+        }
       }
     }
 
@@ -2040,7 +2403,7 @@ export default function SkillsConstellation({
           const dSpin = dx * SPIN_RATE * AXIS_UP[c];
           SPIN[c] += dSpin;
           SPIN_VEL[c] = (dSpin * 1000) / dtMs;
-          ORBIT.pitch = Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, ORBIT.pitch + dy * DRAG_PITCH * 0.5));
+          ORBIT.pitch = clampPitch(ORBIT.pitch + dy * DRAG_PITCH * 0.5);
           ORBIT.lastX = e.clientX;
           ORBIT.lastY = e.clientY;
           ORBIT.lastT = now;
@@ -2053,7 +2416,7 @@ export default function SkillsConstellation({
         const outward = dx !== 0 && Math.sign(dx) === Math.sign(total);
         const dYaw = dx * DRAG_YAW * (over > 0 && outward ? 1 / (1 + over * 4) : 1);
         ORBIT.yaw += dYaw;
-        ORBIT.pitch = Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, ORBIT.pitch + dy * DRAG_PITCH));
+        ORBIT.pitch = clampPitch(ORBIT.pitch + dy * DRAG_PITCH);
         ORBIT.vYaw = (dYaw * 1000) / dtMs;
         ORBIT.vPitch = (dy * DRAG_PITCH * 1000) / dtMs;
         ORBIT.lastX = e.clientX;
@@ -2108,6 +2471,9 @@ export default function SkillsConstellation({
   // pointer (the two clicks before it have toggled the pin on and off again).
   const onStageDoubleClick = useCallback(
     (e: React.MouseEvent) => {
+      // Two quick clicks on a control (zoom, time, a name) are two clicks on
+      // that control, not a dive into whatever happens to lie under it.
+      if ((e.target as HTMLElement).closest('button, a, [data-skill-card]')) return;
       const i = pickAt(e.clientX, e.clientY);
       if (i === -1) return;
       changePin(
@@ -2294,6 +2660,7 @@ export default function SkillsConstellation({
               chaseShip={chaseShip}
               starActive={starActive}
               starPinned={starPinned}
+              hovering={hover !== null && hover.kind !== 'fleet'}
               entered={entered}
               tier={tier}
               onTier={setTier}

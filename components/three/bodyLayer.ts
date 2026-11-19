@@ -62,9 +62,9 @@ import type { PlanetKind } from './skillsGraph';
 
 const PLANET_DEFINE: Record<PlanetKind, number> = { terran: 1, ice: 2, gas: 3, forge: 4 };
 
-const ATMOS_CLUSTER_RADIUS = 3.9;
-const ATMOS_BACKDROP_RADIUS = 11.5;
-export const SUN_RADIUS = 0.5;
+const ATMOS_CLUSTER_RADIUS = 3.0;
+const ATMOS_BACKDROP_RADIUS = 15;
+export const SUN_RADIUS = 0.85;
 const SATELLITE_HALF = 0.085;
 const STATION_HALF = 0.2;
 /** Radius, in planet radii, out to which a planet can cover what is behind it (rings included). */
@@ -356,7 +356,9 @@ for (let c = 0; c < GLOW_COUNT; c++) {
 const GLOW_GEOMETRY = new THREE.InstancedBufferGeometry();
 GLOW_GEOMETRY.setAttribute('position', new THREE.BufferAttribute(QUAD_POSITIONS, 3));
 GLOW_GEOMETRY.setIndex(QUAD_INDEX);
-GLOW_GEOMETRY.setAttribute('iPosR', new THREE.InstancedBufferAttribute(GLOW_POS, 4));
+const GLOW_POS_ATTR = new THREE.InstancedBufferAttribute(GLOW_POS, 4);
+GLOW_POS_ATTR.setUsage(THREE.DynamicDrawUsage);
+GLOW_GEOMETRY.setAttribute('iPosR', GLOW_POS_ATTR);
 GLOW_GEOMETRY.setAttribute('iColor', new THREE.InstancedBufferAttribute(GLOW_COLOR, 3));
 const GLOW_INT_ATTR = new THREE.InstancedBufferAttribute(GLOW_INT, 1);
 GLOW_INT_ATTR.setUsage(THREE.DynamicDrawUsage);
@@ -407,6 +409,7 @@ GLOW_MESH.frustumCulled = false;
 GLOW_MESH.renderOrder = 2.5;
 
 let glowDirty = true;
+let glowMoved = false;
 /** Sets a glow's intensity. `index` is a cluster index, or CLUSTER_COUNT for the backdrop. */
 export function setGlow(index: number, intensity: number): void {
   if (Math.abs(GLOW_INT[index] - intensity) > 0.0015) {
@@ -522,7 +525,7 @@ const SUN_FRAGMENT = /* glsl */ `
     float rays = 0.5 + 0.5 * vnoise(vec3(cos(ang) * 2.4, sin(ang) * 2.4, uTime * 0.1));
     float streamers = vnoise(vec3(cos(ang) * 7.0, sin(ang) * 7.0, uTime * 0.06 + 5.0));
     float corona = exp(-o * 7.0) * 0.6 + exp(-o * 1.7) * 0.34 * rays * (0.6 + 0.8 * streamers) + exp(-o * 0.6) * 0.085;
-    corona *= (1.0 - core) * (1.0 - smoothstep(4.2, 6.0, d)) * (1.0 + 0.5 * sel);
+    corona *= (1.0 - core) * (1.0 - smoothstep(2.3, 3.3, d)) * (1.0 + 0.5 * sel);
     rgb += mix(vec3(0.16, 0.84, 0.58), vec3(0.88, 1.0, 0.94), exp(-o * 4.5)) * corona * (0.3 + 0.7 * min(n, 1.4));
 
     float lock = reticle(P, d, 1.42 + 0.02 * sin(uTime * 4.0) * step(0.8, sel), clamp(aa * 1.1, 0.004, 0.02), aa, uTime * 0.14);
@@ -712,10 +715,11 @@ const PLANET_FRAGMENT = /* glsl */ `
         spec = pow(specB, 20.0) * 0.08 * (1.0 - lava);
       #endif
 
-      // Star light shaped by the relief, plus a faint fill from the viewer so
-      // the near planets (which show us more of their night side) stay readable.
+      // Star light shaped by the relief, plus a fill from the viewer: a planet
+      // on the near side of its orbit shows us its night side, and has to stay
+      // readable there.
       float lit = day * clamp(1.0 + relief * 2.4, 0.25, 1.9) * limb;
-      vec3 col = surf * (0.05 + lit + 0.24 * z * z * limb) + vec3(spec * day) + emit;
+      vec3 col = surf * (0.05 + lit + 0.3 * z * z * limb) + vec3(spec * day) + emit;
       col += uColor * fres * (0.22 + 0.55 * day);
       rgb = col * lum * disc;
     }
@@ -768,6 +772,9 @@ interface BigBody {
   state: THREE.Vector3;
   spin: { value: number };
   moons: THREE.Vector4[];
+  /** Where it is (system space), and for a planet the unit vector from it to the star. */
+  center: THREE.Vector3;
+  sunDir: THREE.Vector3;
 }
 
 function makeBig(
@@ -783,6 +790,9 @@ function makeBig(
   const state = new THREE.Vector3(1, 0, enter);
   const spin = { value: 0 };
   const moons = Array.from({ length: MAX_MOONS }, () => new THREE.Vector4());
+  const centerVec = new THREE.Vector3(center[0], center[1], center[2]);
+  // The star sits at the origin of the system.
+  const sunDir = centerVec.clone().negate().normalize();
   const c = cluster >= 0 ? CLUSTERS[cluster] : null;
   const axis = c ? c.axis : [0, 1, 0];
   const uniforms: Record<string, THREE.IUniform> = {
@@ -794,7 +804,7 @@ function makeBig(
     uSunView: SHARED.uSunView,
     uRadius: { value: radius },
     uExt: { value: ext },
-    uCenter: { value: new THREE.Vector3(center[0], center[1], center[2]) },
+    uCenter: { value: centerVec },
     uAxis: { value: new THREE.Vector3(axis[0], axis[1], axis[2]) },
     uColor: { value: new THREE.Vector3(color[0], color[1], color[2]) },
     uSeed: { value: seed },
@@ -805,8 +815,7 @@ function makeBig(
     uniforms.uE2 = { value: new THREE.Vector3(c.v[0], c.v[1], c.v[2]) };
     uniforms.uSpin = spin;
     uniforms.uMoons = { value: moons };
-    // The star sits at the origin of the system.
-    uniforms.uSunDir = { value: new THREE.Vector3(-center[0], -center[1], -center[2]).normalize() };
+    uniforms.uSunDir = { value: sunDir };
     uniforms.uMap = PLANET_SLOTS[cluster].map;
     uniforms.uMapMix = PLANET_SLOTS[cluster].mix;
     if (c.planet === 'terran') {
@@ -824,14 +833,14 @@ function makeBig(
   const mesh = new THREE.Mesh(BIG_GEOMETRY, material);
   mesh.position.set(center[0], center[1], center[2]);
   mesh.frustumCulled = false; // the quad is expanded in the shader
-  return { mesh, state, spin, moons };
+  return { mesh, state, spin, moons, center: centerVec, sunDir };
 }
 
 /** Index 0 is the star; 1 + c is the planet of cluster c. */
 export const BIG_COUNT = CLUSTER_COUNT + 1;
 const BIG: BigBody[] = [
   // Quad half-extents in body radii: room for the corona / atmosphere, rings and reticle.
-  makeBig(SUN_FRAGMENT, [0, 0, 0], SUN_RADIUS, 6.0, EMERALD, 0, 0),
+  makeBig(SUN_FRAGMENT, [0, 0, 0], SUN_RADIUS, 3.3, EMERALD, 0, 0),
   ...CLUSTERS.map((c, i) =>
     makeBig(
       PLANET_FRAGMENT,
@@ -851,6 +860,21 @@ export const BIG_MESHES = BIG.map((b) => b.mesh);
 export function setBigState(index: number, glow: number, select: number): void {
   BIG[index].state.x = glow;
   BIG[index].state.y = select;
+}
+
+/**
+ * Moves a planet to where its orbit has taken it: its quad, the centre its
+ * shockwave is measured from, the direction its light comes from, and its glow.
+ */
+export function setPlanetPosition(cluster: number, x: number, y: number, z: number): void {
+  const body = BIG[1 + cluster];
+  body.mesh.position.set(x, y, z);
+  body.center.set(x, y, z);
+  body.sunDir.set(-x, -y, -z).normalize();
+  GLOW_POS[cluster * 4] = x;
+  GLOW_POS[cluster * 4 + 1] = y;
+  GLOW_POS[cluster * 4 + 2] = z;
+  glowMoved = true;
 }
 
 /** How far a planet's globe has turned (radians): its own day plus the visitor's spin. */
@@ -1474,5 +1498,9 @@ export function uploadBodies(): void {
   if (glowDirty) {
     GLOW_INT_ATTR.needsUpdate = true;
     glowDirty = false;
+  }
+  if (glowMoved) {
+    GLOW_POS_ATTR.needsUpdate = true;
+    glowMoved = false;
   }
 }
